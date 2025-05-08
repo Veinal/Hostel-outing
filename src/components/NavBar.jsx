@@ -23,7 +23,7 @@ export const NavBar = () => {
                 <li><a>Item 3</a></li>
             </ul>
             </div>
-            <a className="btn btn-ghost text-xl">Hotel Outing App</a>
+            <a className="btn btn-ghost text-xl">MITE Hostel</a>
         </div>
         <div className="navbar-center hidden lg:flex">
             <ul className="menu menu-horizontal px-1">
