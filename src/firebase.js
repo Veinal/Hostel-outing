@@ -5,7 +5,7 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage'; 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDoHW4Q2qc1w0L2YkVkl5CLbsPLkBGDxBg",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: "hostel-outing-1.firebaseapp.com",
   databaseURL: "https://hostel-outing-1-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "hostel-outing-1",
