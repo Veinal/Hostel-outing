@@ -7,6 +7,7 @@ import { RequestPage } from './RequestPage'
 import { StudentDashboard } from './StudentDashboard'
 import { WardenDashboard } from './WardenDashboard'
 import { EditWardenProfile } from './EditWardenProfile'
+import { EditStudentProfile } from './EditStudentProfile'
 
 export const Router = () => {
   return (
@@ -20,6 +21,7 @@ export const Router = () => {
             <Route path='/studentdashboard' element={<StudentDashboard/>}/>
             <Route path='/wardendashboard' element={<WardenDashboard/>}/>
             <Route path='/editwardenprofile' element={<EditWardenProfile/>}/>
+            <Route path='/editstudentprofile' element={<EditStudentProfile/>}/>
           </Routes>
         </BrowserRouter>
     </div>
