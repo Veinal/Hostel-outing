@@ -1,11 +1,11 @@
 // src/firebase.js
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';       
-import { getFirestore } from 'firebase/firestore'; 
-import { getStorage } from 'firebase/storage'; 
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "hostel-outing-1.firebaseapp.com",
   databaseURL: "https://hostel-outing-1-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "hostel-outing-1",
@@ -17,7 +17,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Export the services you need
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

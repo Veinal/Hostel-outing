@@ -3,6 +3,7 @@ import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
 import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Import Firestore methods
 import { onAuthStateChanged } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage methods
+import { useNavigate } from 'react-router-dom';
 
 export const EditStudentProfile = () => {
   const [formData, setFormData] = useState({
@@ -12,9 +13,9 @@ export const EditStudentProfile = () => {
     branch: '',
     room: '',
     block: '',
-    photo: null,
   });
   const [userId, setUserId] = useState(null);
+  const navigate = useNavigate()
 
   // Fetch the current user's data on component mount
   useEffect(() => {
@@ -38,10 +39,10 @@ export const EditStudentProfile = () => {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, files } = e.target;
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: files ? files[0] : value,
+      [name]: value,
     });
   };
 
@@ -50,7 +51,7 @@ export const EditStudentProfile = () => {
 
     // Validate form fields
     for (const key in formData) {
-      if (!formData[key] && key !== 'photo') {
+      if (!formData[key]) {
         alert(`Please fill out the ${key} field.`);
         return;
       }
@@ -58,23 +59,14 @@ export const EditStudentProfile = () => {
 
     try {
       const userDocRef = doc(db, 'users', userId);
-      let photoURL = null;
 
-      // Upload photo to Firebase Storage if a photo is selected
-      if (formData.photo) {
-        const storage = getStorage(); // Initialize Firebase Storage
-        const photoRef = ref(storage, `user_photos/${userId}/${formData.photo.name}`); // Create a reference
-        await uploadBytes(photoRef, formData.photo); // Upload the photo
-        photoURL = await getDownloadURL(photoRef); // Get the download URL
-      }
-
-      // Update Firestore document
       await updateDoc(userDocRef, {
         ...formData,
-        photo: photoURL, // Save the photo's download URL in Firestore
+        role: 'student',
       });
 
       alert('Profile updated successfully!');
+      navigate('/studentdashboard')
     } catch (err) {
       console.error('Error updating profile:', err);
       alert('Failed to update profile. Please try again.');
