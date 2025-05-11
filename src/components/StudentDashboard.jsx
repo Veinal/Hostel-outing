@@ -4,6 +4,7 @@ import PendingIcon from '@mui/icons-material/Schedule';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { Link } from 'react-router-dom';
 
 const requests = [
   {
@@ -66,9 +67,11 @@ export const StudentDashboard = () => {
             <h2 className="text-3xl font-bold">My Outing Requests</h2>
             <p className="text-base text-gray-600">Manage and track your hostel outing requests</p>
           </div>
-          <button className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-            <span className="mr-2">➕</span> New Request
-          </button>
+          <Link to='/requestpage'>
+            <button className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+              <span className="mr-2">➕</span> New Request
+            </button>
+          </Link>
         </div>
 
         <div className="bg-gray-100 p-4 rounded-md flex items-center space-x-4 mb-8">

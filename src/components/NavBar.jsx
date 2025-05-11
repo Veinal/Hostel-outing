@@ -8,6 +8,7 @@ import { FiLogOut } from 'react-icons/fi'; // Import logout icon
 export const NavBar = () => {
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false); // State for modal visibility
   const navigate = useNavigate();
 
   // Listen for authentication state changes
@@ -20,11 +21,14 @@ export const NavBar = () => {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setFullName(userDoc.data().fullName); // Set the full name from Firestore
+          const fetchedFullName = userDoc.data().fullName || 'Unknown User';
+          setFullName(fetchedFullName); // Set the full name from Firestore
+          localStorage.setItem('fullName', fetchedFullName); // Store full name in localStorage
         }
       } else {
         setUser(null); // No user is logged in
         setFullName(''); // Clear the full name
+        localStorage.removeItem('fullName'); // Remove full name from localStorage
       }
     });
 
@@ -35,6 +39,8 @@ export const NavBar = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth); // Sign out the user
+      localStorage.removeItem('fullName'); // Remove full name from localStorage
+      setShowLogoutModal(false);
       navigate('/'); // Redirect to the login page
     } catch (error) {
       console.error('Error logging out:', error);
@@ -59,7 +65,7 @@ export const NavBar = () => {
                 Hi, {fullName || user.email.split('@')[0]}
               </span>
               <button
-                onClick={handleLogout}
+                onClick={() => setShowLogoutModal(true)} // Show the modal
                 className="text-gray-700 hover:text-red-600 transition-all duration-300"
                 title="Logout"
               >
@@ -75,6 +81,36 @@ export const NavBar = () => {
           )}
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div
+          className="fixed inset-0 bg-opacity-30 backdrop-blur-sm flex justify-center items-center z-50"
+          onClick={() => setShowLogoutModal(false)} // Close modal when clicking outside
+        >
+          <div
+            className="bg-white rounded-lg p-8 shadow-lg w-full max-w-lg"
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
+          >
+            <h2 className="text-lg font-semibold mb-4">Confirm Logout</h2>
+            <p className="mb-6">Are you sure you want to logout?</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowLogoutModal(false)} // Close the modal
+                className="btn bg-gray-300 text-gray-700 hover:bg-gray-400 px-4 py-2 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout} // Perform logout
+                className="btn bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-md"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,133 +1,129 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaBars, FaUserGraduate, FaUserTie, FaClipboardList, FaUsers } from 'react-icons/fa';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore'; // Added 'getDoc'
+import { db } from '../firebase';
+import { SideBar } from './SideBar';
+import { FaUsers, FaUserTie, FaClipboardList } from 'react-icons/fa'; // Importing icons
 
 export const AdminDashboard = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true); // State to track loading
+  const [studentCount, setStudentCount] = useState(0); // State for student count
+  const [wardenCount, setWardenCount] = useState(0); // State for warden count
+  const [pendingRequestCount, setPendingRequestCount] = useState(0); // State for pending requests count
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      const auth = getAuth();
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
+      // Listen for authentication state changes
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // If no user is logged in, redirect to home page
+          navigate('/');
+          return;
+        }
+
+        // Fetch the user's role from Firestore
+        const userDoc = await getDoc(doc(db, 'users', user.uid)); // Use getDoc for a single document
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const userRole = userData.role;
+
+          if (userRole !== 'admin') {
+            // If the user is not an admin, redirect to home page
+            navigate('/');
+          } else {
+            // User is an admin, allow access
+            setIsLoading(false);
+          }
+        } else {
+          // If the user's role is not found, redirect to home page
+          navigate('/');
+        }
+      });
+    };
+
+    const fetchCounts = async () => {
+      try {
+        // Fetch student count
+        const studentQuery = query(collection(db, 'users'), where('role', '==', 'student'));
+        const studentSnapshot = await getDocs(studentQuery);
+        setStudentCount(studentSnapshot.size);
+
+        // Fetch warden count
+        const wardenQuery = query(collection(db, 'users'), where('role', '==', 'warden'));
+        const wardenSnapshot = await getDocs(wardenQuery);
+        setWardenCount(wardenSnapshot.size);
+
+        // Fetch all requests count
+        const requestSnapshot = await getDocs(collection(db, 'outingRequests')); // Fetch all requests
+        setPendingRequestCount(requestSnapshot.size); // Update state with total requests count
+      } catch (error) {
+        console.error('Error fetching counts:', error);
+      }
+    };
+
+    checkAdminRole();
+    fetchCounts();
+  }, [navigate]);
+
+  if (isLoading) {
+    // Show a loading spinner or message while checking the user's role
+    return <div className="flex justify-center items-center min-h-screen"><span className="loading loading-bars loading-lg"></span></div>;
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside
-        className={`${
-          isCollapsed ? 'w-20' : 'w-64'
-        } ${
-          isMobileMenuOpen ? 'absolute z-50' : 'hidden md:flex'
-        } bg-gradient-to-br from-blue-400 to-teal-500 text-white flex flex-col transition-all duration-300 shadow-lg md:relative`}
-      >
-        <div className="p-4 flex items-center justify-between">
-          <h1
-            className={`text-2xl font-bold transition-all duration-300 ${
-              isCollapsed ? 'hidden' : 'block'
-            }`}
-          >
-            Admin Panel
-          </h1>
-          <button
-            onClick={toggleSidebar}
-            className="text-white focus:outline-none"
-          >
-            <FaBars size={20} />
-          </button>
-        </div>
-        <nav className="flex-1">
-          <ul className="space-y-2">
-            <li>
-              <Link
-                to="/managestudents"
-                className="flex items-center px-4 py-3 hover:bg-teal-600 transition rounded-md"
-              >
-                <FaUserGraduate className="mr-3" />
-                <span
-                  className={`transition-all duration-300 ${
-                    isCollapsed ? 'hidden' : 'block'
-                  }`}
-                >
-                  Manage Students
-                </span>
-              </Link>
-            </li>
-            <li>
-              <Link
-                to="/managewardens"
-                className="flex items-center px-4 py-3 hover:bg-teal-600 transition rounded-md"
-              >
-                <FaUserTie className="mr-3" />
-                <span
-                  className={`transition-all duration-300 ${
-                    isCollapsed ? 'hidden' : 'block'
-                  }`}
-                >
-                  Manage Wardens
-                </span>
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </aside>
-
-      {/* Mobile Menu Toggle */}
-      <button
-        onClick={toggleMobileMenu}
-        className="md:hidden fixed top-4 left-4 bg-blue-500 text-white p-2 rounded-full shadow-lg z-50"
-      >
-        <FaBars size={20} />
-      </button>
-
-      {/* Main Content */}
-      <main className="flex-1 p-8">
+    <div className="flex min-h-screen">
+      <SideBar />
+      <main className="flex-1 p-8 bg-gray-50">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="p-6 bg-white rounded-lg shadow flex items-center">
-            <FaUsers className="text-blue-500 text-3xl mr-4" />
-            <div>
+            <FaUsers className="text-blue-500 text-3xl sm:text-4xl md:text-5xl mr-4" />
+            <div className="break-words">
               <h2 className="text-xl font-semibold">Total Students</h2>
-              <p className="text-gray-600">1,234</p>
+              <p className="text-gray-600">{studentCount}</p>
             </div>
           </div>
           <div className="p-6 bg-white rounded-lg shadow flex items-center">
-            <FaUserTie className="text-teal-500 text-3xl mr-4" />
-            <div>
+            <FaUserTie className="text-teal-500 text-3xl sm:text-4xl md:text-5xl mr-4" />
+            <div className="break-words">
               <h2 className="text-xl font-semibold">Total Wardens</h2>
-              <p className="text-gray-600">56</p>
+              <p className="text-gray-600">{wardenCount}</p>
             </div>
           </div>
           <div className="p-6 bg-white rounded-lg shadow flex items-center">
-            <FaClipboardList className="text-purple-500 text-3xl mr-4" />
-            <div>
+            <FaClipboardList className="text-purple-500 text-3xl sm:text-4xl md:text-5xl mr-4" />
+            <div className="break-words">
               <h2 className="text-xl font-semibold">Pending Requests</h2>
-              <p className="text-gray-600">12</p>
+              <p className="text-gray-600">{pendingRequestCount}</p>
             </div>
           </div>
         </div>
 
-
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Link
-            to="/managestudents"
-            className="p-6 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition"
-          >
-            <h2 className="text-xl font-semibold">Manage Students</h2>
-            <p className="text-sm">View, add, edit, or remove student profiles.</p>
+          <Link to='/managestudents'>
+            <div className="p-6 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center">
+              <FaUsers className="text-white text-3xl sm:text-4xl md:text-5xl mr-4" />
+              <div>
+                <h2 className="text-xl font-semibold break-words">Manage Students</h2>
+                <p className="text-sm break-words">View, add, edit, or remove student profiles.</p>
+              </div>
+            </div>
           </Link>
-          <Link
-            to="/managewardens"
-            className="p-6 bg-teal-500 text-white rounded-lg shadow hover:bg-teal-600 transition"
-          >
-            <h2 className="text-xl font-semibold">Manage Wardens</h2>
-            <p className="text-sm">View, add, edit, or remove warden profiles.</p>
+          <Link to='/managewardens'>
+            <div className="p-6 bg-teal-500 text-white rounded-lg shadow hover:bg-teal-600 transition flex items-center">
+              <FaUserTie className="text-white text-3xl sm:text-4xl md:text-5xl mr-4" />
+              <div>
+                <h2 className="text-xl font-semibold break-words">Manage Wardens</h2>
+                <p className="text-sm break-words">View, add, edit, or remove warden profiles.</p>
+              </div>
+            </div>
           </Link>
         </div>
       </main>
