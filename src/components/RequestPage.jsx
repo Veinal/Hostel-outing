@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
-import { collection, addDoc, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
+import Snackbar from '@mui/material/Snackbar'; // Import Snackbar from Material-UI
+import Alert from '@mui/material/Alert'; // Import Alert for styled Snackbar
 
 export const RequestPage = () => {
   const [form, setForm] = useState({
@@ -14,6 +17,8 @@ export const RequestPage = () => {
 
   const [student, setStudent] = useState({ id: '', name: '' }); // State to store student info
   const [wardens, setWardens] = useState([]); // State to store warden list
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' }); // Snackbar state
+  const navigate = useNavigate(); // Initialize useNavigate
 
   useEffect(() => {
     // Fetch the currently logged-in student's ID and name from localStorage
@@ -58,7 +63,7 @@ export const RequestPage = () => {
       const selectedWarden = wardens.find((warden) => warden.name === form.warden);
 
       if (!selectedWarden) {
-        alert('Invalid warden selected. Please try again.');
+        setSnackbar({ open: true, message: 'Invalid warden selected. Please try again.', severity: 'error' });
         return;
       }
 
@@ -73,7 +78,7 @@ export const RequestPage = () => {
       };
 
       await addDoc(collection(db, 'outingRequests'), requestData);
-      alert('Request submitted successfully!');
+      setSnackbar({ open: true, message: 'Request submitted successfully!', severity: 'success' });
       setForm({
         requestType: '',
         reason: '',
@@ -81,10 +86,17 @@ export const RequestPage = () => {
         outDate: '',
         returnDate: '',
       });
+
+      // Redirect to StudentDashboard after a short delay
+      setTimeout(() => navigate('/studentdashboard'), 1500);
     } catch (error) {
       console.error('Error submitting request:', error);
-      alert('Failed to submit the request. Please try again.');
+      setSnackbar({ open: true, message: 'Failed to submit the request. Please try again.', severity: 'error' });
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -189,12 +201,14 @@ export const RequestPage = () => {
 
           {/* Buttons */}
           <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
-            >
-              Cancel
-            </button>
+            <Link to="/studentdashboard">
+              <button
+                type="button"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+              >
+                Cancel
+              </button>
+            </Link>
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
@@ -204,6 +218,18 @@ export const RequestPage = () => {
           </div>
         </form>
       </div>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: '' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

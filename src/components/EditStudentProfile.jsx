@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
 import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Import Firestore methods
 import { onAuthStateChanged } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Import Firebase Storage methods
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; // Import Axios for Cloudinary API requests
 
 export const EditStudentProfile = () => {
   const [formData, setFormData] = useState({
@@ -13,9 +13,11 @@ export const EditStudentProfile = () => {
     branch: '',
     room: '',
     block: '',
+    photoUrl: '', // Add a field for the photo URL
   });
   const [userId, setUserId] = useState(null);
-  const navigate = useNavigate()
+  const [photoFile, setPhotoFile] = useState(null); // State to store the selected photo file
+  const navigate = useNavigate();
 
   // Fetch the current user's data on component mount
   useEffect(() => {
@@ -46,27 +48,52 @@ export const EditStudentProfile = () => {
     });
   };
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    setPhotoFile(file); // Store the selected file in state
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate form fields
     for (const key in formData) {
-      if (!formData[key]) {
+      if (!formData[key] && key !== 'photoUrl') {
         alert(`Please fill out the ${key} field.`);
         return;
       }
     }
 
     try {
+      let photoUrl = formData.photoUrl;
+
+      // Upload the photo to Cloudinary if a new photo is selected
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append('file', photoFile);
+        formData.append('upload_preset', 'Hostel outing'); // Replace with your Cloudinary upload preset
+        formData.append('cloud_name', 'dckqij0ar'); // Replace with your Cloudinary cloud name
+        formData.append('folder', 'hostel_outing'); // Specify the folder name in Cloudinary
+
+        const response = await axios.post(
+          'https://api.cloudinary.com/v1_1/dckqij0ar/image/upload', // Replace with your Cloudinary API endpoint
+          formData
+        );
+
+        photoUrl = response.data.secure_url; // Get the secure URL of the uploaded image
+      }
+
+      // Update Firestore with the form data and photo URL
       const userDocRef = doc(db, 'users', userId);
 
       await updateDoc(userDocRef, {
         ...formData,
+        photoUrl, // Save the photo URL in Firestore
         role: 'student',
       });
 
       alert('Profile updated successfully!');
-      navigate('/studentdashboard')
+      navigate('/studentdashboard');
     } catch (err) {
       console.error('Error updating profile:', err);
       alert('Failed to update profile. Please try again.');
@@ -96,7 +123,7 @@ export const EditStudentProfile = () => {
             <InputField label="Hostel Block" name="block" value={formData.block} onChange={handleChange} />
             <InputField label="Room Number" name="room" value={formData.room} onChange={handleChange} />
 
-            {/* Upload Photo Field with Custom Style */}
+            {/* Upload Photo Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Upload Photo</label>
               <div className="relative w-full">
@@ -105,7 +132,7 @@ export const EditStudentProfile = () => {
                   type="file"
                   name="photo"
                   accept="image/*"
-                  onChange={handleChange}
+                  onChange={handlePhotoChange} // Handle photo change
                   className="hidden"
                 />
                 <label
@@ -114,9 +141,9 @@ export const EditStudentProfile = () => {
                 >
                   Choose Photo
                 </label>
-                {formData.photo && (
+                {photoFile && (
                   <p className="text-xs text-gray-600 mt-1 truncate">
-                    Selected: {formData.photo.name || formData.photo}
+                    Selected: {photoFile.name}
                   </p>
                 )}
               </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaHome, FaUserGraduate, FaUserTie } from 'react-icons/fa'; // Importing icons
+import { FaHome, FaUserGraduate, FaUserTie, FaClipboardList } from 'react-icons/fa'; // Importing icons
 
 export const SideBar = () => {
   const location = useLocation();
@@ -69,6 +69,17 @@ export const SideBar = () => {
             >
               <FaUserTie className="text-xl" />
               {!isCollapsed && <span>Manage Wardens</span>}
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/managerequests"
+              className={`flex items-center gap-4 p-2 rounded-lg ${
+                isActive('/managerequests') ? 'bg-primary text-white' : 'hover:bg-gray-100'
+              }`}
+            >
+              <FaClipboardList className="text-xl" />
+              {!isCollapsed && <span>Manage Requests</span>}
             </Link>
           </li>
         </ul>

@@ -5,10 +5,10 @@ import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { SideBar } from './SideBar';
 
-export const ManageStudents = () => {
-  const [students, setStudents] = useState([]);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [deleteStudentId, setDeleteStudentId] = useState(null);
+export const ManageRequests = () => {
+  const [requests, setRequests] = useState([]);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [deleteRequestId, setDeleteRequestId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true); // State to track loading
   const rowsPerPage = 10;
@@ -50,84 +50,83 @@ export const ManageStudents = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      const studentsCollection = collection(db, 'users');
-      const studentDocs = await getDocs(studentsCollection);
-      const studentList = studentDocs.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
-        .filter((user) => user.role === 'student');
-      setStudents(studentList);
+    const fetchRequests = async () => {
+      const requestsCollection = collection(db, 'outingRequests');
+      const requestDocs = await getDocs(requestsCollection);
+      const requestList = requestDocs.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRequests(requestList);
     };
 
-    fetchStudents();
+    fetchRequests();
   }, []);
 
   const handleDelete = async () => {
-    if (deleteStudentId) {
-      await deleteDoc(doc(db, 'users', deleteStudentId));
-      setStudents(students.filter((student) => student.id !== deleteStudentId));
-      setDeleteStudentId(null);
+    if (deleteRequestId) {
+      await deleteDoc(doc(db, 'outingRequests', deleteRequestId));
+      setRequests(requests.filter((request) => request.id !== deleteRequestId));
+      setDeleteRequestId(null);
     }
   };
 
-  const handleView = (student) => {
-    setSelectedStudent(student);
+  const handleView = (request) => {
+    setSelectedRequest(request);
   };
 
   // Pagination logic
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
-  const currentRows = students.slice(indexOfFirstRow, indexOfLastRow);
+  const currentRows = requests.slice(indexOfFirstRow, indexOfLastRow);
 
-  const totalPages = Math.ceil(students.length / rowsPerPage);
+  const totalPages = Math.ceil(requests.length / rowsPerPage);
 
   if (isLoading) {
     // Show a loading spinner or message while checking the user's role
-    return <div className="flex justify-center items-center min-h-screen"><span className="loading loading-bars loading-lg"></span></div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen">
       <SideBar />
       <main className="flex-1 p-4 md:p-8 bg-gray-50">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Students</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Requests</h1>
         <div className="overflow-x-auto">
           <table className="table w-full border border-gray-200 rounded-lg shadow">
             <thead>
               <tr>
-                <th className="bg-gray-100 text-gray-600">Photo</th>
-                <th className="bg-gray-100 text-gray-600">Full Name</th>
-                <th className="bg-gray-100 text-gray-600">Email</th>
-                <th className="bg-gray-100 text-gray-600">Branch</th>
-                <th className="bg-gray-100 text-gray-600">Year</th>
-                <th className="bg-gray-100 text-gray-600">Block</th>
+                <th className="bg-gray-100 text-gray-600">Student Name</th>
+                <th className="bg-gray-100 text-gray-600">Request Type</th>
+                <th className="bg-gray-100 text-gray-600">Reason</th>
+                <th className="bg-gray-100 text-gray-600">Out Date</th>
+                <th className="bg-gray-100 text-gray-600">Return Date</th>
+                <th className="bg-gray-100 text-gray-600">Status</th>
                 <th className="bg-gray-100 text-gray-600">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {currentRows.map((student) => (
-                <tr key={student.id}>
-                  <td className="text-center">
-                    <img
-                      src={student.photoUrl || 'https://via.placeholder.com/50'}
-                      alt="student"
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  </td>
-                  <td className="text-gray-800">{student.fullName}</td>
-                  <td className="text-gray-800">{student.email}</td>
-                  <td className="text-gray-800">{student.branch || 'N/A'}</td>
-                  <td className="text-gray-800">{student.year || 'N/A'}</td>
-                  <td className="text-gray-800">{student.block || 'N/A'}</td>
+              {currentRows.map((request) => (
+                <tr key={request.id}>
+                  <td className="text-gray-800">{request.studentName}</td>
+                  <td className="text-gray-800">{request.requestType}</td>
+                  <td className="text-gray-800">{request.reason}</td>
+                  <td className="text-gray-800">{request.outDate}</td>
+                  <td className="text-gray-800">{request.returnDate}</td>
+                  <td className="text-gray-800">{request.status}</td>
                   <td>
                     <button
-                      onClick={() => handleView(student)}
+                      onClick={() => handleView(request)}
                       className="btn btn-sm btn-primary mr-2"
                     >
                       View
                     </button>
                     <button
-                      onClick={() => setDeleteStudentId(student.id)}
+                      onClick={() => setDeleteRequestId(request.id)}
                       className="btn btn-sm btn-error"
                     >
                       Delete
@@ -155,11 +154,11 @@ export const ManageStudents = () => {
           ))}
         </div>
 
-        {/* View Student Modal */}
-        {selectedStudent && (
+        {/* View Request Modal */}
+        {selectedRequest && (
           <div
             className="modal modal-open flex items-center justify-center"
-            onClick={() => setSelectedStudent(null)} // Close modal on outside click
+            onClick={() => setSelectedRequest(null)} // Close modal on outside click
           >
             <div
               className="modal-box relative bg-white rounded-lg shadow-lg p-6"
@@ -167,37 +166,29 @@ export const ManageStudents = () => {
             >
               <button
                 className="absolute top-2 right-2 btn btn-sm btn-circle btn-error"
-                onClick={() => setSelectedStudent(null)}
+                onClick={() => setSelectedRequest(null)}
               >
                 ✕
               </button>
-              <h3 className="font-bold text-lg text-center mb-4">Student Details</h3>
+              <h3 className="font-bold text-lg text-center mb-4">Request Details</h3>
               <div className="flex flex-col items-center">
-                <img
-                  src={selectedStudent.photoUrl || 'https://via.placeholder.com/100'}
-                  alt="Student"
-                  className="w-24 h-24 rounded-full object-cover mb-4"
-                />
                 <p className="text-gray-800">
-                  <strong>Full Name:</strong> {selectedStudent.fullName}
+                  <strong>Student Name:</strong> {selectedRequest.studentName}
                 </p>
                 <p className="text-gray-800">
-                  <strong>Email:</strong> {selectedStudent.email}
+                  <strong>Request Type:</strong> {selectedRequest.requestType}
                 </p>
                 <p className="text-gray-800">
-                  <strong>Phone:</strong> {selectedStudent.phone || 'N/A'}
+                  <strong>Reason:</strong> {selectedRequest.reason}
                 </p>
                 <p className="text-gray-800">
-                  <strong>Branch:</strong> {selectedStudent.branch || 'N/A'}
+                  <strong>Out Date:</strong> {selectedRequest.outDate}
                 </p>
                 <p className="text-gray-800">
-                  <strong>Year:</strong> {selectedStudent.year || 'N/A'}
+                  <strong>Return Date:</strong> {selectedRequest.returnDate}
                 </p>
                 <p className="text-gray-800">
-                  <strong>Block:</strong> {selectedStudent.block || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Room:</strong> {selectedStudent.room || 'N/A'}
+                  <strong>Status:</strong> {selectedRequest.status}
                 </p>
               </div>
             </div>
@@ -205,11 +196,11 @@ export const ManageStudents = () => {
         )}
 
         {/* Delete Confirmation Modal */}
-        {deleteStudentId && (
+        {deleteRequestId && (
           <div className="modal modal-open">
             <div className="modal-box">
               <h3 className="font-bold text-lg text-red-600">Confirm Deletion</h3>
-              <p>Are you sure you want to delete this student?</p>
+              <p>Are you sure you want to delete this request?</p>
               <div className="modal-action">
                 <button
                   onClick={handleDelete}
@@ -218,7 +209,7 @@ export const ManageStudents = () => {
                   Delete
                 </button>
                 <button
-                  onClick={() => setDeleteStudentId(null)}
+                  onClick={() => setDeleteRequestId(null)}
                   className="btn btn-sm btn-primary"
                 >
                   Cancel

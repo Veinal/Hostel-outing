@@ -12,6 +12,7 @@ import { NavBar } from './NavBar'; // Import your NavBar component
 import { AdminDashboard } from './AdminDashboard';
 import { ManageStudents } from './ManageStudents';
 import { ManageWardens } from './ManageWardens';
+import { ManageRequests } from './ManageRequests';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -42,6 +43,7 @@ export const Router = () => {
             <Route path='/admindashboard' element={<AdminDashboard />} />
             <Route path='/managestudents' element={<ManageStudents />} />
             <Route path='/managewardens' element={<ManageWardens />} />
+            <Route path='/managerequests' element={<ManageRequests />} />
           </Routes>
         </Layout>
       </BrowserRouter>
