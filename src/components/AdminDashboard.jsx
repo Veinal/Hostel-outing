@@ -99,15 +99,15 @@ export const AdminDashboard = () => {
           <div className="p-6 bg-white rounded-lg shadow flex items-center">
             <FaClipboardList className="text-purple-500 text-3xl sm:text-4xl md:text-5xl mr-4" />
             <div className="break-words">
-              <h2 className="text-xl font-semibold">Pending Requests</h2>
+              <h2 className="text-xl font-semibold">Total Requests</h2>
               <p className="text-gray-600">{pendingRequestCount}</p>
             </div>
           </div>
         </div>
 
         {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Link to='/managestudents'>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Link to="/managestudents">
             <div className="p-6 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition flex items-center">
               <FaUsers className="text-white text-3xl sm:text-4xl md:text-5xl mr-4" />
               <div>
@@ -116,12 +116,21 @@ export const AdminDashboard = () => {
               </div>
             </div>
           </Link>
-          <Link to='/managewardens'>
+          <Link to="/managewardens">
             <div className="p-6 bg-teal-500 text-white rounded-lg shadow hover:bg-teal-600 transition flex items-center">
               <FaUserTie className="text-white text-3xl sm:text-4xl md:text-5xl mr-4" />
               <div>
                 <h2 className="text-xl font-semibold break-words">Manage Wardens</h2>
                 <p className="text-sm break-words">View, add, edit, or remove warden profiles.</p>
+              </div>
+            </div>
+          </Link>
+          <Link to="/managerequests">
+            <div className="p-6 bg-purple-500 text-white rounded-lg shadow hover:bg-purple-600 transition flex items-center">
+              <FaClipboardList className="text-white text-3xl sm:text-4xl md:text-5xl mr-4" />
+              <div>
+                <h2 className="text-xl font-semibold break-words">Manage Requests</h2>
+                <p className="text-sm break-words">Review and manage outing requests.</p>
               </div>
             </div>
           </Link>

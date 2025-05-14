@@ -78,21 +78,21 @@ export const StudentDashboard = () => {
   return (
     <div>
       <div className="max-w-7xl mx-auto p-8 mt-3">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-4 md:space-y-0">
           <div>
             <h2 className="text-3xl font-bold">My Outing Requests</h2>
             <p className="text-base text-gray-600">Manage and track your hostel outing requests</p>
           </div>
           <Link to="/requestpage">
-            <button className="flex items-center px-5 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            <button className="flex items-center px-3 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm w-full md:w-auto">
               <span className="mr-2">➕</span> New Request
             </button>
           </Link>
         </div>
 
         {/* Filter Buttons */}
-        <div className="bg-gray-100 p-4 rounded-md flex items-center space-x-4 mb-8">
-          <span className="font-medium text-gray-700">Filter:</span>
+        <div className="bg-gray-100 p-4 rounded-md flex flex-wrap items-center gap-2 mb-8">
+          <span className="font-medium text-gray-700 whitespace-nowrap">Filter:</span>
           {statuses.map((status) => (
             <button
               key={status}
@@ -131,13 +131,20 @@ export const StudentDashboard = () => {
 
                   <h3 className="text-lg font-semibold mb-3">{req.requestType || 'Outing Request'}</h3>
 
+                  {/* Out Date and Out Time */}
                   <div className="flex items-center text-sm text-gray-700 mb-1">
                     <CalendarTodayIcon className="w-4 h-4 mr-1" />
-                    <span>Out Date: {req.outDate || 'N/A'}</span>
+                    <span>
+                      <b>Out Date:</b> {req.outDate || 'N/A'} {req.outTime ? `at ${req.outTime}` : ''}
+                    </span>
                   </div>
+
+                  {/* Return Date and Return Time */}
                   <div className="flex items-center text-sm text-gray-700 mb-2">
                     <AccessTimeIcon className="w-4 h-4 mr-1" />
-                    <span>Return Date: {req.returnDate || 'N/A'}</span>
+                    <span>
+                      <b>Return Date:</b> {req.returnDate || 'N/A'} {req.returnTime ? `at ${req.returnTime}` : ''}
+                    </span>
                   </div>
 
                   <hr className="my-3" />

@@ -135,8 +135,8 @@ export const WardenDashboard = () => {
           <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
 
           {/* Filter and Stats */}
-          <div className="mt-6 bg-white p-5 rounded-lg shadow flex flex-col md:flex-row items-center justify-between">
-            <div className="flex space-x-2 mb-3 md:mb-0">
+          <div className="mt-6 bg-white p-5 rounded-lg shadow flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap gap-2 mb-3 md:mb-0">
               {['All', 'Pending', 'Approved', 'Rejected'].map((type) => (
                 <button
                   key={type}
@@ -153,7 +153,7 @@ export const WardenDashboard = () => {
                 </button>
               ))}
             </div>
-            <div className="flex space-x-4 text-sm">
+            <div className="flex flex-wrap gap-4 text-sm">
               <span className="flex items-center gap-1 text-yellow-600">
                 <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending: {statusCount.Pending}
               </span>

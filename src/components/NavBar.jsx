@@ -51,19 +51,23 @@ export const NavBar = () => {
     <div>
       <div className="navbar bg-base-100 shadow-sm sticky top-0 z-50">
         <div className="navbar-start">
+          {/* Logo */}
           <img
             src="https://mite.ac.in/wp-content/uploads/2025/03/mite-logo.svg"
             className="w-7 ml-5"
             alt="MITE Logo"
           />
-          <span className="font-semibold ml-3 text-xl">MITE Hostel</span>
+          {/* Text hidden on smaller screens */}
+          <span className="font-semibold ml-3 text-xl hidden md:inline">MITE Hostel</span>
         </div>
         <div className="navbar-end flex items-center">
           {user ? (
             <>
+              {/* Greeting - Visible on all screen sizes */}
               <span className="text-gray-700 font-medium mr-4">
                 Hi, {fullName || user.email.split('@')[0]}
               </span>
+              {/* Logout Button */}
               <button
                 onClick={() => setShowLogoutModal(true)} // Show the modal
                 className="text-gray-700 hover:text-red-600 transition-all duration-300"

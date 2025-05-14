@@ -5,6 +5,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
 import Snackbar from '@mui/material/Snackbar'; // Import Snackbar from Material-UI
 import Alert from '@mui/material/Alert'; // Import Alert for styled Snackbar
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'; // Import CalendarTodayIcon
+import AccessTimeIcon from '@mui/icons-material/AccessTime'; // Import AccessTimeIcon
 
 export const RequestPage = () => {
   const [form, setForm] = useState({
@@ -13,6 +15,8 @@ export const RequestPage = () => {
     warden: '',
     outDate: '',
     returnDate: '',
+    outTime:'',
+    returnTime:''
   });
 
   const [student, setStudent] = useState({ id: '', name: '' }); // State to store student info
@@ -70,6 +74,8 @@ export const RequestPage = () => {
       // Add the form data along with the student ID, name, warden UID, and status to Firestore
       const requestData = {
         ...form,
+        outTime: `${form.outHour}:${form.outMinute} ${form.outPeriod}`,
+        returnTime: `${form.returnHour}:${form.returnMinute} ${form.returnPeriod}`,
         studentId: student.id,
         studentName: student.name, // Use the full name from localStorage
         wardenUid: selectedWarden.id, // Store the warden's UID
@@ -123,9 +129,9 @@ export const RequestPage = () => {
               <option value="" disabled>
                 Select Request Type
               </option>
-              <option value="outing">Outing</option>
-              <option value="leave">Leave</option>
-              <option value="other">Other</option>
+              <option value="Outing">Outing</option>
+              <option value="Leave">Leave</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
@@ -180,6 +186,7 @@ export const RequestPage = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                 value={form.outDate}
                 onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]} // Prevent past dates
                 required
               />
             </div>
@@ -194,9 +201,114 @@ export const RequestPage = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                 value={form.returnDate}
                 onChange={handleChange}
+                min={form.outDate || new Date().toISOString().split('T')[0]} // Prevent past dates and ensure it's after Out Date
                 required
               />
             </div>
+
+            {/* Out Time */}
+            <div>
+              <label className="block font-medium mb-1">
+                Out Time <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  name="outHour"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.outHour || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>Hour</option>
+                  {[...Array(12)].map((_, i) => (
+                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+                <select
+                  name="outMinute"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.outMinute || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>Minute</option>
+                  {[0, 15, 30, 45].map((minute) => (
+                    <option key={minute} value={minute}>{minute.toString().padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <select
+                  name="outPeriod"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.outPeriod || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled >AM/PM</option>
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Return Time */}
+            <div>
+              <label className="block font-medium mb-1">
+                Expected Return Time <span className="text-red-500">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <select
+                  name="returnHour"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.returnHour || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>Hour</option>
+                  {[...Array(12)].map((_, i) => (
+                    <option key={i + 1} value={i + 1}>{i + 1}</option>
+                  ))}
+                </select>
+                <select
+                  name="returnMinute"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.returnMinute || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>Minute</option>
+                  {[0, 15, 30, 45].map((minute) => (
+                    <option key={minute} value={minute}>{minute.toString().padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <select
+                  name="returnPeriod"
+                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.returnPeriod || ''}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>AM/PM</option>
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Out Date and Out Time */}
+          <div className="flex items-center text-sm text-gray-700 mb-1">
+            <CalendarTodayIcon className="w-4 h-4 mr-1" />
+            <span>
+              <b>Out Date:</b> {form.outDate || 'N/A'} {form.outTime ? `at ${form.outTime}` : ''}
+            </span>
+          </div>
+
+          {/* Return Date and Return Time */}
+          <div className="flex items-center text-sm text-gray-700 mb-2">
+            <AccessTimeIcon className="w-4 h-4 mr-1" />
+            <span>
+              <b>Return Date:</b> {form.returnDate || 'N/A'} {form.returnTime ? `at ${form.returnTime}` : ''}
+            </span>
           </div>
 
           {/* Buttons */}
@@ -224,7 +336,7 @@ export const RequestPage = () => {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: '' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
