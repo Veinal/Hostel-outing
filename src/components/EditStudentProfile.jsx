@@ -4,6 +4,8 @@ import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Import Firestore
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; // Import Axios for Cloudinary API requests
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 export const EditStudentProfile = () => {
   const [formData, setFormData] = useState({
@@ -13,10 +15,13 @@ export const EditStudentProfile = () => {
     branch: '',
     room: '',
     block: '',
+    gender: '', // <-- Add gender field
     photoUrl: '', // Add a field for the photo URL
   });
   const [userId, setUserId] = useState(null);
   const [photoFile, setPhotoFile] = useState(null); // State to store the selected photo file
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [loading, setLoading] = useState(false); // Add loading state
   const navigate = useNavigate();
 
   // Fetch the current user's data on component mount
@@ -59,10 +64,18 @@ export const EditStudentProfile = () => {
     // Validate form fields
     for (const key in formData) {
       if (!formData[key] && key !== 'photoUrl') {
-        alert(`Please fill out the ${key} field.`);
+        setSnackbar({ open: true, message: `Please fill out the ${key} field.`, severity: 'error' });
         return;
       }
     }
+
+    // Phone number validation
+    if (!/^\d{10}$/.test(formData.phone)) {
+      setSnackbar({ open: true, message: 'Phone number must be exactly 10 digits.', severity: 'error' });
+      return;
+    }
+
+    setLoading(true); // Start loader
 
     try {
       let photoUrl = formData.photoUrl;
@@ -92,11 +105,19 @@ export const EditStudentProfile = () => {
         role: 'student',
       });
 
-      alert('Profile updated successfully!');
-      navigate('/studentdashboard');
+      // Store fullName in localStorage for NavBar access
+      localStorage.setItem('fullName', formData.fullName);
+
+      setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
+      setTimeout(() => {
+        setSnackbar({ ...snackbar, open: false });
+        navigate('/studentdashboard');
+      }, 1500);
     } catch (err) {
       console.error('Error updating profile:', err);
-      alert('Failed to update profile. Please try again.');
+      setSnackbar({ open: true, message: 'Failed to update profile. Please try again.', severity: 'error' });
+    } finally {
+      setLoading(false); // Stop loader
     }
   };
 
@@ -119,6 +140,15 @@ export const EditStudentProfile = () => {
               options={['1st Year', '2nd Year', '3rd Year', '4th Year']}
             />
 
+            {/* Gender Field */}
+            <SelectField
+              label="Gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              options={['Male', 'Female']}
+            />
+
             <InputField label="Academic Branch" name="branch" value={formData.branch} onChange={handleChange} />
             <InputField label="Hostel Block" name="block" value={formData.block} onChange={handleChange} />
             <InputField label="Room Number" name="room" value={formData.room} onChange={handleChange} />
@@ -137,7 +167,7 @@ export const EditStudentProfile = () => {
                 />
                 <label
                   htmlFor="photoUpload"
-                  className="inline-block text-xs text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1 rounded-md shadow-sm transition duration-200"
+                  className="inline-block text-xs text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2.5 rounded-md shadow-sm transition duration-200"
                 >
                   Choose Photo
                 </label>
@@ -154,13 +184,52 @@ export const EditStudentProfile = () => {
             <button
               type="submit"
               onClick={handleSubmit}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200 flex items-center"
+              disabled={loading}
             >
-              Save Changes
+              {loading && (
+                <svg
+                  className="animate-spin h-5 w-5 mr-2 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+              )}
+              {loading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </div>
       </div>
+      <Snackbar
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </div>
   );
 };
@@ -175,6 +244,7 @@ const InputField = ({ label, name, type = 'text', value, onChange }) => (
       onChange={onChange}
       className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       required
+      {...(name === 'phone' ? { maxLength: 10, pattern: '\\d*', inputMode: 'numeric' } : {})}
     />
   </div>
 );

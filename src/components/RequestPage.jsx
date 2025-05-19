@@ -109,7 +109,7 @@ export const RequestPage = () => {
     <div>
       <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md mt-5">
         <h2 className="text-2xl font-bold mb-1">New Outing Request</h2>
-        <p className="text-sm text-gray-600 mb-10">
+        <p className="text-sm text-gray-600 mb-8">
           Fill in the details below to submit your hostel outing request
         </p>
 
@@ -296,34 +296,33 @@ export const RequestPage = () => {
           </div>
 
           {/* Out Date and Out Time */}
-          <div className="flex items-center text-sm text-gray-700 mb-1">
+          {/* <div className="flex items-center text-sm text-gray-700 mb-1">
             <CalendarTodayIcon className="w-4 h-4 mr-1" />
             <span>
               <b>Out Date:</b> {form.outDate || 'N/A'} {form.outTime ? `at ${form.outTime}` : ''}
             </span>
           </div>
 
-          {/* Return Date and Return Time */}
           <div className="flex items-center text-sm text-gray-700 mb-2">
             <AccessTimeIcon className="w-4 h-4 mr-1" />
             <span>
               <b>Return Date:</b> {form.returnDate || 'N/A'} {form.returnTime ? `at ${form.returnTime}` : ''}
             </span>
-          </div>
+          </div> */}
 
           {/* Buttons */}
           <div className="flex justify-end space-x-3">
             <Link to="/studentdashboard">
               <button
                 type="button"
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                className="px-4 py-2 mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
               >
                 Cancel
               </button>
             </Link>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+              className="px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
             >
               Submit Request
             </button>

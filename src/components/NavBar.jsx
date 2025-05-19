@@ -21,7 +21,7 @@ export const NavBar = () => {
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const fetchedFullName = userDoc.data().fullName || 'Unknown User';
+          const fetchedFullName = userDoc.data().fullName ;
           setFullName(fetchedFullName); // Set the full name from Firestore
           localStorage.setItem('fullName', fetchedFullName); // Store full name in localStorage
         }
