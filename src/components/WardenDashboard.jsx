@@ -247,9 +247,6 @@ export const WardenDashboard = () => {
                   <p className="text-sm">
                     <span className="font-medium">Reason:</span> {request.reason || 'N/A'}
                   </p>
-                  {/* <p className="text-sm">
-                    <span className="font-medium">Warden:</span> {request.warden || 'N/A'}
-                  </p> */}
 
                   {request.status?.toLowerCase() === 'pending' && (
                     <div className="mt-4 flex gap-3">
@@ -304,7 +301,6 @@ export const WardenDashboard = () => {
                   <DetailRow label="Email" value={selectedRequest.studentDetails?.email} />
                   <DetailRow label="Phone" value={selectedRequest.studentDetails?.phone} />
                   <DetailRow label="Branch" value={selectedRequest.studentDetails?.branch} isLong />
-                  {/* Place Year, Block, and Room each on their own line for clarity */}
                   <DetailRow label="Year" value={selectedRequest.studentDetails?.year} />
                   <DetailRow label="Block" value={selectedRequest.studentDetails?.block} />
                   <DetailRow label="Room" value={selectedRequest.studentDetails?.room} />

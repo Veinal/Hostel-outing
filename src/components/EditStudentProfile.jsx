@@ -180,7 +180,10 @@ export const EditStudentProfile = () => {
         role: 'student',
       });
 
-      localStorage.setItem('fullName', formData.fullName);
+      // Notify NavBar to refresh user info
+      window.dispatchEvent(new Event('profileUpdated'));
+
+      // localStorage.setItem('fullName', formData.fullName);
 
       setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
       setTimeout(() => {
@@ -291,7 +294,15 @@ export const EditStudentProfile = () => {
             </div>
           </form>
 
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
+              disabled={loading}
+              onClick={() => navigate('/studentdashboard')}
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               onClick={handleSubmit}

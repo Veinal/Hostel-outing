@@ -8,38 +8,50 @@ import { FiLogOut, FiUser } from 'react-icons/fi'; // Add FiUser
 export const NavBar = () => {
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState(''); // Add this state
   const [showLogoutModal, setShowLogoutModal] = useState(false); // State for modal visibility
   const navigate = useNavigate();
 
   // Listen for authentication state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const fetchUserData = async (currentUser) => {
       if (currentUser) {
-        setUser(currentUser); // Set the logged-in user
-
-        // Fetch the user's full name from Firestore
+        setUser(currentUser);
         const userDocRef = doc(db, 'users', currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          const fetchedFullName = userDoc.data().fullName ;
-          setFullName(fetchedFullName); // Set the full name from Firestore
-          localStorage.setItem('fullName', fetchedFullName); // Store full name in localStorage
+          const data = userDoc.data();
+          setFullName(data.fullName);
+          setRole(data.role || '');
         }
       } else {
-        setUser(null); // No user is logged in
-        setFullName(''); // Clear the full name
-        localStorage.removeItem('fullName'); // Remove full name from localStorage
+        setUser(null);
+        setFullName('');
+        setRole('');
       }
-    });
+    };
 
-    return () => unsubscribe(); // Cleanup the listener on component unmount
+    const unsubscribe = onAuthStateChanged(auth, fetchUserData);
+
+    // Listen for profile updates
+    const handleProfileUpdate = () => {
+      if (auth.currentUser) {
+        fetchUserData(auth.currentUser);
+      }
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('profileUpdated', handleProfileUpdate);
+    };
   }, []);
 
   // Handle logout
   const handleLogout = async () => {
     try {
       await signOut(auth); // Sign out the user
-      localStorage.removeItem('fullName'); // Remove full name from localStorage
+      // localStorage.removeItem('fullName'); // Remove full name from localStorage
       setShowLogoutModal(false);
       navigate('/'); // Redirect to the login page
     } catch (error) {
@@ -65,14 +77,17 @@ export const NavBar = () => {
               <span className="text-gray-700 font-medium mr-4">
                 Hi, {fullName || user.email.split('@')[0]}
               </span>
-              <Link
-                to="/editstudentprofile"
-                className="mr-2" // Reduced margin-right for less gap
-                title="Edit Profile"
-              >
-                <FiUser className="text-blue-700 hover:text-blue-900 md:w-7 md:h-7 w-5 h-5" />
-                <span className="sr-only">Edit Profile</span>
-              </Link>
+              {/* Show Edit Profile icon only for students and wardens */}
+              {user && role !== 'admin' && (
+                <Link
+                  to={role === 'warden' ? '/editwardenprofile' : '/editstudentprofile'}
+                  className="mr-2" // Reduced margin-right for less gap
+                  title="Edit Profile"
+                >
+                  <FiUser className="text-blue-700 hover:text-blue-900 md:w-7 md:h-7 w-5 h-5" />
+                  <span className="sr-only">Edit Profile</span>
+                </Link>
+              )}
               <button
                 onClick={() => setShowLogoutModal(true)}
                 className="text-gray-700 hover:text-red-600 transition-all duration-300"

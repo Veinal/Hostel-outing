@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { db, auth } from '../firebase';
+import { collection, addDoc, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate
-import Snackbar from '@mui/material/Snackbar'; // Import Snackbar from Material-UI
-import Alert from '@mui/material/Alert'; // Import Alert for styled Snackbar
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday'; // Import CalendarTodayIcon
-import AccessTimeIcon from '@mui/icons-material/AccessTime'; // Import AccessTimeIcon
+import { Link, useNavigate } from 'react-router-dom';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 export const RequestPage = () => {
   const [form, setForm] = useState({
@@ -15,25 +15,33 @@ export const RequestPage = () => {
     warden: '',
     outDate: '',
     returnDate: '',
-    outTime:'',
-    returnTime:''
+    outHour: '',
+    outMinute: '',
+    outPeriod: '',
+    returnHour: '',
+    returnMinute: '',
+    returnPeriod: '',
   });
 
-  const [student, setStudent] = useState({ id: '', name: '' }); // State to store student info
-  const [wardens, setWardens] = useState([]); // State to store warden list
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' }); // Snackbar state
-  const navigate = useNavigate(); // Initialize useNavigate
+  const [student, setStudent] = useState({ id: '', name: '' });
+  const [wardens, setWardens] = useState([]);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch the currently logged-in student's ID and name from localStorage
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    // Fetch the currently logged-in student's ID and name from Firestore
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const fullName = localStorage.getItem('fullName') || ' '; // Get full name from localStorage
-        setStudent({ id: user.uid, name: fullName });
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        setStudent({
+          id: user.uid,
+          name: userDoc.exists() ? userDoc.data().fullName || '' : '',
+        });
       }
     });
 
-    return () => unsubscribe(); // Cleanup the listener
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -71,16 +79,20 @@ export const RequestPage = () => {
         return;
       }
 
-      // Add the form data along with the student ID, name, warden UID, and status to Firestore
+      // Only include outTime and returnTime, not the hour/minute/period fields
       const requestData = {
-        ...form,
+        requestType: form.requestType,
+        reason: form.reason,
+        warden: form.warden,
+        outDate: form.outDate,
+        returnDate: form.returnDate,
         outTime: `${form.outHour}:${form.outMinute} ${form.outPeriod}`,
         returnTime: `${form.returnHour}:${form.returnMinute} ${form.returnPeriod}`,
         studentId: student.id,
-        studentName: student.name, // Use the full name from localStorage
-        wardenUid: selectedWarden.id, // Store the warden's UID
-        status: 'pending', // Default status
-        timestamp: new Date(), // Add a timestamp for when the request was created
+        studentName: student.name,
+        wardenUid: selectedWarden.id,
+        status: 'pending',
+        timestamp: new Date(),
       };
 
       await addDoc(collection(db, 'outingRequests'), requestData);
@@ -91,9 +103,14 @@ export const RequestPage = () => {
         warden: '',
         outDate: '',
         returnDate: '',
+        outHour: '',
+        outMinute: '',
+        outPeriod: '',
+        returnHour: '',
+        returnMinute: '',
+        returnPeriod: '',
       });
 
-      // Redirect to StudentDashboard after a short delay
       setTimeout(() => navigate('/studentdashboard'), 1500);
     } catch (error) {
       console.error('Error submitting request:', error);
@@ -186,7 +203,7 @@ export const RequestPage = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                 value={form.outDate}
                 onChange={handleChange}
-                min={new Date().toISOString().split('T')[0]} // Prevent past dates
+                min={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -201,7 +218,7 @@ export const RequestPage = () => {
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
                 value={form.returnDate}
                 onChange={handleChange}
-                min={form.outDate || new Date().toISOString().split('T')[0]} // Prevent past dates and ensure it's after Out Date
+                min={form.outDate || new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -294,21 +311,6 @@ export const RequestPage = () => {
               </div>
             </div>
           </div>
-
-          {/* Out Date and Out Time */}
-          {/* <div className="flex items-center text-sm text-gray-700 mb-1">
-            <CalendarTodayIcon className="w-4 h-4 mr-1" />
-            <span>
-              <b>Out Date:</b> {form.outDate || 'N/A'} {form.outTime ? `at ${form.outTime}` : ''}
-            </span>
-          </div>
-
-          <div className="flex items-center text-sm text-gray-700 mb-2">
-            <AccessTimeIcon className="w-4 h-4 mr-1" />
-            <span>
-              <b>Return Date:</b> {form.returnDate || 'N/A'} {form.returnTime ? `at ${form.returnTime}` : ''}
-            </span>
-          </div> */}
 
           {/* Buttons */}
           <div className="flex justify-end space-x-3">
