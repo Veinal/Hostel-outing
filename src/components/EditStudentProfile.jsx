@@ -24,6 +24,7 @@ export const EditStudentProfile = () => {
   const [loading, setLoading] = useState(false);
   const [branches, setBranches] = useState([]); // <-- State for branches
   const [blocks, setBlocks] = useState([]); // Add this state for hostel blocks
+  const [rooms, setRooms] = useState([]); // Add this state for rooms
   const navigate = useNavigate();
 
   // Fetch academic branches from Firestore
@@ -45,7 +46,6 @@ export const EditStudentProfile = () => {
     };
     fetchBranches();
   }, []);
-  console.log(branches,1111)
 
   // Fetch the current user's data on component mount
   useEffect(() => {
@@ -89,6 +89,40 @@ export const EditStudentProfile = () => {
     };
     fetchBlocks();
   }, [formData.gender]);
+
+  // Fetch rooms when block or gender changes
+  useEffect(() => {
+    const fetchRooms = async () => {
+      setRooms([]);
+      if (!formData.gender || !formData.block) return;
+
+      const hostelCollection = formData.gender === 'Male' ? 'boysHostel' : 'girlsHostel';
+      const floorsCollectionRef = collection(db, hostelCollection, formData.block, 'Floors');
+      try {
+        const floorsSnapshot = await getDocs(floorsCollectionRef);
+        let allRooms = [];
+        for (const floorDoc of floorsSnapshot.docs) {
+          const floorData = floorDoc.data();
+          if (Array.isArray(floorData.Rooms)) {
+            allRooms = allRooms.concat(floorData.Rooms);
+          }
+        }
+        // Sort room numbers in ascending order (numeric if possible)
+        allRooms.sort((a, b) => {
+          const numA = parseInt(a, 10);
+          const numB = parseInt(b, 10);
+          if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+          }
+          return String(a).localeCompare(String(b));
+        });
+        setRooms(allRooms);
+      } catch (err) {
+        setRooms([]);
+      }
+    };
+    fetchRooms();
+  }, [formData.gender, formData.block]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -214,7 +248,14 @@ export const EditStudentProfile = () => {
               options={blocks}
             />
 
-            <InputField label="Room Number" name="room" value={formData.room} onChange={handleChange} />
+            {/* Room Number Dropdown */}
+            <SelectField
+              label="Room Number"
+              name="room"
+              value={formData.room}
+              onChange={handleChange}
+              options={rooms}
+            />
 
             {/* Upload Photo Field */}
             <div>

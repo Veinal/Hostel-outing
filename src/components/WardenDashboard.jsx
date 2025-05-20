@@ -216,7 +216,7 @@ export const WardenDashboard = () => {
                         Out Date: {request.outDate || 'N/A'}
                         {request.outTime && (
                           <span className="ml-2">
-                            |  {request.outTime}
+                            at {request.outTime}
                           </span>
                         )}
                       </span>
@@ -227,7 +227,7 @@ export const WardenDashboard = () => {
                         Return Date: {request.returnDate || 'N/A'}
                         {request.returnTime && (
                           <span className="ml-2">
-                            |  {request.returnTime}
+                            at {request.returnTime}
                           </span>
                         )}
                       </span>
