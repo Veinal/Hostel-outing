@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
 import { doc, getDoc } from 'firebase/firestore'; // Import Firestore methods
-import { FiLogOut } from 'react-icons/fi'; // Import logout icon
+import { FiLogOut, FiUser } from 'react-icons/fi'; // Add FiUser
 
 export const NavBar = () => {
   const [user, setUser] = useState(null);
@@ -57,23 +57,31 @@ export const NavBar = () => {
             className="w-7 ml-5"
             alt="MITE Logo"
           />
-          {/* Text hidden on smaller screens */}
           <span className="font-semibold ml-3 text-xl hidden md:inline">MITE Hostel</span>
         </div>
         <div className="navbar-end flex items-center">
           {user ? (
             <>
-              {/* Greeting - Visible on all screen sizes */}
               <span className="text-gray-700 font-medium mr-4">
                 Hi, {fullName || user.email.split('@')[0]}
               </span>
-              {/* Logout Button */}
+              <Link
+                to="/editstudentprofile"
+                className="mr-2" // Reduced margin-right for less gap
+                title="Edit Profile"
+              >
+                <FiUser className="text-blue-700 hover:text-blue-900 md:w-7 md:h-7 w-5 h-5" />
+                <span className="sr-only">Edit Profile</span>
+              </Link>
               <button
-                onClick={() => setShowLogoutModal(true)} // Show the modal
+                onClick={() => setShowLogoutModal(true)}
                 className="text-gray-700 hover:text-red-600 transition-all duration-300"
                 title="Logout"
               >
-                <FiLogOut className="text-blue-700" size={30} />
+                <FiLogOut
+                  className="text-blue-700 md:w-7 md:h-7 w-5 h-5"
+                />
+                <span className="sr-only">Logout</span>
               </button>
             </>
           ) : (
@@ -86,7 +94,6 @@ export const NavBar = () => {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
       {showLogoutModal && (
         <div
           className="fixed inset-0 bg-opacity-30 backdrop-blur-sm flex justify-center items-center z-50"

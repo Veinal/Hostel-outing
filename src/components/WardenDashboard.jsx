@@ -212,11 +212,25 @@ export const WardenDashboard = () => {
 
                     <div className="flex items-center text-sm text-gray-700 mb-1">
                       <CalendarTodayIcon className="w-4 h-4 mr-1" />
-                      <span>Out Date: {request.outDate || 'N/A'}</span>
+                      <span>
+                        Out Date: {request.outDate || 'N/A'}
+                        {request.outTime && (
+                          <span className="ml-2">
+                            |  {request.outTime}
+                          </span>
+                        )}
+                      </span>
                     </div>
                     <div className="flex items-center text-sm text-gray-700 mb-2">
                       <AccessTimeIcon className="w-4 h-4 mr-1" />
-                      <span>Return Date: {request.returnDate || 'N/A'}</span>
+                      <span>
+                        Return Date: {request.returnDate || 'N/A'}
+                        {request.returnTime && (
+                          <span className="ml-2">
+                            |  {request.returnTime}
+                          </span>
+                        )}
+                      </span>
                     </div>
 
                     <hr className="my-3" />
@@ -257,59 +271,56 @@ export const WardenDashboard = () => {
 
       {/* Modal */}
       {isModalOpen && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex justify-center items-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl mx-4">
-            <h2 className="text-2xl font-bold mb-6 text-center uppercase">Student Details</h2>
-            <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-6">
+        <div
+          className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center z-50"
+          onClick={handleCloseModal} // Close modal when clicking outside
+        >
+          <div
+            className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl mx-4"
+            onClick={e => e.stopPropagation()} // Prevent closing when clicking inside modal
+          >
+            <h2 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide text-blue-700">Student Details</h2>
+            <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
               {/* Student Image */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mb-4 md:mb-0 flex flex-col items-center">
                 <img
                   src={selectedRequest.studentDetails?.photoUrl || 'https://via.placeholder.com/150'}
                   alt="Student"
-                  className="w-32 h-32 rounded-full object-cover mb-4 md:mb-0"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-blue-200 shadow"
                 />
+                <div className="mt-2 text-sm text-gray-500 text-center break-all max-w-[8rem]">
+                  {selectedRequest.studentDetails?.fullName || 'N/A'}
+                </div>
               </div>
 
               {/* Student Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 w-full">
-                <p className="text-gray-800">
-                  <strong>Full Name:</strong> {selectedRequest.studentDetails?.fullName || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Email:</strong> {selectedRequest.studentDetails?.email || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Phone:</strong> {selectedRequest.studentDetails?.phone || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Branch:</strong> {selectedRequest.studentDetails?.branch || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Year:</strong> {selectedRequest.studentDetails?.year || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Block:</strong> {selectedRequest.studentDetails?.block || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Room:</strong> {selectedRequest.studentDetails?.room || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Reason:</strong> {selectedRequest.reason || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Out Date:</strong> {selectedRequest.outDate || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Return Date:</strong> {selectedRequest.returnDate || 'N/A'}
-                </p>
+              <div className="w-full">
+                <div className="grid grid-cols-1 gap-y-3">
+                  <DetailRow label="Email" value={selectedRequest.studentDetails?.email} />
+                  <DetailRow label="Phone" value={selectedRequest.studentDetails?.phone} />
+                  <DetailRow label="Branch" value={selectedRequest.studentDetails?.branch} isLong />
+                  {/* Place Year, Block, and Room each on their own line for clarity */}
+                  <DetailRow label="Year" value={selectedRequest.studentDetails?.year} />
+                  <DetailRow label="Block" value={selectedRequest.studentDetails?.block} />
+                  <DetailRow label="Room" value={selectedRequest.studentDetails?.room} />
+                  <DetailRow label="Reason" value={selectedRequest.reason} />
+                  <div className="flex gap-4">
+                    <DetailRow label="Out Date" value={selectedRequest.outDate} inline />
+                    <DetailRow label="Out Time" value={selectedRequest.outTime} inline />
+                  </div>
+                  <div className="flex gap-4">
+                    <DetailRow label="Return Date" value={selectedRequest.returnDate} inline />
+                    <DetailRow label="Return Time" value={selectedRequest.returnTime} inline />
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Close Button */}
-            <div className="mt-6 flex justify-center">
+            <div className="mt-8 flex justify-center">
               <button
                 onClick={handleCloseModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
+                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
               >
                 Close
               </button>
@@ -320,3 +331,15 @@ export const WardenDashboard = () => {
     </div>
   );
 };
+
+const DetailRow = ({ label, value, isLong, inline }) => (
+  <div className={inline ? "flex-1 min-w-0" : ""}>
+    <span className="font-semibold text-gray-700">{label}:</span>
+    <span
+      className={`ml-2 text-gray-800 ${isLong ? "break-words max-w-xs inline-block align-top" : ""}`}
+      style={isLong ? { wordBreak: 'break-all' } : {}}
+    >
+      {value || 'N/A'}
+    </span>
+  </div>
+);

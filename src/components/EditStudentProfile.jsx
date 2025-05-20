@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
-import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Import Firestore methods
+import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore'; // Import Firestore methods
 import { onAuthStateChanged } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; // Import Axios for Cloudinary API requests
@@ -15,14 +15,36 @@ export const EditStudentProfile = () => {
     branch: '',
     room: '',
     block: '',
-    gender: '', // <-- Add gender field
-    photoUrl: '', // Add a field for the photo URL
+    gender: '',
+    photoUrl: '',
   });
   const [userId, setUserId] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null); // State to store the selected photo file
+  const [photoFile, setPhotoFile] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
+  const [branches, setBranches] = useState([]); // <-- State for branches
   const navigate = useNavigate();
+
+  // Fetch academic branches from Firestore
+  useEffect(() => {
+    const fetchBranches = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, 'branches'));
+        let allBranchesArr = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (Array.isArray(data.allBranches)) {
+            allBranchesArr = data.allBranches; // If you only want the first document's array
+          }
+        });
+        setBranches(allBranchesArr);
+      } catch (err) {
+        setBranches([]);
+      }
+    };
+    fetchBranches();
+  }, []);
+  console.log(branches,1111)
 
   // Fetch the current user's data on component mount
   useEffect(() => {
@@ -55,13 +77,12 @@ export const EditStudentProfile = () => {
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
-    setPhotoFile(file); // Store the selected file in state
+    setPhotoFile(file);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate form fields
     for (const key in formData) {
       if (!formData[key] && key !== 'photoUrl') {
         setSnackbar({ open: true, message: `Please fill out the ${key} field.`, severity: 'error' });
@@ -69,43 +90,39 @@ export const EditStudentProfile = () => {
       }
     }
 
-    // Phone number validation
     if (!/^\d{10}$/.test(formData.phone)) {
       setSnackbar({ open: true, message: 'Phone number must be exactly 10 digits.', severity: 'error' });
       return;
     }
 
-    setLoading(true); // Start loader
+    setLoading(true);
 
     try {
       let photoUrl = formData.photoUrl;
 
-      // Upload the photo to Cloudinary if a new photo is selected
       if (photoFile) {
-        const formData = new FormData();
-        formData.append('file', photoFile);
-        formData.append('upload_preset', 'Hostel outing'); // Replace with your Cloudinary upload preset
-        formData.append('cloud_name', 'dckqij0ar'); // Replace with your Cloudinary cloud name
-        formData.append('folder', 'hostel_outing'); // Specify the folder name in Cloudinary
+        const formDataCloud = new FormData();
+        formDataCloud.append('file', photoFile);
+        formDataCloud.append('upload_preset', 'Hostel outing');
+        formDataCloud.append('cloud_name', 'dckqij0ar');
+        formDataCloud.append('folder', 'hostel_outing');
 
         const response = await axios.post(
-          'https://api.cloudinary.com/v1_1/dckqij0ar/image/upload', // Replace with your Cloudinary API endpoint
-          formData
+          'https://api.cloudinary.com/v1_1/dckqij0ar/image/upload',
+          formDataCloud
         );
 
-        photoUrl = response.data.secure_url; // Get the secure URL of the uploaded image
+        photoUrl = response.data.secure_url;
       }
 
-      // Update Firestore with the form data and photo URL
       const userDocRef = doc(db, 'users', userId);
 
       await updateDoc(userDocRef, {
         ...formData,
-        photoUrl, // Save the photo URL in Firestore
+        photoUrl,
         role: 'student',
       });
 
-      // Store fullName in localStorage for NavBar access
       localStorage.setItem('fullName', formData.fullName);
 
       setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
@@ -117,7 +134,7 @@ export const EditStudentProfile = () => {
       console.error('Error updating profile:', err);
       setSnackbar({ open: true, message: 'Failed to update profile. Please try again.', severity: 'error' });
     } finally {
-      setLoading(false); // Stop loader
+      setLoading(false);
     }
   };
 
@@ -140,7 +157,6 @@ export const EditStudentProfile = () => {
               options={['1st Year', '2nd Year', '3rd Year', '4th Year']}
             />
 
-            {/* Gender Field */}
             <SelectField
               label="Gender"
               name="gender"
@@ -149,20 +165,43 @@ export const EditStudentProfile = () => {
               options={['Male', 'Female']}
             />
 
-            <InputField label="Academic Branch" name="branch" value={formData.branch} onChange={handleChange} />
+            {/* Academic Branch Dropdown */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Academic Branch</label>
+              <select
+                name="branch"
+                value={formData.branch}
+                onChange={handleChange}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                required
+              >
+                <option value="">Select Academic Branch</option>
+                {branches.map((branch) => (
+                  <option key={branch} value={branch}>{branch}</option>
+                ))}
+              </select>
+            </div>
+
             <InputField label="Hostel Block" name="block" value={formData.block} onChange={handleChange} />
             <InputField label="Room Number" name="room" value={formData.room} onChange={handleChange} />
 
             {/* Upload Photo Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Upload Photo</label>
-              <div className="relative w-full">
+              <div className="flex items-center space-x-3">
+                {(formData.photoUrl || photoFile) && (
+                  <img
+                    src={photoFile ? URL.createObjectURL(photoFile) : formData.photoUrl}
+                    alt="Profile"
+                    className="w-10 h-10 rounded-full object-cover border border-gray-300"
+                  />
+                )}
                 <input
                   id="photoUpload"
                   type="file"
                   name="photo"
                   accept="image/*"
-                  onChange={handlePhotoChange} // Handle photo change
+                  onChange={handlePhotoChange}
                   className="hidden"
                 />
                 <label
@@ -172,7 +211,7 @@ export const EditStudentProfile = () => {
                   Choose Photo
                 </label>
                 {photoFile && (
-                  <p className="text-xs text-gray-600 mt-1 truncate">
+                  <p className="text-xs text-gray-600 ml-2 truncate">
                     Selected: {photoFile.name}
                   </p>
                 )}

@@ -158,47 +158,46 @@ export const ManageStudents = () => {
         {/* View Student Modal */}
         {selectedStudent && (
           <div
-            className="modal modal-open flex items-center justify-center"
+            className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center z-50"
             onClick={() => setSelectedStudent(null)} // Close modal on outside click
           >
             <div
-              className="modal-box relative bg-white rounded-lg shadow-lg p-6"
+              className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 relative"
               onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
             >
+              {/* Close button inside the modal, top-right */}
               <button
-                className="absolute top-2 right-2 btn btn-sm btn-circle btn-error"
+                className="absolute top-4 right-4 text-gray-500 hover:text-red-600 text-2xl font-bold focus:outline-none"
                 onClick={() => setSelectedStudent(null)}
+                aria-label="Close"
+                type="button"
               >
-                ✕
+                &times;
               </button>
-              <h3 className="font-bold text-lg text-center mb-4">Student Details</h3>
-              <div className="flex flex-col items-center">
-                <img
-                  src={selectedStudent.photoUrl || 'https://via.placeholder.com/100'}
-                  alt="Student"
-                  className="w-24 h-24 rounded-full object-cover mb-4"
-                />
-                <p className="text-gray-800">
-                  <strong>Full Name:</strong> {selectedStudent.fullName}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Email:</strong> {selectedStudent.email}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Phone:</strong> {selectedStudent.phone || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Branch:</strong> {selectedStudent.branch || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Year:</strong> {selectedStudent.year || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Block:</strong> {selectedStudent.block || 'N/A'}
-                </p>
-                <p className="text-gray-800">
-                  <strong>Room:</strong> {selectedStudent.room || 'N/A'}
-                </p>
+              <h2 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide text-blue-700">Student Details</h2>
+              <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
+                {/* Student Image */}
+                <div className="flex-shrink-0 mb-4 md:mb-0 flex flex-col items-center">
+                  <img
+                    src={selectedStudent.photoUrl || 'https://via.placeholder.com/150'}
+                    alt="Student"
+                    className="w-32 h-32 rounded-full object-cover border-4 border-blue-200 shadow"
+                  />
+                  <div className="mt-2 text-sm text-gray-500 text-center break-all max-w-[8rem]">
+                    {selectedStudent.fullName || 'N/A'}
+                  </div>
+                </div>
+                {/* Student Details */}
+                <div className="w-full">
+                  <div className="grid grid-cols-1 gap-y-3">
+                    <DetailRow label="Email" value={selectedStudent.email} />
+                    <DetailRow label="Phone" value={selectedStudent.phone} />
+                    <DetailRow label="Branch" value={selectedStudent.branch} isLong />
+                    <DetailRow label="Year" value={selectedStudent.year} />
+                    <DetailRow label="Block" value={selectedStudent.block} />
+                    <DetailRow label="Room" value={selectedStudent.room} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -231,3 +230,16 @@ export const ManageStudents = () => {
     </div>
   );
 };
+
+// Add this helper component at the bottom of the file or in the same file
+const DetailRow = ({ label, value, isLong, inline }) => (
+  <div className={inline ? "flex-1 min-w-0" : ""}>
+    <span className="font-semibold text-gray-700">{label}:</span>
+    <span
+      className={`ml-2 text-gray-800 ${isLong ? "break-words max-w-xs inline-block align-top" : ""}`}
+      style={isLong ? { wordBreak: 'break-all' } : {}}
+    >
+      {value || 'N/A'}
+    </span>
+  </div>
+);

@@ -13,6 +13,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { ManageStudents } from './ManageStudents';
 import { ManageWardens } from './ManageWardens';
 import { ManageRequests } from './ManageRequests';
+import { PageNotFound } from './PageNotFound';
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -44,6 +45,7 @@ export const Router = () => {
             <Route path='/managestudents' element={<ManageStudents />} />
             <Route path='/managewardens' element={<ManageWardens />} />
             <Route path='/managerequests' element={<ManageRequests />} />
+            <Route path='*' element={<PageNotFound/>} />
           </Routes>
         </Layout>
       </BrowserRouter>

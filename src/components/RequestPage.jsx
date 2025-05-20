@@ -28,7 +28,7 @@ export const RequestPage = () => {
     // Fetch the currently logged-in student's ID and name from localStorage
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        const fullName = localStorage.getItem('fullName') || 'Unknown Student'; // Get full name from localStorage
+        const fullName = localStorage.getItem('fullName') || ' '; // Get full name from localStorage
         setStudent({ id: user.uid, name: fullName });
       }
     });
