@@ -8,6 +8,8 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 
 export const WardenDashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -15,6 +17,11 @@ export const WardenDashboard = () => {
   const [isLoading, setIsLoading] = useState(true); // Loading state
   const [selectedRequest, setSelectedRequest] = useState(null); // Selected request for modal
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal visibility
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    action: null, // 'approve' or 'reject'
+    requestId: null,
+  });
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -129,144 +136,142 @@ export const WardenDashboard = () => {
 
   return (
     <div>
-      <div className="p-8 bg-gray-50 min-h-screen font-sans">
-        <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-3xl font-bold text-gray-800">Warden Dashboard</h1>
-          <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
+      <div className="max-w-7xl mx-auto p-8 mt-3">
+        <h1 className="text-3xl font-bold text-gray-800">Warden Dashboard</h1>
+        <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
 
-          {/* Filter and Stats */}
-          <div className="mt-6 bg-white p-5 rounded-lg shadow flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap gap-2 mb-3 md:mb-0">
-              {['All', 'Pending', 'Approved', 'Rejected'].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilter(type)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                    filter === type
-                      ? type === 'Pending'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-800 text-white'
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <span className="flex items-center gap-1 text-yellow-600">
-                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending: {statusCount.Pending}
-              </span>
-              <span className="flex items-center gap-1 text-green-600">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>Approved: {statusCount.Approved}
-              </span>
-              <span className="flex items-center gap-1 text-red-600">
-                <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected: {statusCount.Rejected}
-              </span>
-            </div>
+        {/* Filter and Stats */}
+        <div className="mt-6 bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2 mb-3 md:mb-0">
+            {['All', 'Pending', 'Approved', 'Rejected'].map((type) => (
+              <button
+                key={type}
+                onClick={() => setFilter(type)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                  filter === type
+                    ? type === 'Pending'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                {type}
+              </button>
+            ))}
           </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <span className="flex items-center gap-1 text-yellow-600">
+              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending: {statusCount.Pending}
+            </span>
+            <span className="flex items-center gap-1 text-green-600">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>Approved: {statusCount.Approved}
+            </span>
+            <span className="flex items-center gap-1 text-red-600">
+              <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected: {statusCount.Rejected}
+            </span>
+          </div>
+        </div>
 
-          {/* Request Cards */}
-          {isLoading ? (
-            <div className="flex justify-center items-center mt-6">
-              <span className="loading loading-bars loading-lg"></span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-              {filteredRequests.map((request) => {
-                const styles = {
-                  pending: {
-                    icon: <PendingIcon className="text-yellow-600" />,
-                    bg: 'bg-yellow-50 border-yellow-200',
-                    text: 'text-yellow-700',
-                  },
-                  approved: {
-                    icon: <CheckCircleIcon className="text-green-600" />,
-                    bg: 'bg-green-50 border-green-200',
-                    text: 'text-green-700',
-                  },
-                  rejected: {
-                    icon: <CancelIcon className="text-red-600" />,
-                    bg: 'bg-red-50 border-red-200',
-                    text: 'text-red-700',
-                  },
-                }[request.status?.toLowerCase()] || {
-                  icon: <PendingIcon className="text-gray-600" />,
-                  bg: 'bg-gray-50 border-gray-200',
-                  text: 'text-gray-700',
-                }; // Fallback styles for undefined statuses
+        {/* Request Cards */}
+        {isLoading ? (
+          <div className="flex justify-center items-center mt-6">
+            <span className="loading loading-bars loading-lg"></span>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 mt-6">
+            {filteredRequests.map((request) => {
+              const styles = {
+                pending: {
+                  icon: <PendingIcon className="text-yellow-600" />,
+                  bg: 'bg-yellow-50 border-yellow-200',
+                  text: 'text-yellow-700',
+                },
+                approved: {
+                  icon: <CheckCircleIcon className="text-green-600" />,
+                  bg: 'bg-green-50 border-green-200',
+                  text: 'text-green-700',
+                },
+                rejected: {
+                  icon: <CancelIcon className="text-red-600" />,
+                  bg: 'bg-red-50 border-red-200',
+                  text: 'text-red-700',
+                },
+              }[request.status?.toLowerCase()] || {
+                icon: <PendingIcon className="text-gray-600" />,
+                bg: 'bg-gray-50 border-gray-200',
+                text: 'text-gray-700',
+              }; // Fallback styles for undefined statuses
 
-                return (
-                  <div key={request.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center space-x-2">
-                        {styles.icon}
-                        <span className={`font-semibold ${styles.text}`}>{request.status || 'Unknown'}</span>
-                      </div>
-                      <button onClick={() => handleViewDetails(request)} className="text-gray-500 hover:text-gray-800">
-                        <VisibilityIcon />
+              return (
+                <div key={request.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center space-x-2">
+                      {styles.icon}
+                      <span className={`font-semibold ${styles.text}`}>{request.status || 'Unknown'}</span>
+                    </div>
+                    <button onClick={() => handleViewDetails(request)} className="text-gray-500 hover:text-gray-800">
+                      <VisibilityIcon />
+                    </button>
+                  </div>
+
+                  <h3 className="text-lg font-semibold mb-3">{request.requestType || 'Outing Request'}</h3>
+
+                  <div className="flex items-center text-sm text-gray-700 mb-1">
+                    <CalendarTodayIcon className="w-4 h-4 mr-1" />
+                    <span>
+                      Out Date: {request.outDate || 'N/A'}
+                      {request.outTime && (
+                        <span className="ml-2">
+                          at {request.outTime}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-700 mb-2">
+                    <AccessTimeIcon className="w-4 h-4 mr-1" />
+                    <span>
+                      Return Date: {request.returnDate || 'N/A'}
+                      {request.returnTime && (
+                        <span className="ml-2">
+                          at {request.returnTime}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <hr className="my-3" />
+
+                  <p className="text-sm">
+                    <span className="font-medium">Student Name:</span> {request.studentName || 'N/A'}
+                  </p>
+                  <p className="text-sm">
+                    <span className="font-medium">Reason:</span> {request.reason || 'N/A'}
+                  </p>
+                  {/* <p className="text-sm">
+                    <span className="font-medium">Warden:</span> {request.warden || 'N/A'}
+                  </p> */}
+
+                  {request.status?.toLowerCase() === 'pending' && (
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id })}
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id })}
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1.5 rounded"
+                      >
+                        Reject
                       </button>
                     </div>
-
-                    <h3 className="text-lg font-semibold mb-3">{request.requestType || 'Outing Request'}</h3>
-
-                    <div className="flex items-center text-sm text-gray-700 mb-1">
-                      <CalendarTodayIcon className="w-4 h-4 mr-1" />
-                      <span>
-                        Out Date: {request.outDate || 'N/A'}
-                        {request.outTime && (
-                          <span className="ml-2">
-                            at {request.outTime}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-700 mb-2">
-                      <AccessTimeIcon className="w-4 h-4 mr-1" />
-                      <span>
-                        Return Date: {request.returnDate || 'N/A'}
-                        {request.returnTime && (
-                          <span className="ml-2">
-                            at {request.returnTime}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-
-                    <hr className="my-3" />
-
-                    <p className="text-sm">
-                      <span className="font-medium">Student Name:</span> {request.studentName || 'N/A'}
-                    </p>
-                    <p className="text-sm">
-                      <span className="font-medium">Reason:</span> {request.reason || 'N/A'}
-                    </p>
-                    {/* <p className="text-sm">
-                      <span className="font-medium">Warden:</span> {request.warden || 'N/A'}
-                    </p> */}
-
-                    {request.status?.toLowerCase() === 'pending' && (
-                      <div className="mt-4 flex gap-3">
-                        <button
-                          onClick={() => handleApprove(request.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleReject(request.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1.5 rounded"
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Modal */}
@@ -323,6 +328,52 @@ export const WardenDashboard = () => {
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded shadow"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.open && (
+        <div
+          className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => setConfirmModal({ open: false, action: null, requestId: null })}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg px-7 py-5 w-full max-w-lg mx-4 sm:px-8 sm:py-8"
+            onClick={e => e.stopPropagation()} // Prevent closing when clicking inside the modal
+          >
+            <h3 className="text-lg font-semibold mb-6 ">
+              {confirmModal.action === 'approve'
+                ? 'Are you sure you want to approve this request?'
+                : 'Are you sure you want to reject this request?'}
+            </h3>
+            <div className="flex justify-end gap-4 mt-8">
+              <button
+                className="flex items-center gap-2 px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => setConfirmModal({ open: false, action: null, requestId: null })}
+              >
+                <CloseIcon fontSize="small" />
+                Cancel
+              </button>
+              <button
+                className={`flex items-center gap-2 px-4 py-2 rounded text-white ${
+                  confirmModal.action === 'approve'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+                onClick={async () => {
+                  if (confirmModal.action === 'approve') {
+                    await handleApprove(confirmModal.requestId);
+                  } else {
+                    await handleReject(confirmModal.requestId);
+                  }
+                  setConfirmModal({ open: false, action: null, requestId: null });
+                }}
+              >
+                <CheckIcon fontSize="small" />
+                Confirm
               </button>
             </div>
           </div>
