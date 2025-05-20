@@ -23,6 +23,7 @@ export const EditStudentProfile = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [loading, setLoading] = useState(false);
   const [branches, setBranches] = useState([]); // <-- State for branches
+  const [blocks, setBlocks] = useState([]); // Add this state for hostel blocks
   const navigate = useNavigate();
 
   // Fetch academic branches from Firestore
@@ -66,6 +67,28 @@ export const EditStudentProfile = () => {
 
     return () => unsubscribe();
   }, []);
+
+  // Fetch hostel blocks when gender changes
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      if (!formData.gender) {
+        setBlocks([]);
+        return;
+      }
+      const hostelCollection = formData.gender === 'Male' ? 'boysHostel' : 'girlsHostel';
+      try {
+        const querySnapshot = await getDocs(collection(db, hostelCollection));
+        const blocksArr = [];
+        querySnapshot.forEach((doc) => {
+          blocksArr.push(doc.id); // Assuming each document is a block
+        });
+        setBlocks(blocksArr);
+      } catch (err) {
+        setBlocks([]);
+      }
+    };
+    fetchBlocks();
+  }, [formData.gender]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -157,14 +180,6 @@ export const EditStudentProfile = () => {
               options={['1st Year', '2nd Year', '3rd Year', '4th Year']}
             />
 
-            <SelectField
-              label="Gender"
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              options={['Male', 'Female']}
-            />
-
             {/* Academic Branch Dropdown */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Academic Branch</label>
@@ -182,7 +197,23 @@ export const EditStudentProfile = () => {
               </select>
             </div>
 
-            <InputField label="Hostel Block" name="block" value={formData.block} onChange={handleChange} />
+            <SelectField
+              label="Gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              options={['Male', 'Female']}
+            />
+
+            {/* Hostel Block Dropdown */}
+            <SelectField
+              label="Hostel Block"
+              name="block"
+              value={formData.block}
+              onChange={handleChange}
+              options={blocks}
+            />
+
             <InputField label="Room Number" name="room" value={formData.room} onChange={handleChange} />
 
             {/* Upload Photo Field */}

@@ -13,12 +13,14 @@ export const SideBar = () => {
   return (
     <div className="relative">
       {/* Hamburger Button for Mobile */}
-      <button
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="btn btn-ghost text-2xl m-2 md:hidden"
-      >
-        ☰
-      </button>
+      {!isMobileOpen && (
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="btn btn-ghost text-2xl m-2 md:hidden"
+        >
+          ☰
+        </button>
+      )}
 
       {/* Sidebar */}
       <div
@@ -30,10 +32,16 @@ export const SideBar = () => {
       >
         {/* Collapse Button */}
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              setIsMobileOpen(false); // Close sidebar on mobile when X is clicked
+            } else {
+              setIsCollapsed(!isCollapsed); // Collapse/expand on desktop
+            }
+          }}
           className="btn btn-ghost text-xl m-2"
         >
-          {isCollapsed ? '☰' : '✖'}
+          {isCollapsed || (isMobileOpen && window.innerWidth < 768) ? '☰' : '✖'}
         </button>
 
         {/* Sidebar Links */}
@@ -89,7 +97,7 @@ export const SideBar = () => {
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          className="fixed inset-0 bg-opacity-50 z-40 md:hidden"
         ></div>
       )}
     </div>
