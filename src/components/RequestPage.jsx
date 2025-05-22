@@ -53,6 +53,7 @@ export const RequestPage = () => {
         const wardenList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().fullName || 'Unnamed Warden',
+          status: doc.data().status || 'inactive',
         }));
         setWardens(wardenList);
       } catch (error) {
@@ -183,11 +184,19 @@ export const RequestPage = () => {
               <option value="" disabled>
                 Select Warden
               </option>
-              {wardens.map((warden) => (
-                <option key={warden.id} value={warden.name}>
-                  {warden.name}
-                </option>
-              ))}
+              {wardens
+                .filter(warden => warden.status === 'active' || warden.status === 'inactive')
+                .map((warden) => (
+                  warden.status === 'active' ? (
+                    <option key={warden.id} value={warden.name}>
+                      {warden.name}
+                    </option>
+                  ) : (
+                    <option key={warden.id} value={warden.name} disabled className="text-gray-400 bg-gray-100">
+                      {warden.name} (Inactive)
+                    </option>
+                  )
+                ))}
             </select>
           </div>
 

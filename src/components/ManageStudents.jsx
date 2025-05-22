@@ -19,6 +19,7 @@ export const ManageStudents = () => {
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
   const [branchOptions, setBranchOptions] = useState([]); // <-- For branch filter dropdown
+  const [blockOptions, setBlockOptions] = useState([]); // For block filter dropdown
   const rowsPerPage = 10;
   const navigate = useNavigate();
 
@@ -77,6 +78,23 @@ export const ManageStudents = () => {
       }
     };
     fetchBranches();
+  }, []);
+
+  // Fetch all blocks from both boysHostel and girlsHostel
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      try {
+        const boysSnapshot = await getDocs(collection(db, 'boysHostel'));
+        const girlsSnapshot = await getDocs(collection(db, 'girlsHostel'));
+        const boysBlocks = boysSnapshot.docs.map((doc) => doc.id);
+        const girlsBlocks = girlsSnapshot.docs.map((doc) => doc.id);
+        const allBlocks = Array.from(new Set([...boysBlocks, ...girlsBlocks]));
+        setBlockOptions(allBlocks);
+      } catch (err) {
+        setBlockOptions([]);
+      }
+    };
+    fetchBlocks();
   }, []);
 
   const handleDelete = async () => {
@@ -142,32 +160,101 @@ export const ManageStudents = () => {
       <main className="flex-1 p-4 md:p-8 bg-gray-50">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Students</h1>
 
-        {/* Search above the table */}
-        <div className="mb-4 flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Search by name or email"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="input input-bordered w-full max-w-xs"
-              onKeyDown={e => {
-                if (e.key === 'Enter') setCurrentPage(1);
-              }}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={() => setCurrentPage(1)}
-              title="Search"
-            >
-              <FaSearch />
-            </button>
+        {/* Search and Filters above the table */}
+        <div className="mb-4 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-2 w-full">
+            {/* Search Bar */}
+            <div className="flex flex-row gap-2 flex-1 min-w-[200px]">
+              <input
+                type="text"
+                placeholder="Search by name or email"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="input input-bordered w-full max-w-xs"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') setCurrentPage(1);
+                }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={() => setCurrentPage(1)}
+                title="Search"
+              >
+                <FaSearch />
+              </button>
+            </div>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full justify-end">
+              <div className="flex flex-col w-full sm:w-32">
+                <label className="text-xs font-semibold text-gray-700 mb-1">Branch</label>
+                <select
+                  value={filterBranch}
+                  onChange={e => {
+                    setFilterBranch(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="select select-bordered w-full sm:w-32"
+                >
+                  <option value="">All Branches</option>
+                  {branchOptions.map(branch => (
+                    <option key={branch} value={branch}>{branch}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col w-full sm:w-32">
+                <label className="text-xs font-semibold text-gray-700 mb-1">Year</label>
+                <select
+                  value={filterYear}
+                  onChange={e => {
+                    setFilterYear(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="select select-bordered w-full sm:w-32"
+                >
+                  <option value="">All Years</option>
+                  {uniqueYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col w-full sm:w-32">
+                <label className="text-xs font-semibold text-gray-700 mb-1">Block</label>
+                <select
+                  value={filterBlock}
+                  onChange={e => {
+                    setFilterBlock(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="select select-bordered w-full sm:w-32"
+                >
+                  <option value="">All Blocks</option>
+                  {blockOptions.map(block => (
+                    <option key={block} value={block}>{block}</option>
+                  ))}
+                </select>
+              </div>
+              {(filterBranch || filterYear || filterBlock) && (
+                <div className="flex flex-col w-full sm:w-32 justify-end">
+                  <button
+                    className="btn btn-outline mt-6 sm:mt-0"
+                    onClick={() => {
+                      setFilterBranch('');
+                      setFilterYear('');
+                      setFilterBlock('');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Table with sortable headers */}
-        <div className="overflow-x-auto">
-          <table className="table w-full border border-gray-200 rounded-lg shadow">
+        <div className="overflow-x-auto w-full">
+          <table className="table min-w-[700px] border border-gray-200 rounded-lg shadow">
             <thead>
               <tr>
                 <th className="bg-gray-100 text-gray-600">Photo</th>
@@ -305,62 +392,6 @@ export const ManageStudents = () => {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Filter dropdowns below the table */}
-        <div className="flex flex-wrap gap-4 mt-4 items-center">
-          <select
-            value={filterBranch}
-            onChange={e => {
-              setFilterBranch(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select select-bordered"
-          >
-            <option value="">All Branches</option>
-            {branchOptions.map(branch => (
-              <option key={branch} value={branch}>{branch}</option>
-            ))}
-          </select>
-          <select
-            value={filterYear}
-            onChange={e => {
-              setFilterYear(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select select-bordered"
-          >
-            <option value="">All Years</option>
-            {uniqueYears.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-          <select
-            value={filterBlock}
-            onChange={e => {
-              setFilterBlock(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="select select-bordered"
-          >
-            <option value="">All Blocks</option>
-            {uniqueBlocks.map(block => (
-              <option key={block} value={block}>{block}</option>
-            ))}
-          </select>
-          {(filterBranch || filterYear || filterBlock) && (
-            <button
-              className="btn btn-outline"
-              onClick={() => {
-                setFilterBranch('');
-                setFilterYear('');
-                setFilterBlock('');
-                setCurrentPage(1);
-              }}
-            >
-              Clear Filters
-            </button>
-          )}
         </div>
 
         {/* Pagination Controls */}
