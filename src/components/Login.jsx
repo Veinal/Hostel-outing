@@ -7,6 +7,27 @@ import { db } from '../firebase';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 
+// Map Firebase Auth errors to user-friendly messages
+function getFriendlyErrorMessage(error) {
+  if (!error || !error.code) return "An unexpected error occurred. Please try again.";
+  switch (error.code) {
+    case "auth/user-not-found":
+      return "No account found with this email.";
+    case "auth/wrong-password":
+      return "Incorrect password. Please try again.";
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
+    case "auth/too-many-requests":
+      return "Too many failed attempts. Please try again later.";
+    case "auth/network-request-failed":
+      return "Network error. Please check your connection.";
+    case "auth/invalid-credential":
+      return "Invalid email or password. Please try again.";
+    default:
+      return "Login failed. Please check your credentials and try again.";
+  }
+}
+
 export const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -121,7 +142,7 @@ export const Login = () => {
         setError('User role not found.');
       }
     } catch (err) {
-      setError(err.message); // Display error message if login fails
+      setError(getFriendlyErrorMessage(err)); // Use friendly error messages
     } finally {
       setLoading(false); // Set loading to false after login process
     }

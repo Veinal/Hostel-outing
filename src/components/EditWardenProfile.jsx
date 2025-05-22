@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // <-- Add this import
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, getDocs, collection } from 'firebase/firestore';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
+import axios from 'axios';
 
 export const EditWardenProfile = () => {
   const [fullName, setFullName] = useState('');
@@ -13,6 +14,11 @@ export const EditWardenProfile = () => {
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate(); // <-- Add this
+  const [block, setBlock] = useState('');
+  const [status, setStatus] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [photoFile, setPhotoFile] = useState(null);
+  const [blocks, setBlocks] = useState([]); // For block dropdown options
 
   useEffect(() => {
     setLoading(true);
@@ -23,7 +29,11 @@ export const EditWardenProfile = () => {
         const userDocRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
-          setFullName(userDoc.data().fullName || '');
+          const data = userDoc.data();
+          setFullName(data.fullName || '');
+          setBlock(data.block || '');
+          setStatus(data.status || '');
+          setPhoto(data.photo || '');
         }
       }
       setLoading(false);
@@ -31,21 +41,48 @@ export const EditWardenProfile = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      try {
+        const boysSnapshot = await getDocs(collection(db, 'boysHostel'));
+        const girlsSnapshot = await getDocs(collection(db, 'girlsHostel'));
+        const boysBlocks = boysSnapshot.docs.map((doc) => doc.id);
+        const girlsBlocks = girlsSnapshot.docs.map((doc) => doc.id);
+        const allBlocks = Array.from(new Set([...boysBlocks, ...girlsBlocks]));
+        setBlocks(allBlocks);
+      } catch (err) {
+        setBlocks([]);
+      }
+    };
+    fetchBlocks();
+  }, []);
+
   const handleSave = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
       const user = auth.currentUser;
+      let photoUrl = photo;
+      if (photoFile) {
+        const formDataCloud = new FormData();
+        formDataCloud.append('file', photoFile);
+        formDataCloud.append('upload_preset', 'Hostel outing');
+        formDataCloud.append('cloud_name', 'dckqij0ar');
+        formDataCloud.append('folder', 'hostel_outing');
+        const response = await axios.post(
+          'https://api.cloudinary.com/v1_1/dckqij0ar/image/upload',
+          formDataCloud
+        );
+        photoUrl = response.data.secure_url;
+      }
       if (user) {
-        // Update name in Firebase Auth profile
         await updateProfile(user, { displayName: fullName });
-        // Update name in Firestore
         const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, { fullName });
+        await updateDoc(userDocRef, { fullName, block, status, photo: photoUrl });
         setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
         setTimeout(() => {
           navigate('/wardendashboard');
-        }, 1200); // Give user time to see the snackbar
+        }, 1200);
       }
     } catch (err) {
       setSnackbar({ open: true, message: 'Failed to update profile.', severity: 'error' });
@@ -126,6 +163,56 @@ export const EditWardenProfile = () => {
                 disabled
                 className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-100 cursor-not-allowed"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Block</label>
+              <select
+                value={block}
+                onChange={e => setBlock(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                required
+              >
+                <option value="">Select Block</option>
+                {blocks.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+              <select
+                value={status}
+                onChange={e => setStatus(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                required
+              >
+                <option value="">Select Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Photo</label>
+              <div className="flex items-center space-x-3">
+                <img
+                  src={photoFile ? URL.createObjectURL(photoFile) : (photo || 'https://via.placeholder.com/100')}
+                  alt="Warden"
+                  className="w-16 h-16 rounded-full object-cover border"
+                />
+                <input
+                  id="photoUpload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => setPhotoFile(e.target.files[0])}
+                />
+                <label
+                  htmlFor="photoUpload"
+                  className="inline-block text-xs text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2.5 rounded-md shadow-sm transition duration-200"
+                >
+                  Choose Photo
+                </label>
+              </div>
             </div>
             <div className="md:col-span-2 flex justify-end gap-3">
               <button

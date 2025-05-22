@@ -244,8 +244,14 @@ export const WardenDashboard = () => {
                   <p className="text-sm">
                     <span className="font-medium">Student Name:</span> {request.studentName || 'N/A'}
                   </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Reason:</span> {request.reason || 'N/A'}
+                  <p className="text-sm flex items-center flex-nowrap">
+                    <span className="font-medium">Reason:</span>
+                    <span
+                      className="truncate ml-1 max-w-[13rem] inline-block align-bottom"
+                      title={request.reason}
+                    >
+                      {request.reason || 'N/A'}
+                    </span>
                   </p>
 
                   {request.status?.toLowerCase() === 'pending' && (
@@ -383,8 +389,8 @@ const DetailRow = ({ label, value, isLong, inline }) => (
   <div className={inline ? "flex-1 min-w-0" : ""}>
     <span className="font-semibold text-gray-700">{label}:</span>
     <span
-      className={`ml-2 text-gray-800 ${isLong ? "break-words max-w-xs inline-block align-top" : ""}`}
-      style={isLong ? { wordBreak: 'break-all' } : {}}
+      className={`ml-2 text-gray-800 ${isLong ? "break-words max-w-md inline-block align-top" : ""}`}
+      style={isLong ? { wordBreak: 'break-word' } : {}}
     >
       {value || 'N/A'}
     </span>
