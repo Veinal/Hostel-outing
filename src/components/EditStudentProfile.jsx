@@ -17,6 +17,7 @@ export const EditStudentProfile = () => {
     block: '',
     gender: '',
     photoUrl: '',
+    parentPhone: '',
   });
   const [userId, setUserId] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
@@ -64,7 +65,7 @@ export const EditStudentProfile = () => {
             ...data,
           }));
           // Check if profile is new (all required fields are empty)
-          const requiredFields = ['fullName', 'phone', 'year', 'branch', 'room', 'block', 'gender'];
+          const requiredFields = ['fullName', 'phone', 'year', 'branch', 'room', 'block', 'gender', 'parentPhone'];
           const isNew = requiredFields.some(field => !data[field]);
           setIsNewProfile(isNew);
         }
@@ -155,6 +156,10 @@ export const EditStudentProfile = () => {
 
     if (!/^\d{10}$/.test(formData.phone)) {
       setSnackbar({ open: true, message: 'Phone number must be exactly 10 digits.', severity: 'error' });
+      return;
+    }
+    if (!/^\d{10}$/.test(formData.parentPhone)) {
+      setSnackbar({ open: true, message: "Parent's contact number must be exactly 10 digits.", severity: 'error' });
       return;
     }
 
@@ -266,6 +271,15 @@ export const EditStudentProfile = () => {
               options={rooms}
             />
 
+            {/* Parent's Contact Number */}
+            <InputField
+              label="Parent's Contact Number"
+              name="parentPhone"
+              type="tel"
+              value={formData.parentPhone}
+              onChange={handleChange}
+            />
+
             {/* Upload Photo Field */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Upload Photo</label>
@@ -374,7 +388,7 @@ const InputField = ({ label, name, type = 'text', value, onChange }) => (
       onChange={onChange}
       className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
       required
-      {...(name === 'phone'
+      {...(name === 'phone' || name === 'parentPhone'
         ? {
             maxLength: 10,
             pattern: '\\d*',

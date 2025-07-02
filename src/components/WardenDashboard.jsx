@@ -21,6 +21,7 @@ export const WardenDashboard = () => {
     open: false,
     action: null, // 'approve' or 'reject'
     requestId: null,
+    reason: '', // For rejection reason
   });
 
   useEffect(() => {
@@ -93,16 +94,17 @@ export const WardenDashboard = () => {
   };
 
   // Reject Request
-  const handleReject = async (id) => {
+  const handleReject = async (id, reason) => {
     try {
       const requestRef = doc(db, 'outingRequests', id);
       await updateDoc(requestRef, {
         status: 'rejected',
         rejectedAt: serverTimestamp(), // Add rejectedAt timestamp
+        cancelReason: reason,
       });
       setAllRequests((prev) =>
         prev.map((req) =>
-          req.id === id ? { ...req, status: 'rejected', rejectedAt: new Date() } : req
+          req.id === id ? { ...req, status: 'rejected', rejectedAt: new Date(), cancelReason: reason } : req
         )
       );
     } catch (error) {
@@ -258,15 +260,15 @@ export const WardenDashboard = () => {
                     <div className="mt-4 flex gap-3">
                       <button
                         onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id })}
-                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1.5 rounded"
+                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-2.5 py-1.5 rounded"
                       >
-                        Approve
+                        <CheckIcon fontSize="small"/> Approve
                       </button>
                       <button
                         onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id })}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-1.5 rounded"
+                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-2.5 py-1.5 rounded"
                       >
-                        Reject
+                        <CloseIcon fontSize='small'/> Reject
                       </button>
                     </div>
                   )}
@@ -309,6 +311,7 @@ export const WardenDashboard = () => {
                   <DetailRow label="Branch" value={selectedRequest.studentDetails?.branch} isLong />
                   <DetailRow label="Year" value={selectedRequest.studentDetails?.year} />
                   <DetailRow label="Block" value={selectedRequest.studentDetails?.block} />
+                  <DetailRow label="Parent's Contact" value={selectedRequest.studentDetails?.parentPhone} />
                   <DetailRow label="Room" value={selectedRequest.studentDetails?.room} />
                   <DetailRow label="Reason" value={selectedRequest.reason} />
                   <div className="flex gap-4">
@@ -340,7 +343,7 @@ export const WardenDashboard = () => {
       {confirmModal.open && (
         <div
           className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={() => setConfirmModal({ open: false, action: null, requestId: null })}
+          onClick={() => setConfirmModal({ open: false, action: null, requestId: null, reason: '' })}
         >
           <div
             className="bg-white rounded-xl shadow-lg px-7 py-5 w-full max-w-lg mx-4 sm:px-8 sm:py-8"
@@ -351,10 +354,23 @@ export const WardenDashboard = () => {
                 ? 'Are you sure you want to approve this request?'
                 : 'Are you sure you want to reject this request?'}
             </h3>
+            {confirmModal.action === 'reject' && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection <span className="text-red-500">*</span></label>
+                <textarea
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                  rows={2}
+                  value={confirmModal.reason}
+                  onChange={e => setConfirmModal({ ...confirmModal, reason: e.target.value })}
+                  placeholder="Enter reason for rejection"
+                  required
+                />
+              </div>
+            )}
             <div className="flex justify-end gap-4 mt-8">
               <button
                 className="flex items-center gap-2 px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                onClick={() => setConfirmModal({ open: false, action: null, requestId: null })}
+                onClick={() => setConfirmModal({ open: false, action: null, requestId: null, reason: '' })}
               >
                 <CloseIcon fontSize="small" />
                 Cancel
@@ -368,11 +384,14 @@ export const WardenDashboard = () => {
                 onClick={async () => {
                   if (confirmModal.action === 'approve') {
                     await handleApprove(confirmModal.requestId);
+                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
                   } else {
-                    await handleReject(confirmModal.requestId);
+                    if (!confirmModal.reason.trim()) return; // Require reason
+                    await handleReject(confirmModal.requestId, confirmModal.reason.trim());
+                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
                   }
-                  setConfirmModal({ open: false, action: null, requestId: null });
                 }}
+                disabled={confirmModal.action === 'reject' && !confirmModal.reason.trim()}
               >
                 <CheckIcon fontSize="small" />
                 Confirm

@@ -11,6 +11,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 export const RequestPage = () => {
   const [form, setForm] = useState({
     requestType: '',
+    location: '',
     reason: '',
     warden: '',
     outDate: '',
@@ -83,6 +84,7 @@ export const RequestPage = () => {
       // Only include outTime and returnTime, not the hour/minute/period fields
       const requestData = {
         requestType: form.requestType,
+        location: form.location,
         reason: form.reason,
         warden: form.warden,
         outDate: form.outDate,
@@ -100,6 +102,7 @@ export const RequestPage = () => {
       setSnackbar({ open: true, message: 'Request submitted successfully!', severity: 'success' });
       setForm({
         requestType: '',
+        location: '',
         reason: '',
         warden: '',
         outDate: '',
@@ -132,25 +135,46 @@ export const RequestPage = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Request Type Dropdown */}
-          <div>
-            <label className="block font-medium mb-1">
-              Request Type <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="requestType"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              value={form.requestType}
-              onChange={handleChange}
-              required
-            >
-              <option value="" disabled>
-                Select Request Type
-              </option>
-              <option value="Outing">Outing</option>
-              <option value="Leave">Leave</option>
-              <option value="Other">Other</option>
-            </select>
+     
+          <div className="flex flex-col md:flex-row md:space-x-4">
+            <div className="flex-1">
+              <label className="block font-medium mb-1">
+                Request Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="requestType"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                value={form.requestType}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>
+                  Select Request Type
+                </option>
+                <option value="Outing">Outing</option>
+                <option value="Leave">Leave</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="flex-1 mt-4 md:mt-0">
+              <label className="block font-medium mb-1">
+                Location {form.requestType === 'Outing' && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                name="location"
+                className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200 ${form.requestType !== 'Outing' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                placeholder="Enter location"
+                value={form.location || ''}
+                onChange={handleChange}
+                required={form.requestType === 'Outing'}
+                disabled={form.requestType !== 'Outing'}
+              />
+              {form.requestType !== 'Outing' && (
+                <p className="text-xs text-gray-400 mt-1">Location is only required for Outing requests.</p>
+              )}
+            </div>
           </div>
 
           {/* Reason Textarea */}
