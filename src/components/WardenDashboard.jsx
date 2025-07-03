@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
-import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, serverTimestamp, getDoc, addDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Schedule';
@@ -99,9 +99,25 @@ export const WardenDashboard = () => {
       const requestRef = doc(db, 'outingRequests', id);
       await updateDoc(requestRef, {
         status: 'rejected',
-        rejectedAt: serverTimestamp(), // Add rejectedAt timestamp
+        rejectedAt: serverTimestamp(),
         cancelReason: reason,
       });
+      // Fetch the request to get studentId and other info
+      const requestSnap = await getDoc(requestRef);
+      if (requestSnap.exists()) {
+        const requestData = requestSnap.data();
+        // Send notification to student
+        await addDoc(collection(db, 'notifications'), {
+          student: requestData.studentId, // recipient student UID
+          type: 'request_rejected',
+          requestId: id,
+          message: `Your outing request was rejected. Reason: ${reason}`,
+          reason: reason,
+          status: 'rejected',
+          timestamp: serverTimestamp(),
+          read: false,
+        });
+      }
       setAllRequests((prev) =>
         prev.map((req) =>
           req.id === id ? { ...req, status: 'rejected', rejectedAt: new Date(), cancelReason: reason } : req
@@ -259,13 +275,13 @@ export const WardenDashboard = () => {
                   {request.status?.toLowerCase() === 'pending' && (
                     <div className="mt-4 flex gap-3">
                       <button
-                        onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id })}
+                        onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id, reason: '' })}
                         className="bg-green-600 hover:bg-green-700 text-white text-sm px-2.5 py-1.5 rounded"
                       >
                         <CheckIcon fontSize="small"/> Approve
                       </button>
                       <button
-                        onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id })}
+                        onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id, reason: '' })}
                         className="bg-red-600 hover:bg-red-700 text-white text-sm px-2.5 py-1.5 rounded"
                       >
                         <CloseIcon fontSize='small'/> Reject

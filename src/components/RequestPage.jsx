@@ -28,6 +28,7 @@ export const RequestPage = () => {
   const [wardens, setWardens] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+  const [delayedReturn, setDelayedReturn] = useState(false);
 
   useEffect(() => {
     // Fetch the currently logged-in student's ID and name from Firestore
@@ -46,7 +47,6 @@ export const RequestPage = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch wardens from Firestore
     const fetchWardens = async () => {
       try {
         const q = query(collection(db, 'users'), where('role', '==', 'warden'));
@@ -65,15 +65,83 @@ export const RequestPage = () => {
     fetchWardens();
   }, []);
 
+  const isWeekend = (dateStr) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  };
+
+  useEffect(() => {
+    if (
+      form.requestType === 'Outing' &&
+      form.outDate &&
+      isWeekend(form.outDate) &&
+      !delayedReturn
+    ) {
+      setForm((prev) => ({
+        ...prev,
+        returnHour: '7',
+        returnMinute: '00',
+        returnPeriod: 'PM',
+      }));
+    }
+  }, [form.requestType, form.outDate, delayedReturn]);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    // Special logic for requestType
+    if (name === 'requestType') {
+      if (value === 'Outing') {
+        setForm({
+          ...form,
+          requestType: value,
+          outDate: new Date().toISOString().split('T')[0],
+          returnDate: new Date().toISOString().split('T')[0],
+        });
+      } else {
+        setForm({
+          ...form,
+          requestType: value,
+          outDate: '',
+          returnDate: '',
+        });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Minimum Time Window Enforcement (4 hours before out-time)
+    // Only check if outDate is today
+    const now = new Date();
+    const outDateStr = form.outDate;
+    let outHour = parseInt(form.outHour, 10);
+    const outMinute = parseInt(form.outMinute, 10);
+    let outPeriod = form.outPeriod;
+    if (isNaN(outHour) || isNaN(outMinute) || !outPeriod || !outDateStr) {
+      setSnackbar({ open: true, message: 'Please select a valid out time.', severity: 'error' });
+      return;
+    }
+    if (outPeriod === 'PM' && outHour !== 12) outHour += 12;
+    if (outPeriod === 'AM' && outHour === 12) outHour = 0;
+    const outDateTime = new Date(outDateStr);
+    outDateTime.setHours(outHour, outMinute, 0, 0);
+    const diffMs = outDateTime - now;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (form.outDate === todayStr) {
+      if (diffHours < 3.5) {
+        setSnackbar({ open: true, message: 'Out-time must be at least 4 hours from now.', severity: 'error' });
+        return;
+      }
+    }
+
     try {
-      // Find the selected warden's UID
       const selectedWarden = wardens.find((warden) => warden.name === form.warden);
 
       if (!selectedWarden) {
@@ -81,7 +149,6 @@ export const RequestPage = () => {
         return;
       }
 
-      // Only include outTime and returnTime, not the hour/minute/period fields
       const requestData = {
         requestType: form.requestType,
         location: form.location,
@@ -96,6 +163,7 @@ export const RequestPage = () => {
         wardenUid: selectedWarden.id,
         status: 'pending',
         timestamp: new Date(),
+        delayedReturn: delayedReturn,
       };
 
       await addDoc(collection(db, 'outingRequests'), requestData);
@@ -114,6 +182,7 @@ export const RequestPage = () => {
         returnMinute: '',
         returnPeriod: '',
       });
+      setDelayedReturn(false);
 
       setTimeout(() => navigate('/studentdashboard'), 1500);
     } catch (error) {
@@ -238,6 +307,7 @@ export const RequestPage = () => {
                 onChange={handleChange}
                 min={new Date().toISOString().split('T')[0]}
                 required
+                disabled={form.requestType === 'Outing'}
               />
             </div>
 
@@ -253,6 +323,7 @@ export const RequestPage = () => {
                 onChange={handleChange}
                 min={form.outDate || new Date().toISOString().split('T')[0]}
                 required
+                disabled={form.requestType === 'Outing'}
               />
             </div>
 
@@ -312,6 +383,7 @@ export const RequestPage = () => {
                   value={form.returnHour || ''}
                   onChange={handleChange}
                   required
+                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
                 >
                   <option value="" disabled>Hour</option>
                   {[...Array(12)].map((_, i) => (
@@ -324,6 +396,7 @@ export const RequestPage = () => {
                   value={form.returnMinute || ''}
                   onChange={handleChange}
                   required
+                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
                 >
                   <option value="" disabled>Minute</option>
                   {[0, 15, 30, 45].map((minute) => (
@@ -336,6 +409,7 @@ export const RequestPage = () => {
                   value={form.returnPeriod || ''}
                   onChange={handleChange}
                   required
+                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
                 >
                   <option value="" disabled>AM/PM</option>
                   <option value="AM">AM</option>
@@ -344,6 +418,29 @@ export const RequestPage = () => {
               </div>
             </div>
           </div>
+
+          {/* Delay Checkbox for Outing on Weekend - moved below date/time */}
+          {form.requestType === 'Outing' && isWeekend(form.outDate) && (
+            <div className="flex flex-col mt-2">
+              <div className="flex items-center mb-1">
+                <input
+                  type="checkbox"
+                  id="delayedReturn"
+                  checked={delayedReturn}
+                  onChange={() => setDelayedReturn((prev) => !prev)}
+                  className="mr-2"
+                />
+                <label htmlFor="delayedReturn" className="text-sm">
+                  Flag Delayed Return (update expected return time)
+                </label>
+              </div>
+              {delayedReturn && (
+                <div className="text-yellow-600 text-xs">
+                  Warning: Warden will be alerted about delayed return.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex justify-end space-x-3">

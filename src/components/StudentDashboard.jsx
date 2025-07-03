@@ -4,6 +4,7 @@ import PendingIcon from '@mui/icons-material/Schedule';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -31,6 +32,8 @@ export const StudentDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('All');
   const [isLoading, setIsLoading] = useState(true); // Loading state
+  const [notifications, setNotifications] = useState([]); // Notifications state
+  const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
   const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
 
   useEffect(() => {
@@ -70,6 +73,41 @@ export const StudentDashboard = () => {
     return () => unsubscribe(); // Cleanup listener
   }, []);
 
+  // Fetch notifications for the logged-in student
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const notificationsRef = collection(db, 'notifications');
+          const q = query(notificationsRef, where('student', '==', user.uid));
+          const querySnapshot = await getDocs(q);
+          const fetchedNotifications = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setNotifications(fetchedNotifications);
+          setUnreadCount(fetchedNotifications.filter((n) => n.read === false).length);
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+        }
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    };
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchNotifications();
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   const filteredRequests =
     filter === 'All'
       ? requests
@@ -83,11 +121,20 @@ export const StudentDashboard = () => {
             <h2 className="text-3xl font-bold">My Outing Requests</h2>
             <p className="text-base text-gray-600">Manage and track your hostel outing requests</p>
           </div>
-          <Link to="/requestpage">
-            <button className="flex items-center px-3 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm w-full md:w-auto">
-              <span className="mr-2">➕</span> New Request
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Notifications Button */}
+            <button className="relative p-2 rounded-full hover:bg-gray-200 focus:outline-none" title="Notifications">
+              <NotificationsIcon className="text-blue-600" fontSize="large"/>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1.5 block w-4 h-4 bg-red-600 rounded-full border-2 border-white"></span>
+              )}
             </button>
-          </Link>
+            <Link to="/requestpage">
+              <button className="flex items-center px-3 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm w-full md:w-auto">
+                <span className="mr-2">➕</span> New Request
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Filter Buttons */}
