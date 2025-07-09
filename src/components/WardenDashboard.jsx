@@ -10,10 +10,13 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
+import NotificationsIcon from '@mui/icons-material/Notifications';
 
 export const WardenDashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
   const [filter, setFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('Latest');
+  const sortOptions = ['Latest', 'Oldest'];
   const [isLoading, setIsLoading] = useState(true); // Loading state
   const [selectedRequest, setSelectedRequest] = useState(null); // Selected request for modal
   const [isModalOpen, setIsModalOpen] = useState(false); // Modal visibility
@@ -23,6 +26,9 @@ export const WardenDashboard = () => {
     requestId: null,
     reason: '', // For rejection reason
   });
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -61,6 +67,66 @@ export const WardenDashboard = () => {
 
     return () => unsubscribe(); // Cleanup listener
   }, []);
+
+  // Fetch notifications for the logged-in warden
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const notificationsRef = collection(db, 'notifications');
+          const q = query(notificationsRef, where('warden', '==', user.uid));
+          const querySnapshot = await getDocs(q);
+          const fetchedNotifications = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setNotifications(fetchedNotifications);
+          setUnreadCount(fetchedNotifications.filter((n) => n.read === false).length);
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+        }
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    };
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchNotifications();
+      } else {
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notificationRef, { read: true });
+      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      const updatePromises = unreadNotifications.map(n => updateDoc(doc(db, 'notifications', n.id), { read: true }));
+      await Promise.all(updatePromises);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
 
   // Filtered requests based on selected filter
   const filteredRequests =
@@ -155,12 +221,31 @@ export const WardenDashboard = () => {
   return (
     <div>
       <div className="max-w-7xl mx-auto p-8 mt-3">
-        <h1 className="text-3xl font-bold text-gray-800">Warden Dashboard</h1>
-        <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">Warden Dashboard</h1>
+            <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Notifications Button */}
+            <button
+              className="relative p-2 rounded-full hover:bg-gray-200 focus:outline-none"
+              title="Notifications"
+              onClick={() => setShowNotifications(true)}
+            >
+              <NotificationsIcon className="text-blue-600" fontSize="large" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1.5 w-4 h-4 bg-red-600 rounded-full border-2 border-white text-xs text-white flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
 
-        {/* Filter and Stats */}
+        {/* Filter and Stats with Sort Dropdown */}
         <div className="mt-6 bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap gap-2 mb-3 md:mb-0">
+          <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
             {['All', 'Pending', 'Approved', 'Rejected'].map((type) => (
               <button
                 key={type}
@@ -176,8 +261,29 @@ export const WardenDashboard = () => {
                 {type}
               </button>
             ))}
+            {/* Vertical Divider */}
+            <span className="mx-3 h-6 w-px bg-gray-300 hidden md:inline-block"></span>
+            {/* Sort Dropdown - visually attractive */}
+            <div className="relative">
+              <label htmlFor="sortBy" className="sr-only">Sort</label>
+              <select
+                id="sortBy"
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="appearance-none pl-4 pr-10 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-blue-50 transition cursor-pointer"
+                style={{ minWidth: '110px' }}
+              >
+                {sortOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              {/* Chevron Icon */}
+              <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex flex-wrap gap-4 text-sm items-center mt-3 md:mt-0">
             <span className="flex items-center gap-1 text-yellow-600">
               <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending: {statusCount.Pending}
             </span>
@@ -197,7 +303,18 @@ export const WardenDashboard = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6 mt-6">
-            {filteredRequests.map((request) => {
+            {[...filteredRequests]
+              .sort((a, b) => {
+                switch (sortBy) {
+                  case 'Latest':
+                    return (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0);
+                  case 'Oldest':
+                    return (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0);
+                  default:
+                    return 0;
+                }
+              })
+              .map((request) => {
               const styles = {
                 pending: {
                   icon: <PendingIcon className="text-yellow-600" />,
@@ -412,6 +529,113 @@ export const WardenDashboard = () => {
                 <CheckIcon fontSize="small" />
                 Confirm
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div
+          className="fixed inset-0 bg-gradient-to-br from-black/40 to-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setShowNotifications(false)}
+        >
+          <div
+            className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden border border-white/20 animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <NotificationsIcon className="text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800">Notifications</h3>
+                  <p className="text-sm text-gray-500">Stay updated with your requests</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm text-blue-600 hover:text-blue-800 font-medium px-4 py-2 rounded-lg hover:bg-blue-100 transition-all duration-200 hover:scale-105"
+                  >
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowNotifications(false)}
+                  className="p-2 hover:bg-gray-200 rounded-full transition-all duration-200 hover:scale-110"
+                >
+                  <CloseIcon className="text-gray-600" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {notifications.length > 0 ? (
+                <div className="p-6 space-y-4">
+                  {notifications.map((notification, index) => (
+                    <div
+                      key={notification.id}
+                      className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                        notification.read
+                          ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200'
+                          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 cursor-pointer shadow-sm'
+                      }`}
+                      onClick={() => !notification.read && markAsRead(notification.id)}
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <p className={`font-bold text-lg ${
+                              notification.read ? 'text-gray-700' : 'text-blue-900'
+                            }`}>
+                              {notification.title || 'Notification'}
+                            </p>
+                            {!notification.read && (
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-base leading-relaxed ${
+                            notification.read ? 'text-gray-600' : 'text-blue-700'
+                          }`}>
+                            {notification.message || notification.content || 'No message'}
+                          </p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <p className="text-sm text-gray-500 font-medium">
+                              {notification.timestamp?.seconds
+                                ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                                : 'Unknown time'}
+                            </p>
+                          </div>
+                        </div>
+                        {!notification.read && (
+                          <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-16 text-center">
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+                      <NotificationsIcon className="text-blue-400" sx={{ fontSize: 40 }} />
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-200 rounded-full animate-ping"></div>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">All caught up!</h3>
+                  <p className="text-gray-500">No new notifications at the moment</p>
+                  <p className="text-sm text-gray-400 mt-1">We'll notify you when something important happens</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -249,59 +249,6 @@ export const Login = () => {
                   Sign in
                 </button>
 
-                {/* Social Login Buttons in one line */}
-                <div className="flex justify-center items-center gap-4 mt-4">
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    className="flex items-center justify-center border border-gray-300 rounded-full bg-white hover:bg-gray-100 p-2"
-                    disabled={loading}
-                    title="Sign in with Google"
-                  >
-                    {/* Google SVG */}
-                    <svg className="w-6 h-6" viewBox="0 0 48 48">
-                      <g>
-                        <path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.18 3.23l6.85-6.85C36.68 2.36 30.7 0 24 0 14.82 0 6.73 5.08 2.69 12.44l7.98 6.2C12.34 13.02 17.74 9.5 24 9.5z"/>
-                        <path fill="#34A853" d="M46.14 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.44c-.54 2.92-2.18 5.39-4.66 7.06l7.2 5.6C43.97 37.36 46.14 31.46 46.14 24.55z"/>
-                        <path fill="#FBBC05" d="M10.67 28.64c-1.08-3.22-1.08-6.68 0-9.9l-7.98-6.2C.86 16.34 0 20.06 0 24s.86 7.66 2.69 11.46l7.98-6.2z"/>
-                        <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.14 15.9-5.82l-7.2-5.6c-2.01 1.35-4.6 2.16-8.7 2.16-6.26 0-11.66-3.52-14.33-8.7l-7.98 6.2C6.73 42.92 14.82 48 24 48z"/>
-                        <path fill="none" d="M0 0h48v48H0z"/>
-                      </g>
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleYahooLogin}
-                    className="flex items-center justify-center border border-gray-300 rounded-full bg-white hover:bg-gray-100 p-2"
-                    disabled={loading}
-                    title="Sign in with Yahoo"
-                  >
-                    {/* Yahoo SVG */}
-                    <svg className="w-6 h-6" viewBox="0 0 48 48">
-                      <g>
-                        <circle cx="24" cy="24" r="24" fill="#6001D2"/>
-                        <text x="24" y="32" textAnchor="middle" fontSize="20" fill="#fff" fontFamily="Arial, Helvetica, sans-serif" fontWeight="bold">Y!</text>
-                      </g>
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleMicrosoftLogin}
-                    className="flex items-center justify-center border border-gray-300 rounded-full bg-white hover:bg-gray-100 p-2"
-                    disabled={loading}
-                    title="Sign in with Microsoft"
-                  >
-                    {/* Microsoft SVG */}
-                    <svg className="w-6 h-6" viewBox="0 0 48 48">
-                      <g>
-                        <rect x="4" y="4" width="18" height="18" fill="#F35325"/>
-                        <rect x="26" y="4" width="18" height="18" fill="#81BC06"/>
-                        <rect x="4" y="26" width="18" height="18" fill="#05A6F0"/>
-                        <rect x="26" y="26" width="18" height="18" fill="#FFBA08"/>
-                      </g>
-                    </svg>
-                  </button>
-                </div>
               </form>
             )}
 

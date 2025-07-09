@@ -5,9 +5,10 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import CloseIcon from '@mui/icons-material/Close';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const statusStyles = {
@@ -34,6 +35,7 @@ export const StudentDashboard = () => {
   const [isLoading, setIsLoading] = useState(true); // Loading state
   const [notifications, setNotifications] = useState([]); // Notifications state
   const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
+  const [showNotifications, setShowNotifications] = useState(false); // Modal state
   const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
 
   useEffect(() => {
@@ -113,6 +115,42 @@ export const StudentDashboard = () => {
       ? requests
       : requests.filter((r) => r.status?.toLowerCase() === filter.toLowerCase());
 
+  // Mark notification as read
+  const markAsRead = async (notificationId) => {
+    try {
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notificationRef, { read: true });
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      const updatePromises = unreadNotifications.map(n => 
+        updateDoc(doc(db, 'notifications', n.id), { read: true })
+      );
+      await Promise.all(updatePromises);
+      
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
   return (
     <div>
       <div className="max-w-7xl mx-auto p-8 mt-3">
@@ -123,10 +161,16 @@ export const StudentDashboard = () => {
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Notifications Button */}
-            <button className="relative p-2 rounded-full hover:bg-gray-200 focus:outline-none" title="Notifications">
+            <button 
+              className="relative p-2 rounded-full hover:bg-gray-200 focus:outline-none" 
+              title="Notifications"
+              onClick={() => setShowNotifications(true)}
+            >
               <NotificationsIcon className="text-blue-600" fontSize="large"/>
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1.5 block w-4 h-4 bg-red-600 rounded-full border-2 border-white"></span>
+                <span className="absolute top-1 right-1.5 w-4 h-4 bg-red-600 rounded-full border-2 border-white text-xs text-white flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
             <Link to="/requestpage">
@@ -137,16 +181,128 @@ export const StudentDashboard = () => {
           </div>
         </div>
 
+        {/* Notifications Modal */}
+        {showNotifications && (
+          <div 
+            className="fixed inset-0 bg-gradient-to-br from-black/40 to-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn"
+            onClick={() => setShowNotifications(false)}
+          >
+            <div 
+              className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden border border-white/20 animate-slideUp"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <NotificationsIcon className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">Notifications</h3>
+                    <p className="text-sm text-gray-500">Stay updated with your requests</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium px-4 py-2 rounded-lg hover:bg-blue-100 transition-all duration-200 hover:scale-105"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowNotifications(false)}
+                    className="p-2 hover:bg-gray-200 rounded-full transition-all duration-200 hover:scale-110"
+                  >
+                    <CloseIcon className="text-gray-600" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {notifications.length > 0 ? (
+                  <div className="p-6 space-y-4">
+                    {notifications.map((notification, index) => (
+                      <div
+                        key={notification.id}
+                        className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                          notification.read 
+                            ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200' 
+                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 cursor-pointer shadow-sm'
+                        }`}
+                        onClick={() => !notification.read && markAsRead(notification.id)}
+                        style={{ animationDelay: `${index * 100}ms` }}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <p className={`font-bold text-lg ${
+                                notification.read ? 'text-gray-700' : 'text-blue-900'
+                              }`}>
+                                {notification.title || 'Notification'}
+                              </p>
+                              {!notification.read && (
+                                <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
+                                  NEW
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-base leading-relaxed ${
+                              notification.read ? 'text-gray-600' : 'text-blue-700'
+                            }`}>
+                              {notification.message || notification.content || 'No message'}
+                            </p>
+                            <div className="flex items-center gap-2 mt-3">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <p className="text-sm text-gray-500 font-medium">
+                                {notification.timestamp?.seconds 
+                                  ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                                  : 'Unknown time'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          {!notification.read && (
+                            <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-16 text-center">
+                    <div className="relative">
+                      <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+                        <NotificationsIcon className="text-blue-400" sx={{ fontSize: 40 }} />
+                      </div>
+                      <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-200 rounded-full animate-ping"></div>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">All caught up!</h3>
+                    <p className="text-gray-500">No new notifications at the moment</p>
+                    <p className="text-sm text-gray-400 mt-1">We'll notify you when something important happens</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Filter Buttons */}
-        <div className="bg-gray-100 p-4 rounded-md flex flex-wrap items-center gap-2 mb-8">
+        <div className="bg-white p-4 rounded-md shadow flex flex-wrap items-center gap-2 mb-8">
           <span className="font-medium text-gray-700 whitespace-nowrap">Filter:</span>
           {statuses.map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                filter === status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150
+                ${filter === status
+                  ? status === 'Pending'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}
+              `}
             >
               {status}
             </button>
@@ -160,65 +316,71 @@ export const StudentDashboard = () => {
           </div>
         ) : filteredRequests.length > 0 ? (
           <div className="grid md:grid-cols-3 gap-6">
-            {filteredRequests.map((req) => {
-              const styles = statusStyles[req.status?.toLowerCase()] || {
-                icon: <PendingIcon className="text-gray-600" />,
-                bg: 'bg-gray-50 border-gray-200',
-                text: 'text-gray-700',
-              }; // Fallback styles for undefined statuses
+            {[...filteredRequests]
+              .sort((a, b) => {
+                const aTime = a.timestamp?.seconds || 0;
+                const bTime = b.timestamp?.seconds || 0;
+                return bTime - aTime; // Descending order: latest first
+              })
+              .map((req) => {
+                const styles = statusStyles[req.status?.toLowerCase()] || {
+                  icon: <PendingIcon className="text-gray-600" />, 
+                  bg: 'bg-gray-50 border-gray-200',
+                  text: 'text-gray-700',
+                }; // Fallback styles for undefined statuses
 
-              return (
-                <div key={req.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center space-x-2">
-                      {styles.icon}
-                      <span className={`font-semibold ${styles.text}`}>{req.status || 'Unknown'}</span>
+                return (
+                  <div key={req.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center space-x-2">
+                        {styles.icon}
+                        <span className={`font-semibold ${styles.text}`}>{req.status || 'Unknown'}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  <h3 className="text-lg font-semibold mb-3">{req.requestType || 'Outing Request'}</h3>
+                    <h3 className="text-lg font-semibold mb-3">{req.requestType || 'Outing Request'}</h3>
 
-                  {/* Out Date and Out Time */}
-                  <div className="flex items-center text-sm text-gray-700 mb-1">
-                    <CalendarTodayIcon className="w-4 h-4 mr-1" />
-                    <span>
-                      <b>Out Date:</b> {req.outDate || 'N/A'} {req.outTime ? `at ${req.outTime}` : ''}
-                    </span>
-                  </div>
+                    {/* Out Date and Out Time */}
+                    <div className="flex items-center text-sm text-gray-700 mb-1">
+                      <CalendarTodayIcon className="w-4 h-4 mr-1" />
+                      <span>
+                        <b>Out Date:</b> {req.outDate || 'N/A'} {req.outTime ? `at ${req.outTime}` : ''}
+                      </span>
+                    </div>
 
-                  {/* Return Date and Return Time */}
-                  <div className="flex items-center text-sm text-gray-700 mb-2">
-                    <AccessTimeIcon className="w-4 h-4 mr-1" />
-                    <span>
-                      <b>Return Date:</b> {req.returnDate || 'N/A'} {req.returnTime ? `at ${req.returnTime}` : ''}
-                    </span>
-                  </div>
+                    {/* Return Date and Return Time */}
+                    <div className="flex items-center text-sm text-gray-700 mb-2">
+                      <AccessTimeIcon className="w-4 h-4 mr-1" />
+                      <span>
+                        <b>Return Date:</b> {req.returnDate || 'N/A'} {req.returnTime ? `at ${req.returnTime}` : ''}
+                      </span>
+                    </div>
 
-                  <hr className="my-3" />
+                    <hr className="my-3" />
 
-                  <p className="text-sm">
-                    <span className="font-medium">Reason:</span> {req.reason || 'N/A'}
-                  </p>
-                  <p className="text-sm">
-                    <span className="font-medium">Warden:</span> {req.warden || 'N/A'}
-                  </p>
-
-                  {/* Conditionally Render ApprovedAt or RejectedAt */}
-                  {req.approvedAt && (
-                    <p className="text-sm text-green-600">
-                      <span className="font-medium">Approved At:</span>{' '}
-                      {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
+                    <p className="text-sm">
+                      <span className="font-medium">Reason:</span> {req.reason || 'N/A'}
                     </p>
-                  )}
-                  {req.rejectedAt && (
-                    <p className="text-sm text-red-600">
-                      <span className="font-medium">Rejected At:</span>{' '}
-                      {new Date(req.rejectedAt.seconds * 1000).toLocaleString()}
+                    <p className="text-sm">
+                      <span className="font-medium">Warden:</span> {req.warden || 'N/A'}
                     </p>
-                  )}
-                </div>
-              );
-            })}
+
+                    {/* Conditionally Render ApprovedAt or RejectedAt */}
+                    {req.approvedAt && (
+                      <p className="text-sm text-green-600">
+                        <span className="font-medium">Approved At:</span>{' '}
+                        {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
+                      </p>
+                    )}
+                    {req.rejectedAt && (
+                      <p className="text-sm text-red-600">
+                        <span className="font-medium">Rejected At:</span>{' '}
+                        {new Date(req.rejectedAt.seconds * 1000).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
           </div>
         ) : (
           <p className="text-center text-gray-600">No requests found.</p>
