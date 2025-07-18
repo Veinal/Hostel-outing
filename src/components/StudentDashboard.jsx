@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PendingIcon from '@mui/icons-material/Schedule';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -36,6 +36,7 @@ export const StudentDashboard = () => {
   const [notifications, setNotifications] = useState([]); // Notifications state
   const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
   const [showNotifications, setShowNotifications] = useState(false); // Modal state
+  const [highlightedRequest, setHighlightedRequest] = useState(null);
   const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
 
   useEffect(() => {
@@ -151,6 +152,19 @@ export const StudentDashboard = () => {
     }
   };
 
+  // Scroll to request card and highlight
+  const scrollToRequest = (requestId) => {
+    setShowNotifications(false);
+    setTimeout(() => {
+      const el = document.getElementById('request-' + requestId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedRequest(requestId);
+        setTimeout(() => setHighlightedRequest(null), 1500);
+      }
+    }, 300); // Wait for modal to close
+  };
+
   return (
     <div>
       <div className="max-w-7xl mx-auto p-8 mt-3">
@@ -224,52 +238,57 @@ export const StudentDashboard = () => {
               <div className="overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {notifications.length > 0 ? (
                   <div className="p-6 space-y-4">
-                    {notifications.map((notification, index) => (
-                      <div
-                        key={notification.id}
-                        className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-                          notification.read 
-                            ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200' 
-                            : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 cursor-pointer shadow-sm'
-                        }`}
-                        onClick={() => !notification.read && markAsRead(notification.id)}
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <p className={`font-bold text-lg ${
-                                notification.read ? 'text-gray-700' : 'text-blue-900'
+                    {[...notifications]
+                      .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+                      .map((notification, index) => (
+                        <div
+                          key={notification.id}
+                          className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                            notification.read 
+                              ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200' 
+                              : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 cursor-pointer shadow-sm'
+                          }`}
+                          onClick={() => {
+                            if (!notification.read) markAsRead(notification.id);
+                            if (notification.requestId) scrollToRequest(notification.requestId);
+                          }}
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <p className={`font-semibold text-base ${
+                                  notification.read ? 'text-gray-700' : 'text-blue-900'
+                                }`}>
+                                  {notification.title || 'Notification'}
+                                </p>
+                                {!notification.read && (
+                                  <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-sm leading-relaxed ${
+                                notification.read ? 'text-gray-600' : 'text-blue-700'
                               }`}>
-                                {notification.title || 'Notification'}
+                                {notification.message || notification.content || 'No message'}
                               </p>
-                              {!notification.read && (
-                                <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
-                                  NEW
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2 mt-3">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                <p className="text-xs text-gray-500 font-medium">
+                                  {notification.timestamp?.seconds 
+                                    ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                                    : 'Unknown time'
+                                  }
+                                </p>
+                              </div>
                             </div>
-                            <p className={`text-base leading-relaxed ${
-                              notification.read ? 'text-gray-600' : 'text-blue-700'
-                            }`}>
-                              {notification.message || notification.content || 'No message'}
-                            </p>
-                            <div className="flex items-center gap-2 mt-3">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                              <p className="text-sm text-gray-500 font-medium">
-                                {notification.timestamp?.seconds 
-                                  ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
-                                  : 'Unknown time'
-                                }
-                              </p>
-                            </div>
+                            {!notification.read && (
+                              <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
+                            )}
                           </div>
-                          {!notification.read && (
-                            <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 ) : (
                   <div className="p-16 text-center">
@@ -330,7 +349,11 @@ export const StudentDashboard = () => {
                 }; // Fallback styles for undefined statuses
 
                 return (
-                  <div key={req.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
+                  <div
+                    key={req.id}
+                    id={`request-${req.id}`}
+                    className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4 ${highlightedRequest === req.id ? 'ring-4 ring-blue-400 ring-opacity-60' : ''}`}
+                  >
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center space-x-2">
                         {styles.icon}
@@ -366,13 +389,13 @@ export const StudentDashboard = () => {
                     </p>
 
                     {/* Conditionally Render ApprovedAt or RejectedAt */}
-                    {req.approvedAt && (
+                    {req.approvedAt && req.status === 'approved' && (
                       <p className="text-sm text-green-600">
                         <span className="font-medium">Approved At:</span>{' '}
                         {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
                       </p>
                     )}
-                    {req.rejectedAt && (
+                    {req.rejectedAt && req.status === 'rejected' && (
                       <p className="text-sm text-red-600">
                         <span className="font-medium">Rejected At:</span>{' '}
                         {new Date(req.rejectedAt.seconds * 1000).toLocaleString()}

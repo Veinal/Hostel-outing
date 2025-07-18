@@ -166,7 +166,28 @@ export const RequestPage = () => {
         delayedReturn: delayedReturn,
       };
 
-      await addDoc(collection(db, 'outingRequests'), requestData);
+      // Add the request to Firestore
+      const requestDocRef = await addDoc(collection(db, 'outingRequests'), requestData);
+      
+      // Create notification for the warden
+      const notificationData = {
+        warden: selectedWarden.id, // warden's UID
+        sender: student.id, // sender is the student
+        type: 'new_request',
+        requestId: requestDocRef.id,
+        title: 'New Outing Request',
+        message: `New ${form.requestType} request from ${student.name} for ${form.outDate} at ${form.outHour}:${form.outMinute} ${form.outPeriod}`,
+        studentName: student.name,
+        requestType: form.requestType,
+        outDate: form.outDate,
+        outTime: `${form.outHour}:${form.outMinute} ${form.outPeriod}`,
+        timestamp: new Date(),
+        read: false,
+      };
+
+      // Add notification to Firestore
+      await addDoc(collection(db, 'notifications'), notificationData);
+
       setSnackbar({ open: true, message: 'Request submitted successfully!', severity: 'success' });
       setForm({
         requestType: '',

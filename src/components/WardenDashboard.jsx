@@ -11,6 +11,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import NotificationsIcon from '@mui/icons-material/Notifications';
+import { useRef } from 'react';
 
 export const WardenDashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -29,6 +30,9 @@ export const WardenDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showParentNotify, setShowParentNotify] = useState(false);
+  const [parentNotifyRequest, setParentNotifyRequest] = useState(null);
+  const [parentNotifyStatus, setParentNotifyStatus] = useState('idle'); // idle | sending | sent | error
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -141,7 +145,7 @@ export const WardenDashboard = () => {
     Rejected: allRequests.filter((r) => r.status?.toLowerCase() === 'rejected').length,
   };
 
-  // Approve Request
+  // Modified Approve Request
   const handleApprove = async (id) => {
     try {
       const requestRef = doc(db, 'outingRequests', id);
@@ -149,6 +153,28 @@ export const WardenDashboard = () => {
         status: 'approved',
         approvedAt: serverTimestamp(), // Add approvedAt timestamp
       });
+      
+      // Fetch the request to get studentId and other info
+      const requestSnap = await getDoc(requestRef);
+      if (requestSnap.exists()) {
+        const requestData = requestSnap.data();
+        // Send notification to student
+        await addDoc(collection(db, 'notifications'), {
+          student: requestData.studentId, // recipient student UID
+          sender: auth.currentUser.uid, // sender is the warden
+          type: 'request_approved',
+          requestId: id,
+          title: 'Request Approved',
+          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been approved!`,
+          status: 'approved',
+          timestamp: serverTimestamp(),
+          read: false,
+        });
+        // Show parent notify modal/button
+        setParentNotifyRequest({ ...requestData, requestId: id });
+        setShowParentNotify(true);
+      }
+      
       setAllRequests((prev) =>
         prev.map((req) =>
           req.id === id ? { ...req, status: 'approved', approvedAt: new Date() } : req
@@ -175,9 +201,11 @@ export const WardenDashboard = () => {
         // Send notification to student
         await addDoc(collection(db, 'notifications'), {
           student: requestData.studentId, // recipient student UID
+          sender: auth.currentUser.uid, // sender is the warden
           type: 'request_rejected',
           requestId: id,
-          message: `Your outing request was rejected. Reason: ${reason}`,
+          title: 'Request Rejected',
+          message: `Your ${requestData.requestType} request for ${requestData.outDate} was rejected. Reason: ${reason}`,
           reason: reason,
           status: 'rejected',
           timestamp: serverTimestamp(),
@@ -217,6 +245,56 @@ export const WardenDashboard = () => {
     setIsModalOpen(false);
     setSelectedRequest(null);
   };
+
+  // Function to notify parent
+  const handleNotifyParent = async () => {
+    if (!parentNotifyRequest) return;
+    setParentNotifyStatus('sending');
+    try {
+      // Fetch student profile to get parent's phone
+      const studentRef = doc(db, 'users', parentNotifyRequest.studentId);
+      const studentSnap = await getDoc(studentRef);
+      let parentPhone = '';
+      let studentName = '';
+      if (studentSnap.exists()) {
+        const studentData = studentSnap.data();
+        parentPhone = studentData.parentPhone || '';
+        studentName = studentData.fullName || '';
+      }
+      if (!parentPhone) {
+        setParentNotifyStatus('error');
+        return;
+      }
+      // Create a notification for the parent (for now, just in Firestore)
+      await addDoc(collection(db, 'parentNotifications'), {
+        parentPhone: parentPhone,
+        studentName: studentName,
+        requestId: parentNotifyRequest.requestId,
+        type: 'parent_notify',
+        title: 'Outing Approved',
+        message: `Your ward ${studentName}'s outing request for ${parentNotifyRequest.outDate} has been approved by the warden.`,
+        timestamp: serverTimestamp(),
+        read: false,
+        sender: auth.currentUser.uid,
+      });
+      setParentNotifyStatus('sent');
+    } catch (error) {
+      setParentNotifyStatus('error');
+      console.error('Error notifying parent:', error);
+    }
+  };
+
+  // Add auto-close effect after notification sent
+  useEffect(() => {
+    if (parentNotifyStatus === 'sent') {
+      const timer = setTimeout(() => {
+        setShowParentNotify(false);
+        setParentNotifyRequest(null);
+        setParentNotifyStatus('idle');
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [parentNotifyStatus]);
 
   return (
     <div>
@@ -530,6 +608,56 @@ export const WardenDashboard = () => {
                 Confirm
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Parent Notify Modal */}
+      {showParentNotify && parentNotifyRequest && (
+        <div
+          className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
+          onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-lg px-7 py-5 w-full max-w-md mx-4 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close Icon */}
+            <button
+              className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-200 focus:outline-none"
+              onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
+              aria-label="Close"
+            >
+              <CloseIcon className="text-gray-600" />
+            </button>
+            <h3 className="text-lg font-semibold mb-4 text-center">Notify Parent?</h3>
+            <p className="mb-4 text-gray-700 text-center">
+              Would you like to notify the parent of <b>{parentNotifyRequest.studentName || 'the student'}</b> about the approval?
+            </p>
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
+              >
+                No, Thanks
+              </button>
+              <button
+                className={`px-4 py-2 rounded text-white ${parentNotifyStatus === 'sent' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+                onClick={handleNotifyParent}
+                disabled={parentNotifyStatus === 'sending' || parentNotifyStatus === 'sent'}
+              >
+                {parentNotifyStatus === 'idle' && 'Notify Parent'}
+                {parentNotifyStatus === 'sending' && 'Sending...'}
+                {parentNotifyStatus === 'sent' && 'Notification Sent!'}
+                {parentNotifyStatus === 'error' && 'Error!'}
+              </button>
+            </div>
+            {parentNotifyStatus === 'sent' && (
+              <div className="text-green-600 text-center mt-4">Parent has been notified.</div>
+            )}
+            {parentNotifyStatus === 'error' && (
+              <div className="text-red-600 text-center mt-4">Could not notify parent (missing phone or error).</div>
+            )}
           </div>
         </div>
       )}
