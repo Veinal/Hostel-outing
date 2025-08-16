@@ -9,6 +9,11 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 export const RequestPage = () => {
+  // Helper function to format time with leading zeros
+  const formatTime = (hour, minute) => {
+    return `${hour}:${minute.toString().padStart(2, '0')}`;
+  };
+
   const [form, setForm] = useState({
     requestType: '',
     location: '',
@@ -156,8 +161,8 @@ export const RequestPage = () => {
         warden: form.warden,
         outDate: form.outDate,
         returnDate: form.returnDate,
-        outTime: `${form.outHour}:${form.outMinute} ${form.outPeriod}`,
-        returnTime: `${form.returnHour}:${form.returnMinute} ${form.returnPeriod}`,
+        outTime: `${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
+        returnTime: `${formatTime(form.returnHour, form.returnMinute)} ${form.returnPeriod}`,
         studentId: student.id,
         studentName: student.name,
         wardenUid: selectedWarden.id,
@@ -176,11 +181,11 @@ export const RequestPage = () => {
         type: 'new_request',
         requestId: requestDocRef.id,
         title: 'New Outing Request',
-        message: `New ${form.requestType} request from ${student.name} for ${form.outDate} at ${form.outHour}:${form.outMinute} ${form.outPeriod}`,
+        message: `New ${form.requestType} request from ${student.name} for ${form.outDate} at ${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
         studentName: student.name,
         requestType: form.requestType,
         outDate: form.outDate,
-        outTime: `${form.outHour}:${form.outMinute} ${form.outPeriod}`,
+        outTime: `${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
         timestamp: new Date(),
         read: false,
       };

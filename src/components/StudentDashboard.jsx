@@ -27,6 +27,11 @@ const statusStyles = {
     bg: 'bg-red-50 border-red-200',
     text: 'text-red-700',
   },
+  cancelled: {
+    icon: <CancelIcon className="text-orange-600" />,
+    bg: 'bg-orange-50 border-orange-200',
+    text: 'text-orange-700',
+  },
 };
 
 export const StudentDashboard = () => {
@@ -37,7 +42,7 @@ export const StudentDashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
   const [showNotifications, setShowNotifications] = useState(false); // Modal state
   const [highlightedRequest, setHighlightedRequest] = useState(null);
-  const statuses = ['All', 'Pending', 'Approved', 'Rejected'];
+  const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled'];
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -387,8 +392,20 @@ export const StudentDashboard = () => {
                     <p className="text-sm">
                       <span className="font-medium">Warden:</span> {req.warden || 'N/A'}
                     </p>
+                    
+                    {/* Display rejection or cancellation reason */}
+                    {req.rejectReason && req.status === 'rejected' && (
+                      <p className="text-sm text-red-600">
+                        <span className="font-medium">Rejection Reason:</span> {req.rejectReason}
+                      </p>
+                    )}
+                    {req.cancelReason && req.status === 'cancelled' && (
+                      <p className="text-sm text-orange-600">
+                        <span className="font-medium">Cancellation Reason:</span> {req.cancelReason}
+                      </p>
+                    )}
 
-                    {/* Conditionally Render ApprovedAt or RejectedAt */}
+                    {/* Conditionally Render ApprovedAt, RejectedAt, or CancelledAt */}
                     {req.approvedAt && req.status === 'approved' && (
                       <p className="text-sm text-green-600">
                         <span className="font-medium">Approved At:</span>{' '}
@@ -399,6 +416,12 @@ export const StudentDashboard = () => {
                       <p className="text-sm text-red-600">
                         <span className="font-medium">Rejected At:</span>{' '}
                         {new Date(req.rejectedAt.seconds * 1000).toLocaleString()}
+                      </p>
+                    )}
+                    {req.cancelledAt && req.status === 'cancelled' && (
+                      <p className="text-sm text-orange-600">
+                        <span className="font-medium">Cancelled At:</span>{' '}
+                        {new Date(req.cancelledAt.seconds * 1000).toLocaleString()}
                       </p>
                     )}
                   </div>

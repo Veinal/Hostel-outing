@@ -33,6 +33,7 @@ export const WardenDashboard = () => {
   const [showParentNotify, setShowParentNotify] = useState(false);
   const [parentNotifyRequest, setParentNotifyRequest] = useState(null);
   const [parentNotifyStatus, setParentNotifyStatus] = useState('idle'); // idle | sending | sent | error
+  const [highlightedRequest, setHighlightedRequest] = useState(null);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -143,6 +144,7 @@ export const WardenDashboard = () => {
     Pending: allRequests.filter((r) => r.status?.toLowerCase() === 'pending').length,
     Approved: allRequests.filter((r) => r.status?.toLowerCase() === 'approved').length,
     Rejected: allRequests.filter((r) => r.status?.toLowerCase() === 'rejected').length,
+    Cancelled: allRequests.filter((r) => r.status?.toLowerCase() === 'cancelled').length,
   };
 
   // Modified Approve Request
@@ -192,7 +194,7 @@ export const WardenDashboard = () => {
       await updateDoc(requestRef, {
         status: 'rejected',
         rejectedAt: serverTimestamp(),
-        cancelReason: reason,
+        rejectReason: reason,
       });
       // Fetch the request to get studentId and other info
       const requestSnap = await getDoc(requestRef);
@@ -214,11 +216,48 @@ export const WardenDashboard = () => {
       }
       setAllRequests((prev) =>
         prev.map((req) =>
-          req.id === id ? { ...req, status: 'rejected', rejectedAt: new Date(), cancelReason: reason } : req
+          req.id === id ? { ...req, status: 'rejected', rejectedAt: new Date(), rejectReason: reason } : req
         )
       );
     } catch (error) {
       console.error('Error rejecting request:', error);
+    }
+  };
+
+  // Cancel Approved Request
+  const handleCancel = async (id, reason) => {
+    try {
+      const requestRef = doc(db, 'outingRequests', id);
+      await updateDoc(requestRef, {
+        status: 'cancelled',
+        cancelledAt: serverTimestamp(),
+        cancelReason: reason,
+      });
+      // Fetch the request to get studentId and other info
+      const requestSnap = await getDoc(requestRef);
+      if (requestSnap.exists()) {
+        const requestData = requestSnap.data();
+        // Send notification to student
+        await addDoc(collection(db, 'notifications'), {
+          student: requestData.studentId, // recipient student UID
+          sender: auth.currentUser.uid, // sender is the warden
+          type: 'request_cancelled',
+          requestId: id,
+          title: 'Request Cancelled',
+          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been cancelled. Reason: ${reason}`,
+          reason: reason,
+          status: 'cancelled',
+          timestamp: serverTimestamp(),
+          read: false,
+        });
+      }
+      setAllRequests((prev) =>
+        prev.map((req) =>
+          req.id === id ? { ...req, status: 'cancelled', cancelledAt: new Date(), cancelReason: reason } : req
+        )
+      );
+    } catch (error) {
+      console.error('Error cancelling request:', error);
     }
   };
 
@@ -296,6 +335,19 @@ export const WardenDashboard = () => {
     }
   }, [parentNotifyStatus]);
 
+  // Scroll to request card and highlight
+  const scrollToRequest = (requestId) => {
+    setShowNotifications(false);
+    setTimeout(() => {
+      const el = document.getElementById('request-' + requestId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedRequest(requestId);
+        setTimeout(() => setHighlightedRequest(null), 2000);
+      }
+    }, 300); // Wait for modal to close
+  };
+
   return (
     <div>
       <div className="max-w-7xl mx-auto p-8 mt-3">
@@ -324,7 +376,7 @@ export const WardenDashboard = () => {
         {/* Filter and Stats with Sort Dropdown */}
         <div className="mt-6 bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
-            {['All', 'Pending', 'Approved', 'Rejected'].map((type) => (
+            {['All', 'Pending', 'Approved', 'Rejected', 'Cancelled'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilter(type)}
@@ -371,6 +423,9 @@ export const WardenDashboard = () => {
             <span className="flex items-center gap-1 text-red-600">
               <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected: {statusCount.Rejected}
             </span>
+            <span className="flex items-center gap-1 text-orange-600">
+              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>Cancelled: {statusCount.Cancelled}
+            </span>
           </div>
         </div>
 
@@ -409,14 +464,19 @@ export const WardenDashboard = () => {
                   bg: 'bg-red-50 border-red-200',
                   text: 'text-red-700',
                 },
+                cancelled: {
+                  icon: <CancelIcon className="text-orange-600" />,
+                  bg: 'bg-orange-50 border-orange-200',
+                  text: 'text-orange-700',
+                },
               }[request.status?.toLowerCase()] || {
                 icon: <PendingIcon className="text-gray-600" />,
                 bg: 'bg-gray-50 border-gray-200',
                 text: 'text-gray-700',
               }; // Fallback styles for undefined statuses
 
-              return (
-                <div key={request.id} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4`}>
+                              return (
+                  <div key={request.id} id={`request-${request.id}`} className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4 ${highlightedRequest === request.id ? 'ring-4 ring-blue-400 ring-opacity-60' : ''}`}>
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center space-x-2">
                       {styles.icon}
@@ -466,23 +526,91 @@ export const WardenDashboard = () => {
                       {request.reason || 'N/A'}
                     </span>
                   </p>
+                  
+                  {/* Display rejection or cancellation reason */}
+                  {request.rejectReason && request.status?.toLowerCase() === 'rejected' && (
+                    <p className="text-sm text-red-600">
+                      <span className="font-medium">Rejection Reason:</span> {request.rejectReason}
+                    </p>
+                  )}
+                  {request.cancelReason && request.status?.toLowerCase() === 'cancelled' && (
+                    <p className="text-sm text-orange-600">
+                      <span className="font-medium">Cancellation Reason:</span> {request.cancelReason}
+                    </p>
+                  )}
 
                   {request.status?.toLowerCase() === 'pending' && (
-                    <div className="mt-4 flex gap-3">
-                      <button
-                        onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id, reason: '' })}
-                        className="bg-green-600 hover:bg-green-700 text-white text-sm px-2.5 py-1.5 rounded"
-                      >
-                        <CheckIcon fontSize="small"/> Approve
-                      </button>
-                      <button
-                        onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id, reason: '' })}
-                        className="bg-red-600 hover:bg-red-700 text-white text-sm px-2.5 py-1.5 rounded"
-                      >
-                        <CloseIcon fontSize='small'/> Reject
-                      </button>
+                    <div className="mt-4 flex flex-wrap gap-3 items-center justify-between">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setConfirmModal({ open: true, action: 'approve', requestId: request.id, reason: '' })}
+                          className="bg-green-600 hover:bg-green-700 text-white text-sm px-2.5 py-1.5 rounded"
+                        >
+                          <CheckIcon fontSize="small"/> Approve
+                        </button>
+                        <button
+                          onClick={() => setConfirmModal({ open: true, action: 'reject', requestId: request.id, reason: '' })}
+                          className="bg-red-600 hover:bg-red-700 text-white text-sm px-2.5 py-1.5 rounded"
+                        >
+                          <CloseIcon fontSize='small'/> Reject
+                        </button>
+                      </div>
+                      
+                      {/* Call Parent Button - Mobile Only */}
+                      <a
+                         href={`tel:${request.parentPhone || ''}`}
+                         className={`flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${
+                           !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
+                         }`}
+                         onClick={(e) => {
+                           if (!request.parentPhone) {
+                             e.preventDefault();
+                             alert('Parent phone number not available');
+                           }
+                         }}
+                         title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
+                       >
+                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                         </svg>
+                         Call Parent
+                       </a>
                     </div>
                   )}
+                  
+                                     {/* Call Parent Button (for non-pending requests) */}
+                   {request.status?.toLowerCase() !== 'pending' && (
+                     <div className="mt-4 flex justify-end gap-3">
+                       <a
+                         href={`tel:${request.parentPhone || ''}`}
+                         className={`flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${
+                           !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
+                         }`}
+                         onClick={(e) => {
+                           if (!request.parentPhone) {
+                             e.preventDefault();
+                             alert('Parent phone number not available');
+                           }
+                         }}
+                         title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
+                       >
+                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                         </svg>
+                         Call Parent
+                       </a>
+                       
+                       {/* Cancel Button for Approved Requests */}
+                       {request.status?.toLowerCase() === 'approved' && (
+                         <button
+                           onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
+                           className="bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-1.5 rounded flex items-center gap-1"
+                         >
+                           <CloseIcon fontSize="small"/> Cancel Request
+                         </button>
+                       )}
+                     </div>
+                   )}
                 </div>
               );
             })}
@@ -563,17 +691,21 @@ export const WardenDashboard = () => {
             <h3 className="text-lg font-semibold mb-6 ">
               {confirmModal.action === 'approve'
                 ? 'Are you sure you want to approve this request?'
-                : 'Are you sure you want to reject this request?'}
+                : confirmModal.action === 'reject'
+                ? 'Are you sure you want to reject this request?'
+                : 'Are you sure you want to cancel this approved request?'}
             </h3>
-            {confirmModal.action === 'reject' && (
+            {(confirmModal.action === 'reject' || confirmModal.action === 'cancel') && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Reason for Rejection <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reason for {confirmModal.action === 'reject' ? 'Rejection' : 'Cancellation'} <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
                   rows={2}
                   value={confirmModal.reason}
                   onChange={e => setConfirmModal({ ...confirmModal, reason: e.target.value })}
-                  placeholder="Enter reason for rejection"
+                  placeholder={`Enter reason for ${confirmModal.action === 'reject' ? 'rejection' : 'cancellation'}`}
                   required
                 />
               </div>
@@ -590,19 +722,25 @@ export const WardenDashboard = () => {
                 className={`flex items-center gap-2 px-4 py-2 rounded text-white ${
                   confirmModal.action === 'approve'
                     ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    : confirmModal.action === 'reject'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-orange-600 hover:bg-orange-700'
                 }`}
                 onClick={async () => {
                   if (confirmModal.action === 'approve') {
                     await handleApprove(confirmModal.requestId);
                     setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
-                  } else {
+                  } else if (confirmModal.action === 'reject') {
                     if (!confirmModal.reason.trim()) return; // Require reason
                     await handleReject(confirmModal.requestId, confirmModal.reason.trim());
                     setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
+                  } else if (confirmModal.action === 'cancel') {
+                    if (!confirmModal.reason.trim()) return; // Require reason
+                    await handleCancel(confirmModal.requestId, confirmModal.reason.trim());
+                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
                   }
                 }}
-                disabled={confirmModal.action === 'reject' && !confirmModal.reason.trim()}
+                disabled={(confirmModal.action === 'reject' || confirmModal.action === 'cancel') && !confirmModal.reason.trim()}
               >
                 <CheckIcon fontSize="small" />
                 Confirm
@@ -703,17 +841,24 @@ export const WardenDashboard = () => {
 
             {/* Modal Body */}
             <div className="overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-              {notifications.length > 0 ? (
-                <div className="p-6 space-y-4">
-                  {notifications.map((notification, index) => (
+                             {notifications.length > 0 ? (
+                 <div className="p-6 space-y-4">
+                   {[...notifications]
+                     .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+                     .map((notification, index) => (
                     <div
                       key={notification.id}
                       className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
                         notification.read
                           ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200'
-                          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 cursor-pointer shadow-sm'
-                      }`}
-                      onClick={() => !notification.read && markAsRead(notification.id)}
+                          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 shadow-sm'
+                      } ${notification.requestId && notification.requestId.trim() ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (!notification.read) markAsRead(notification.id);
+                        if (notification.requestId && notification.requestId.trim()) {
+                          scrollToRequest(notification.requestId);
+                        }
+                      }}
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="flex items-start justify-between">
