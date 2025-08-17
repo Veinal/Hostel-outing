@@ -12,6 +12,8 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useRef } from 'react';
+import { generateApprovalNumber, createApprovalCertificate } from '../utils/approvalUtils';
+import { useNavigate } from 'react-router-dom';
 
 export const WardenDashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -34,6 +36,8 @@ export const WardenDashboard = () => {
   const [parentNotifyRequest, setParentNotifyRequest] = useState(null);
   const [parentNotifyStatus, setParentNotifyStatus] = useState('idle'); // idle | sending | sent | error
   const [highlightedRequest, setHighlightedRequest] = useState(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -160,18 +164,54 @@ export const WardenDashboard = () => {
       const requestSnap = await getDoc(requestRef);
       if (requestSnap.exists()) {
         const requestData = requestSnap.data();
-        // Send notification to student
+        
+        // Fetch student details from users collection
+        let studentDetails = null;
+        try {
+          const studentRef = doc(db, 'users', requestData.studentId);
+          const studentSnap = await getDoc(studentRef);
+          if (studentSnap.exists()) {
+            studentDetails = studentSnap.data();
+          }
+        } catch (error) {
+          console.error('Error fetching student details:', error);
+        }
+        
+        // Generate unique approval number
+        const approvalNumber = generateApprovalNumber();
+        
+        // Create approval certificate
+        const certificate = await createApprovalCertificate(
+          { 
+            ...requestData, 
+            id,
+            studentDetails: studentDetails
+          },
+          auth.currentUser,
+          approvalNumber
+        );
+        
+        // Update request with approval number and certificate ID
+        await updateDoc(requestRef, {
+          approvalNumber,
+          certificateId: certificate.id,
+        });
+        
+        // Send notification to student with certificate link
         await addDoc(collection(db, 'notifications'), {
           student: requestData.studentId, // recipient student UID
           sender: auth.currentUser.uid, // sender is the warden
           type: 'request_approved',
           requestId: id,
+          certificateId: certificate.id,
+          approvalNumber,
           title: 'Request Approved',
-          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been approved!`,
+          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been approved! Approval Number: ${approvalNumber}`,
           status: 'approved',
           timestamp: serverTimestamp(),
           read: false,
         });
+        
         // Show parent notify modal/button
         setParentNotifyRequest({ ...requestData, requestId: id });
         setShowParentNotify(true);
@@ -578,33 +618,48 @@ export const WardenDashboard = () => {
                     </div>
                   )}
                   
-                                     {/* Call Parent Button (for non-pending requests) */}
+                 {/* Action Buttons for non-pending requests */}
                    {request.status?.toLowerCase() !== 'pending' && (
-                     <div className="mt-4 flex justify-end gap-3">
-                       <a
-                         href={`tel:${request.parentPhone || ''}`}
-                         className={`flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${
-                           !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
-                         }`}
-                         onClick={(e) => {
-                           if (!request.parentPhone) {
-                             e.preventDefault();
-                             alert('Parent phone number not available');
-                           }
-                         }}
-                         title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
-                       >
-                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                         </svg>
-                         Call Parent
-                       </a>
+                     <div className="mt-4 space-y-2">
+                       {/* Primary Actions Row */}
+                       <div className="flex flex-wrap gap-2">
+                         {/* View Certificate Button for Approved Requests */}
+                         {request.status?.toLowerCase() === 'approved' && request.certificateId && (
+                           <button
+                             onClick={() => navigate(`/certificate/${request.certificateId}`)}
+                             className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                           >
+                             <CheckCircleIcon fontSize="small" />
+                             View Certificate
+                           </button>
+                         )}
+                         
+                         {/* Call Parent Button */}
+                         <a
+                           href={`tel:${request.parentPhone || ''}`}
+                           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-sm transition-all duration-200 hover:scale-105 ${
+                             !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
+                           }`}
+                           onClick={(e) => {
+                             if (!request.parentPhone) {
+                               e.preventDefault();
+                               alert('Parent phone number not available');
+                             }
+                           }}
+                           title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
+                         >
+                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                           </svg>
+                           Call Parent
+                         </a>
+                       </div>
                        
-                       {/* Cancel Button for Approved Requests */}
+                       {/* Secondary Actions Row - Cancel Button for Approved Requests */}
                        {request.status?.toLowerCase() === 'approved' && (
                          <button
                            onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
-                           className="bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-1.5 rounded flex items-center gap-1"
+                           className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
                          >
                            <CloseIcon fontSize="small"/> Cancel Request
                          </button>

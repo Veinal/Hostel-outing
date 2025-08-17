@@ -70,6 +70,14 @@ export const NavBar = () => {
             alt="MITE Logo"
           />
           <span className="font-semibold ml-3 text-xl hidden md:inline">MITE Hostel</span>
+          
+          {/* Verification Link */}
+          <Link
+            to="/verify"
+            className="ml-8 text-blue-600 hover:text-blue-800 font-medium transition-all duration-200"
+          >
+            Verify Certificate
+          </Link>
         </div>
         <div className="navbar-end flex items-center">
           {user ? (
