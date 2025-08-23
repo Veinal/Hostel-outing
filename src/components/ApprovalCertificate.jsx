@@ -111,7 +111,7 @@ export const ApprovalCertificate = () => {
                 <div class="detail-value">${certificate?.studentName}</div>
               </div>
               <div class="detail-item">
-                <div class="detail-label">Roll Number:</div>
+                <div class="detail-label">USN:</div>
                 <div class="detail-value">${certificate?.studentRollNo}</div>
               </div>
               <div class="detail-item">

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
@@ -119,27 +119,49 @@ export const Login = () => {
     setLoading(true); // Set loading to true
 
     try {
-      // Sign in the user with Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      // Fetch the user's role from Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
-
-        if (userRole === 'admin') {
-          navigate('/admindashboard'); 
-        } else if (userRole === 'student') {
-          navigate('/studentdashboard');
-        } else if (userRole === 'warden') {
-          navigate('/wardendashboard');
-        } else {
-          navigate('/'); 
+      // Try normal sign-in first
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const userRole = userData.role;
+          if (userRole === 'admin') navigate('/admindashboard');
+          else if (userRole === 'student') navigate('/studentdashboard');
+          else if (userRole === 'warden') navigate('/wardendashboard');
+          else navigate('/');
+          return;
         }
-      } else {
+        // If signed in but no role
         setError('User role not found.');
+        return;
+      } catch (signInErr) {
+        // If sign-in failed, check if this email is in pendingStudents
+        const pendingQ = query(collection(db, 'pendingStudents'), where('email', '==', email));
+        const pendingSnap = await getDocs(pendingQ);
+        if (!pendingSnap.empty) {
+          const pendingDoc = pendingSnap.docs[0];
+          const pendingData = pendingDoc.data();
+          // Attempt to create auth user using provided password
+          try {
+            const created = await createUserWithEmailAndPassword(auth, email, password);
+            const createdUser = created.user;
+            const studentData = { ...pendingData, uid: createdUser.uid, activatedAt: new Date(), isFirstLogin: true };
+            delete studentData.tempCredentials;
+            delete studentData.status; // remove pending flag
+            await setDoc(doc(db, 'users', createdUser.uid), studentData);
+            await deleteDoc(doc(db, 'pendingStudents', pendingDoc.id));
+            navigate('/studentdashboard');
+            return;
+          } catch (createErr) {
+            // If email already exists or wrong password, show friendly message
+            setError(getFriendlyErrorMessage(createErr));
+            return;
+          }
+        }
+        // Not pending; show friendly sign-in error
+        setError(getFriendlyErrorMessage(signInErr));
       }
     } catch (err) {
       setError(getFriendlyErrorMessage(err)); // Use friendly error messages

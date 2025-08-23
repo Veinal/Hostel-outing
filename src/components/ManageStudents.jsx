@@ -4,7 +4,9 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { SideBar } from './SideBar';
-import { FaSortAmountDown, FaSortAmountUp, FaSearch } from 'react-icons/fa';
+import { FaSortAmountDown, FaSortAmountUp, FaSearch, FaUpload, FaClock } from 'react-icons/fa';
+import { BulkStudentImport } from './BulkStudentImport';
+import { PendingStudents } from './PendingStudents';
 
 export const ManageStudents = () => {
   const [students, setStudents] = useState([]);
@@ -20,6 +22,8 @@ export const ManageStudents = () => {
   const [sortOrder, setSortOrder] = useState('asc');
   const [branchOptions, setBranchOptions] = useState([]); // <-- For branch filter dropdown
   const [blockOptions, setBlockOptions] = useState([]); // For block filter dropdown
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showPendingStudents, setShowPendingStudents] = useState(false);
   const rowsPerPage = 10;
   const navigate = useNavigate();
 
@@ -59,6 +63,18 @@ export const ManageStudents = () => {
     };
     fetchStudents();
   }, []);
+
+  const handleStudentsAdded = () => {
+    const refetch = async () => {
+      const studentsCollection = collection(db, 'users');
+      const studentDocs = await getDocs(studentsCollection);
+      const studentList = studentDocs.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((user) => user.role === 'student');
+      setStudents(studentList);
+    };
+    refetch();
+  };
 
   // Fetch branch options from Firestore branches collection
   useEffect(() => {
@@ -158,7 +174,25 @@ export const ManageStudents = () => {
     <div className="flex min-h-screen">
       <SideBar />
       <main className="flex-1 p-4 md:p-8 bg-gray-50">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Students</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Manage Students</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowPendingStudents(true)}
+              className="btn btn-outline btn-warning"
+            >
+              <FaClock className="mr-2" />
+              Pending Students
+            </button>
+            <button
+              onClick={() => setShowBulkImport(true)}
+              className="btn btn-primary"
+            >
+              <FaUpload className="mr-2" />
+              Bulk Import Students
+            </button>
+          </div>
+        </div>
 
         {/* Search and Filters above the table */}
         <div className="mb-4 w-full">
@@ -477,6 +511,21 @@ export const ManageStudents = () => {
               </div>
             </div>
           </div>
+        )}
+        {/* Bulk Import Modal */}
+        {showBulkImport && (
+          <BulkStudentImport
+            onClose={() => setShowBulkImport(false)}
+            onStudentsAdded={handleStudentsAdded}
+          />
+        )}
+
+        {/* Pending Students Modal */}
+        {showPendingStudents && (
+          <PendingStudents
+            onClose={() => setShowPendingStudents(false)}
+            onStudentsActivated={handleStudentsAdded}
+          />
         )}
       </main>
     </div>
