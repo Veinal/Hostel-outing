@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { SideBar } from './SideBar';
-import { FaSortAmountDown, FaSortAmountUp, FaSearch, FaUpload, FaClock } from 'react-icons/fa';
+import { FaSortAmountDown, FaSortAmountUp, FaSearch, FaUpload, FaClock, FaEye, FaTrash } from 'react-icons/fa';
 import { BulkStudentImport } from './BulkStudentImport';
 import { PendingStudents } from './PendingStudents';
 
@@ -24,7 +24,7 @@ export const ManageStudents = () => {
   const [blockOptions, setBlockOptions] = useState([]); // For block filter dropdown
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showPendingStudents, setShowPendingStudents] = useState(false);
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -194,9 +194,26 @@ export const ManageStudents = () => {
           </div>
         </div>
 
-        {/* Search and Filters above the table */}
+        {/* Search, Rows-per-page and Filters above the table */}
         <div className="mb-4 w-full">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-2 w-full">
+            {/* Rows per page (to the left of search) */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-semibold text-gray-700">Rows</label>
+              <select
+                className="select select-bordered select-md w-16"
+                value={rowsPerPage}
+                onChange={(e) => {
+                  const next = parseInt(e.target.value, 10);
+                  setRowsPerPage(next);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
             {/* Search Bar */}
             <div className="flex flex-row gap-2 flex-1 min-w-[200px]">
               <input
@@ -408,18 +425,28 @@ export const ManageStudents = () => {
                     <td className="text-gray-800">{student.year || 'N/A'}</td>
                     <td className="text-gray-800">{student.block || 'N/A'}</td>
                     <td>
-                      <button
-                        onClick={() => handleView(student)}
-                        className="btn btn-sm btn-primary mr-2"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => setDeleteStudentId(student.id)}
-                        className="btn btn-sm btn-error"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="tooltip" data-tip="View">
+                          <button
+                            onClick={() => handleView(student)}
+                            className="btn btn-sm btn-primary"
+                            aria-label="View"
+                            // title="View"
+                          >
+                            <FaEye />
+                          </button>
+                        </div>
+                        <div className="tooltip" data-tip="Delete">
+                          <button
+                            onClick={() => setDeleteStudentId(student.id)}
+                            className="btn btn-sm btn-error"
+                            aria-label="Delete"
+                            // title="Delete"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))

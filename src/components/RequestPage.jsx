@@ -7,6 +7,11 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
+import dayjs from 'dayjs';
 
 export const RequestPage = () => {
   // Helper function to format time with leading zeros
@@ -19,14 +24,8 @@ export const RequestPage = () => {
     location: '',
     reason: '',
     warden: '',
-    outDate: '',
-    returnDate: '',
-    outHour: '',
-    outMinute: '',
-    outPeriod: '',
-    returnHour: '',
-    returnMinute: '',
-    returnPeriod: '',
+    outDateTime: null,
+    returnDateTime: null,
   });
 
   const [student, setStudent] = useState({ id: '', name: '' });
@@ -70,28 +69,27 @@ export const RequestPage = () => {
     fetchWardens();
   }, []);
 
-  const isWeekend = (dateStr) => {
-    if (!dateStr) return false;
-    const date = new Date(dateStr);
-    const day = date.getDay();
+  const isWeekend = (dateTime) => {
+    if (!dateTime) return false;
+    const day = dateTime.day();
     return day === 0 || day === 6;
   };
 
   useEffect(() => {
     if (
       form.requestType === 'Outing' &&
-      form.outDate &&
-      isWeekend(form.outDate) &&
+      form.outDateTime &&
+      isWeekend(form.outDateTime) &&
       !delayedReturn
     ) {
+      // Set return time to 7 PM on the same day for weekend outings
+      const returnDateTime = form.outDateTime.hour(19).minute(0).second(0);
       setForm((prev) => ({
         ...prev,
-        returnHour: '7',
-        returnMinute: '00',
-        returnPeriod: 'PM',
+        returnDateTime: returnDateTime,
       }));
     }
-  }, [form.requestType, form.outDate, delayedReturn]);
+  }, [form.requestType, form.outDateTime, delayedReturn]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -101,15 +99,15 @@ export const RequestPage = () => {
         setForm({
           ...form,
           requestType: value,
-          outDate: new Date().toISOString().split('T')[0],
-          returnDate: new Date().toISOString().split('T')[0],
+          outDateTime: dayjs(),
+          returnDateTime: dayjs().add(1, 'hour'),
         });
       } else {
         setForm({
           ...form,
           requestType: value,
-          outDate: '',
-          returnDate: '',
+          outDateTime: null,
+          returnDateTime: null,
         });
       }
     } else {
@@ -117,29 +115,38 @@ export const RequestPage = () => {
     }
   };
 
+  const handleDateTimeChange = (field, value) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Minimum Time Window Enforcement (4 hours before out-time)
-    // Only check if outDate is today
-    const now = new Date();
-    const outDateStr = form.outDate;
-    let outHour = parseInt(form.outHour, 10);
-    const outMinute = parseInt(form.outMinute, 10);
-    let outPeriod = form.outPeriod;
-    if (isNaN(outHour) || isNaN(outMinute) || !outPeriod || !outDateStr) {
-      setSnackbar({ open: true, message: 'Please select a valid out time.', severity: 'error' });
+    // Validate date times
+    if (!form.outDateTime || !form.returnDateTime) {
+      setSnackbar({ open: true, message: 'Please select both out and return times.', severity: 'error' });
       return;
     }
-    if (outPeriod === 'PM' && outHour !== 12) outHour += 12;
-    if (outPeriod === 'AM' && outHour === 12) outHour = 0;
-    const outDateTime = new Date(outDateStr);
-    outDateTime.setHours(outHour, outMinute, 0, 0);
-    const diffMs = outDateTime - now;
-    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // Check if return time is after out time
+    if (form.returnDateTime.isBefore(form.outDateTime)) {
+      setSnackbar({ open: true, message: 'Return time must be after out time.', severity: 'error' });
+      return;
+    }
+
+    // Minimum Time Window Enforcement (4 hours before out-time)
+    // Only check if outDate is today
+    const now = dayjs();
+    const outDateTime = form.outDateTime;
+    const diffHours = outDateTime.diff(now, 'hour', true);
     
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (form.outDate === todayStr) {
+    const todayStr = now.format('YYYY-MM-DD');
+    const outDateStr = outDateTime.format('YYYY-MM-DD');
+    
+    if (outDateStr === todayStr) {
       if (diffHours < 3.5) {
         setSnackbar({ open: true, message: 'Out-time must be at least 4 hours from now.', severity: 'error' });
         return;
@@ -159,10 +166,10 @@ export const RequestPage = () => {
         location: form.location,
         reason: form.reason,
         warden: form.warden,
-        outDate: form.outDate,
-        returnDate: form.returnDate,
-        outTime: `${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
-        returnTime: `${formatTime(form.returnHour, form.returnMinute)} ${form.returnPeriod}`,
+        outDate: form.outDateTime.format('YYYY-MM-DD'),
+        returnDate: form.returnDateTime.format('YYYY-MM-DD'),
+        outTime: form.outDateTime.format('h:mm A'),
+        returnTime: form.returnDateTime.format('h:mm A'),
         studentId: student.id,
         studentName: student.name,
         wardenUid: selectedWarden.id,
@@ -181,11 +188,11 @@ export const RequestPage = () => {
         type: 'new_request',
         requestId: requestDocRef.id,
         title: 'New Outing Request',
-        message: `New ${form.requestType} request from ${student.name} for ${form.outDate} at ${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
+        message: `New ${form.requestType} request from ${student.name} for ${form.outDateTime.format('YYYY-MM-DD')} at ${form.outDateTime.format('h:mm A')}`,
         studentName: student.name,
         requestType: form.requestType,
-        outDate: form.outDate,
-        outTime: `${formatTime(form.outHour, form.outMinute)} ${form.outPeriod}`,
+        outDate: form.outDateTime.format('YYYY-MM-DD'),
+        outTime: form.outDateTime.format('h:mm A'),
         timestamp: new Date(),
         read: false,
       };
@@ -199,14 +206,8 @@ export const RequestPage = () => {
         location: '',
         reason: '',
         warden: '',
-        outDate: '',
-        returnDate: '',
-        outHour: '',
-        outMinute: '',
-        outPeriod: '',
-        returnHour: '',
-        returnMinute: '',
-        returnPeriod: '',
+        outDateTime: null,
+        returnDateTime: null,
       });
       setDelayedReturn(false);
 
@@ -222,283 +223,206 @@ export const RequestPage = () => {
   };
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md mt-5">
-        <h2 className="text-2xl font-bold mb-1">New Outing Request</h2>
-        <p className="text-sm text-gray-600 mb-8">
-          Fill in the details below to submit your hostel outing request
-        </p>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <div>
+        <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md mt-5">
+          <h2 className="text-2xl font-bold mb-1">New Outing Request</h2>
+          <p className="text-sm text-gray-600 mb-8">
+            Fill in the details below to submit your hostel outing request
+          </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-     
-          <div className="flex flex-col md:flex-row md:space-x-4">
-            <div className="flex-1">
+          <form onSubmit={handleSubmit} className="space-y-4">
+       
+            <div className="flex flex-col md:flex-row md:space-x-4">
+              <div className="flex-1">
+                <label className="block font-medium mb-1">
+                  Request Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="requestType"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  value={form.requestType}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled>
+                    Select Request Type
+                  </option>
+                  <option value="Outing">Outing</option>
+                  <option value="Leave">Leave</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div className="flex-1 mt-4 md:mt-0">
+                <label className="block font-medium mb-1">
+                  Location {form.requestType === 'Outing' && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200 ${form.requestType !== 'Outing' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
+                  placeholder="Enter location"
+                  value={form.location || ''}
+                  onChange={handleChange}
+                  required={form.requestType === 'Outing'}
+                  disabled={form.requestType !== 'Outing'}
+                />
+                {form.requestType !== 'Outing' && (
+                  <p className="text-xs text-gray-400 mt-1">Location is only required for Outing requests.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Reason Textarea */}
+            <div>
               <label className="block font-medium mb-1">
-                Request Type <span className="text-red-500">*</span>
+                Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="reason"
+                placeholder="Provide a reason for your request..."
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                value={form.reason}
+                onChange={handleChange}
+                rows={3}
+                required
+              />
+            </div>
+
+            {/* Select Warden Dropdown */}
+            <div>
+              <label className="block font-medium mb-1">
+                Select Warden <span className="text-red-500">*</span>
               </label>
               <select
-                name="requestType"
+                name="warden"
                 className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                value={form.requestType}
+                value={form.warden}
                 onChange={handleChange}
                 required
               >
                 <option value="" disabled>
-                  Select Request Type
+                  Select Warden
                 </option>
-                <option value="Outing">Outing</option>
-                <option value="Leave">Leave</option>
-                <option value="Other">Other</option>
+                {wardens
+                  .filter(warden => warden.status === 'active' || warden.status === 'inactive')
+                  .map((warden) => (
+                    warden.status === 'active' ? (
+                      <option key={warden.id} value={warden.name}>
+                        {warden.name}
+                      </option>
+                    ) : (
+                      <option key={warden.id} value={warden.name} disabled className="text-gray-400 bg-gray-100">
+                        {warden.name} (Inactive)
+                      </option>
+                    )
+                  ))}
               </select>
             </div>
 
-            <div className="flex-1 mt-4 md:mt-0">
-              <label className="block font-medium mb-1">
-                Location {form.requestType === 'Outing' && <span className="text-red-500">*</span>}
-              </label>
-              <input
-                type="text"
-                name="location"
-                className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200 ${form.requestType !== 'Outing' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
-                placeholder="Enter location"
-                value={form.location || ''}
-                onChange={handleChange}
-                required={form.requestType === 'Outing'}
-                disabled={form.requestType !== 'Outing'}
-              />
-              {form.requestType !== 'Outing' && (
-                <p className="text-xs text-gray-400 mt-1">Location is only required for Outing requests.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Reason Textarea */}
-          <div>
-            <label className="block font-medium mb-1">
-              Reason <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="reason"
-              placeholder="Provide a reason for your request..."
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              value={form.reason}
-              onChange={handleChange}
-              rows={3}
-              required
-            />
-          </div>
-
-          {/* Select Warden Dropdown */}
-          <div>
-            <label className="block font-medium mb-1">
-              Select Warden <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="warden"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-              value={form.warden}
-              onChange={handleChange}
-              required
-            >
-              <option value="" disabled>
-                Select Warden
-              </option>
-              {wardens
-                .filter(warden => warden.status === 'active' || warden.status === 'inactive')
-                .map((warden) => (
-                  warden.status === 'active' ? (
-                    <option key={warden.id} value={warden.name}>
-                      {warden.name}
-                    </option>
-                  ) : (
-                    <option key={warden.id} value={warden.name} disabled className="text-gray-400 bg-gray-100">
-                      {warden.name} (Inactive)
-                    </option>
-                  )
-                ))}
-            </select>
-          </div>
-
-          {/* Out Date and Return Date */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-medium mb-1">
-                Out Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="outDate"
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                value={form.outDate}
-                onChange={handleChange}
-                min={new Date().toISOString().split('T')[0]}
-                required
-                disabled={form.requestType === 'Outing'}
-              />
-            </div>
-
-            <div>
-              <label className="block font-medium mb-1">
-                Expected Return Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                name="returnDate"
-                type="date"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                value={form.returnDate}
-                onChange={handleChange}
-                min={form.outDate || new Date().toISOString().split('T')[0]}
-                required
-                disabled={form.requestType === 'Outing'}
-              />
-            </div>
-
-            {/* Out Time */}
-            <div>
-              <label className="block font-medium mb-1">
-                Out Time <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <select
-                  name="outHour"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.outHour || ''}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="" disabled>Hour</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  name="outMinute"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.outMinute || ''}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="" disabled>Minute</option>
-                  {[0, 15, 30, 45].map((minute) => (
-                    <option key={minute} value={minute}>{minute.toString().padStart(2, '0')}</option>
-                  ))}
-                </select>
-                <select
-                  name="outPeriod"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.outPeriod || ''}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="" disabled >AM/PM</option>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Return Time */}
-            <div>
-              <label className="block font-medium mb-1">
-                Expected Return Time <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <select
-                  name="returnHour"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.returnHour || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
-                >
-                  <option value="" disabled>Hour</option>
-                  {[...Array(12)].map((_, i) => (
-                    <option key={i + 1} value={i + 1}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  name="returnMinute"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.returnMinute || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
-                >
-                  <option value="" disabled>Minute</option>
-                  {[0, 15, 30, 45].map((minute) => (
-                    <option key={minute} value={minute}>{minute.toString().padStart(2, '0')}</option>
-                  ))}
-                </select>
-                <select
-                  name="returnPeriod"
-                  className="w-1/4 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
-                  value={form.returnPeriod || ''}
-                  onChange={handleChange}
-                  required
-                  disabled={form.requestType === 'Outing' && isWeekend(form.outDate) && !delayedReturn}
-                >
-                  <option value="" disabled>AM/PM</option>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Delay Checkbox for Outing on Weekend - moved below date/time */}
-          {form.requestType === 'Outing' && isWeekend(form.outDate) && (
-            <div className="flex flex-col mt-2">
-              <div className="flex items-center mb-1">
-                <input
-                  type="checkbox"
-                  id="delayedReturn"
-                  checked={delayedReturn}
-                  onChange={() => setDelayedReturn((prev) => !prev)}
-                  className="mr-2"
-                />
-                <label htmlFor="delayedReturn" className="text-sm">
-                  Flag Delayed Return (update expected return time)
+            {/* Out Date/Time and Return Date/Time */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-medium mb-1">
+                  Out Date & Time <span className="text-red-500">*</span>
                 </label>
+                <DateTimePicker
+                  value={form.outDateTime}
+                  onChange={(value) => handleDateTimeChange('outDateTime', value)}
+                  minDateTime={dayjs()}
+                  viewRenderers={{
+                    hours: renderTimeViewClock,
+                    minutes: renderTimeViewClock,
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: "small",
+                      className: "w-full",
+                    },
+                  }}
+                />
               </div>
-              {delayedReturn && (
-                <div className="text-yellow-600 text-xs">
-                  Warning: Warden will be alerted about delayed return.
-                </div>
-              )}
+
+              <div>
+                <label className="block font-medium mb-1">
+                  Expected Return Date & Time <span className="text-red-500">*</span>
+                </label>
+                <DateTimePicker
+                  value={form.returnDateTime}
+                  onChange={(value) => handleDateTimeChange('returnDateTime', value)}
+                  minDateTime={form.outDateTime || dayjs()}
+                  viewRenderers={{
+                    hours: renderTimeViewClock,
+                    minutes: renderTimeViewClock,
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      size: "small",
+                      className: "w-full",
+                    },
+                  }}
+                />
+              </div>
             </div>
-          )}
 
-          {/* Buttons */}
-          <div className="flex justify-end space-x-3">
-            <Link to="/studentdashboard">
+            {/* Delay Checkbox for Outing on Weekend */}
+            {form.requestType === 'Outing' && form.outDateTime && isWeekend(form.outDateTime) && (
+              <div className="flex flex-col mt-2">
+                <div className="flex items-center mb-1">
+                  <input
+                    type="checkbox"
+                    id="delayedReturn"
+                    checked={delayedReturn}
+                    onChange={() => setDelayedReturn((prev) => !prev)}
+                    className="mr-2"
+                  />
+                  <label htmlFor="delayedReturn" className="text-sm">
+                    Flag Delayed Return (update expected return time)
+                  </label>
+                </div>
+                {delayedReturn && (
+                  <div className="text-yellow-600 text-xs">
+                    Warning: Warden will be alerted about delayed return.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex justify-end space-x-3">
+              <Link to="/studentdashboard">
+                <button
+                  type="button"
+                  className="px-4 py-2 mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                >
+                  Cancel
+                </button>
+              </Link>
               <button
-                type="button"
-                className="px-4 py-2 mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                type="submit"
+                className="px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
               >
-                Cancel
+                Submit Request
               </button>
-            </Link>
-            <button
-              type="submit"
-              className="px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
-            >
-              Submit Request
-            </button>
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </div>
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </div>
+    </LocalizationProvider>
   );
 };

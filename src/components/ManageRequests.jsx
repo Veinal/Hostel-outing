@@ -11,7 +11,7 @@ export const ManageRequests = () => {
   const [deleteRequestId, setDeleteRequestId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true); // State to track loading
-  const rowsPerPage = 10;
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,6 +96,24 @@ export const ManageRequests = () => {
       <SideBar />
       <main className="flex-1 p-4 md:p-8 bg-gray-50">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">Manage Requests</h1>
+        {/* Controls above table */}
+        <div className="mb-3 flex items-center gap-2">
+          <label className="text-sm font-semibold text-gray-700">Rows</label>
+          <select
+            className="select select-bordered select-md w-16"
+            value={rowsPerPage}
+            onChange={(e) => {
+              const next = parseInt(e.target.value, 10);
+              setRowsPerPage(next);
+              setCurrentPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+
         <div className="overflow-x-auto">
           <table className="table w-full border border-gray-200 rounded-lg shadow">
             <thead>

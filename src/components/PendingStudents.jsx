@@ -8,6 +8,8 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [activatingId, setActivatingId] = useState(null);
+  const [deleteId, setDeleteId] = useState(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -38,9 +40,20 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
   };
 
   const remove = async (studentId) => {
-    if (!window.confirm('Delete this pending student?')) return;
     await deleteDoc(doc(db, 'pendingStudents', studentId));
     setPending(prev => prev.filter(s => s.id !== studentId));
+  };
+
+  const removeAll = async () => {
+    const ids = pending.map(p => p.id);
+    for (const id of ids) {
+      try {
+        await deleteDoc(doc(db, 'pendingStudents', id));
+      } catch (e) {
+        // best-effort delete; continue others
+      }
+    }
+    setPending([]);
   };
 
   if (loading) {
@@ -54,12 +67,23 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-transparent backdrop-blur-sm bg-opacity-40 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">Pending Students</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            <div className="flex items-center gap-3">
+              {pending.length > 0 && (
+                <button
+                  className="btn btn-active btn-error btn-sm mr-2"
+                  onClick={() => setConfirmDeleteAll(true)}
+                  title="Delete All Pending Students"
+                >
+                  Delete All
+                </button>
+              )}
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+            </div>
           </div>
 
           {pending.length === 0 ? (
@@ -96,10 +120,10 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
                       <td>
                         <div className="flex gap-2">
                           <button onClick={() => setSelected(s)} className="btn btn-sm btn-outline" title="View"><FaEye /></button>
-                          <button onClick={() => activate(s)} disabled={activatingId === s.id} className="btn btn-sm btn-success" title="Activate">
+                          {/* <button onClick={() => activate(s)} disabled={activatingId === s.id} className="btn btn-sm btn-success" title="Activate">
                             {activatingId === s.id ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-                          </button>
-                          <button onClick={() => remove(s.id)} className="btn btn-sm btn-error" title="Delete"><FaTimes /></button>
+                          </button> */}
+                          <button onClick={() => setDeleteId(s.id)} className="btn btn-sm btn-error" title="Delete"><FaTimes /></button>
                         </div>
                       </td>
                     </tr>
@@ -141,6 +165,48 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
           )}
         </div>
       </div>
+      {/* Confirm Delete Single Modal */}
+      {deleteId && (
+        <div className="modal modal-open" onClick={() => setDeleteId(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg text-red-600">Confirm Deletion</h3>
+            <p>Are you sure you want to delete this pending student?</p>
+            <div className="modal-action">
+              <button
+                className="btn btn-sm btn-error"
+                onClick={async () => {
+                  await remove(deleteId);
+                  setDeleteId(null);
+                }}
+              >
+                Delete
+              </button>
+              <button className="btn btn-sm" onClick={() => setDeleteId(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Confirm Delete All Modal */}
+      {confirmDeleteAll && (
+        <div className="modal modal-open" onClick={() => setConfirmDeleteAll(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg text-red-600">Delete All Pending Students</h3>
+            <p>This will permanently delete all pending students. Continue?</p>
+            <div className="modal-action">
+              <button
+                className="btn btn-sm btn-error"
+                onClick={async () => {
+                  await removeAll();
+                  setConfirmDeleteAll(false);
+                }}
+              >
+                Delete All
+              </button>
+              <button className="btn btn-sm" onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

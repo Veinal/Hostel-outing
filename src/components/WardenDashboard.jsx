@@ -32,9 +32,6 @@ export const WardenDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showParentNotify, setShowParentNotify] = useState(false);
-  const [parentNotifyRequest, setParentNotifyRequest] = useState(null);
-  const [parentNotifyStatus, setParentNotifyStatus] = useState('idle'); // idle | sending | sent | error
   const [highlightedRequest, setHighlightedRequest] = useState(null);
 
   const navigate = useNavigate();
@@ -212,9 +209,8 @@ export const WardenDashboard = () => {
           read: false,
         });
         
-        // Show parent notify modal/button
-        setParentNotifyRequest({ ...requestData, requestId: id });
-        setShowParentNotify(true);
+        // Automatically notify parent
+        await notifyParentAutomatically(requestData, id);
       }
       
       setAllRequests((prev) =>
@@ -325,13 +321,11 @@ export const WardenDashboard = () => {
     setSelectedRequest(null);
   };
 
-  // Function to notify parent
-  const handleNotifyParent = async () => {
-    if (!parentNotifyRequest) return;
-    setParentNotifyStatus('sending');
+  // Function to notify parent automatically
+  const notifyParentAutomatically = async (requestData, requestId) => {
     try {
       // Fetch student profile to get parent's phone
-      const studentRef = doc(db, 'users', parentNotifyRequest.studentId);
+      const studentRef = doc(db, 'users', requestData.studentId);
       const studentSnap = await getDoc(studentRef);
       let parentPhone = '';
       let studentName = '';
@@ -341,39 +335,30 @@ export const WardenDashboard = () => {
         studentName = studentData.fullName || '';
       }
       if (!parentPhone) {
-        setParentNotifyStatus('error');
+        console.log('Parent phone not found for student:', requestData.studentId);
         return;
       }
       // Create a notification for the parent (for now, just in Firestore)
       await addDoc(collection(db, 'parentNotifications'), {
         parentPhone: parentPhone,
         studentName: studentName,
-        requestId: parentNotifyRequest.requestId,
+        requestId: requestId,
         type: 'parent_notify',
         title: 'Outing Approved',
-        message: `Your ward ${studentName}'s outing request for ${parentNotifyRequest.outDate} has been approved by the warden.`,
+        message: `Your ward ${studentName}'s outing request for ${requestData.outDate} has been approved by the warden.`,
         timestamp: serverTimestamp(),
         read: false,
         sender: auth.currentUser.uid,
       });
-      setParentNotifyStatus('sent');
+      console.log('Parent notification sent successfully');
     } catch (error) {
-      setParentNotifyStatus('error');
       console.error('Error notifying parent:', error);
     }
   };
 
-  // Add auto-close effect after notification sent
-  useEffect(() => {
-    if (parentNotifyStatus === 'sent') {
-      const timer = setTimeout(() => {
-        setShowParentNotify(false);
-        setParentNotifyRequest(null);
-        setParentNotifyStatus('idle');
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [parentNotifyStatus]);
+
+
+
 
   // Scroll to request card and highlight
   const scrollToRequest = (requestId) => {
@@ -596,76 +581,36 @@ export const WardenDashboard = () => {
                         </button>
                       </div>
                       
-                      {/* Call Parent Button - Mobile Only */}
-                      <a
-                         href={`tel:${request.parentPhone || ''}`}
-                         className={`flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-full shadow-lg transition-all duration-200 hover:scale-105 ${
-                           !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
-                         }`}
-                         onClick={(e) => {
-                           if (!request.parentPhone) {
-                             e.preventDefault();
-                             alert('Parent phone number not available');
-                           }
-                         }}
-                         title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
-                       >
-                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                         </svg>
-                         Call Parent
-                       </a>
                     </div>
                   )}
                   
-                 {/* Action Buttons for non-pending requests */}
-                   {request.status?.toLowerCase() !== 'pending' && (
-                     <div className="mt-4 space-y-2">
-                       {/* Primary Actions Row */}
-                       <div className="flex flex-wrap gap-2">
-                         {/* View Certificate Button for Approved Requests */}
-                         {request.status?.toLowerCase() === 'approved' && request.certificateId && (
-                           <button
-                             onClick={() => navigate(`/certificate/${request.certificateId}`)}
-                             className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
-                           >
-                             <CheckCircleIcon fontSize="small" />
-                             View Certificate
-                           </button>
-                         )}
-                         
-                         {/* Call Parent Button */}
-                         <a
-                           href={`tel:${request.parentPhone || ''}`}
-                           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-sm transition-all duration-200 hover:scale-105 ${
-                             !request.parentPhone ? 'opacity-50 cursor-not-allowed' : ''
-                           }`}
-                           onClick={(e) => {
-                             if (!request.parentPhone) {
-                               e.preventDefault();
-                               alert('Parent phone number not available');
-                             }
-                           }}
-                           title={request.parentPhone ? `Call ${request.parentPhone}` : 'Parent phone not available'}
-                         >
-                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                           </svg>
-                           Call Parent
-                         </a>
-                       </div>
-                       
-                       {/* Secondary Actions Row - Cancel Button for Approved Requests */}
-                       {request.status?.toLowerCase() === 'approved' && (
-                         <button
-                           onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
-                           className="w-full bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
-                         >
-                           <CloseIcon fontSize="small"/> Cancel Request
-                         </button>
-                       )}
-                     </div>
-                   )}
+                  {/* Action Buttons for non-pending requests */}
+                  {request.status?.toLowerCase() !== 'pending' && (
+                    <div className="mt-4">
+                      {/* Actions Row */}
+                      <div className="flex flex-wrap gap-2">
+                        {/* View Certificate Button for Approved Requests */}
+                        {request.status?.toLowerCase() === 'approved' && request.certificateId && (
+                          <button
+                            onClick={() => navigate(`/certificate/${request.certificateId}`)}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                          >
+                            <CheckCircleIcon fontSize="small" />
+                            View Certificate
+                          </button>
+                        )}
+                        {/* Cancel Button for Approved Requests */}
+                        {request.status?.toLowerCase() === 'approved' && (
+                          <button
+                            onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
+                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                          >
+                            <CloseIcon fontSize="small"/> Cancel Request
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -805,55 +750,7 @@ export const WardenDashboard = () => {
         </div>
       )}
 
-      {/* Parent Notify Modal */}
-      {showParentNotify && parentNotifyRequest && (
-        <div
-          className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
-        >
-          <div
-            className="bg-white rounded-xl shadow-lg px-7 py-5 w-full max-w-md mx-4 relative"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Close Icon */}
-            <button
-              className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-200 focus:outline-none"
-              onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
-              aria-label="Close"
-            >
-              <CloseIcon className="text-gray-600" />
-            </button>
-            <h3 className="text-lg font-semibold mb-4 text-center">Notify Parent?</h3>
-            <p className="mb-4 text-gray-700 text-center">
-              Would you like to notify the parent of <b>{parentNotifyRequest.studentName || 'the student'}</b> about the approval?
-            </p>
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                onClick={() => { setShowParentNotify(false); setParentNotifyRequest(null); setParentNotifyStatus('idle'); }}
-              >
-                No, Thanks
-              </button>
-              <button
-                className={`px-4 py-2 rounded text-white ${parentNotifyStatus === 'sent' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}`}
-                onClick={handleNotifyParent}
-                disabled={parentNotifyStatus === 'sending' || parentNotifyStatus === 'sent'}
-              >
-                {parentNotifyStatus === 'idle' && 'Notify Parent'}
-                {parentNotifyStatus === 'sending' && 'Sending...'}
-                {parentNotifyStatus === 'sent' && 'Notification Sent!'}
-                {parentNotifyStatus === 'error' && 'Error!'}
-              </button>
-            </div>
-            {parentNotifyStatus === 'sent' && (
-              <div className="text-green-600 text-center mt-4">Parent has been notified.</div>
-            )}
-            {parentNotifyStatus === 'error' && (
-              <div className="text-red-600 text-center mt-4">Could not notify parent (missing phone or error).</div>
-            )}
-          </div>
-        </div>
-      )}
+
 
       {/* Notifications Modal */}
       {showNotifications && (
@@ -897,73 +794,73 @@ export const WardenDashboard = () => {
             {/* Modal Body */}
             <div className="overflow-y-auto max-h-[70vh] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                              {notifications.length > 0 ? (
-                 <div className="p-6 space-y-4">
-                   {[...notifications]
-                     .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
-                     .map((notification, index) => (
-                    <div
-                      key={notification.id}
-                      className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-                        notification.read
-                          ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200'
-                          : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 shadow-sm'
-                      } ${notification.requestId && notification.requestId.trim() ? 'cursor-pointer' : ''}`}
-                      onClick={() => {
-                        if (!notification.read) markAsRead(notification.id);
-                        if (notification.requestId && notification.requestId.trim()) {
-                          scrollToRequest(notification.requestId);
-                        }
-                      }}
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <p className={`font-bold text-lg ${
-                              notification.read ? 'text-gray-700' : 'text-blue-900'
-                            }`}>
-                              {notification.title || 'Notification'}
-                            </p>
-                            {!notification.read && (
-                              <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
-                                NEW
-                              </span>
-                            )}
-                          </div>
-                          <p className={`text-base leading-relaxed ${
-                            notification.read ? 'text-gray-600' : 'text-blue-700'
-                          }`}>
-                            {notification.message || notification.content || 'No message'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-3">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                            <p className="text-sm text-gray-500 font-medium">
-                              {notification.timestamp?.seconds
-                                ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
-                                : 'Unknown time'}
-                            </p>
-                          </div>
-                        </div>
-                        {!notification.read && (
-                          <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-16 text-center">
-                  <div className="relative">
-                    <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-6 flex items-center justify-center">
-                      <NotificationsIcon className="text-blue-400" sx={{ fontSize: 40 }} />
-                    </div>
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-200 rounded-full animate-ping"></div>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-700 mb-2">All caught up!</h3>
-                  <p className="text-gray-500">No new notifications at the moment</p>
-                  <p className="text-sm text-gray-400 mt-1">We'll notify you when something important happens</p>
-                </div>
-              )}
+                <div className="p-6 space-y-4">
+                  {[...notifications]
+                    .sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0))
+                    .map((notification, index) => (
+                   <div
+                     key={notification.id}
+                     className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+                       notification.read
+                         ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:from-gray-100 hover:to-gray-200'
+                         : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 shadow-sm'
+                     } ${notification.requestId && notification.requestId.trim() ? 'cursor-pointer' : ''}`}
+                     onClick={() => {
+                       if (!notification.read) markAsRead(notification.id);
+                       if (notification.requestId && notification.requestId.trim()) {
+                         scrollToRequest(notification.requestId);
+                       }
+                     }}
+                     style={{ animationDelay: `${index * 100}ms` }}
+                   >
+                     <div className="flex items-start justify-between">
+                       <div className="flex-1">
+                         <div className="flex items-center gap-2 mb-2">
+                           <p className={`font-bold text-lg ${
+                             notification.read ? 'text-gray-700' : 'text-blue-900'
+                           }`}>
+                             {notification.title || 'Notification'}
+                           </p>
+                           {!notification.read && (
+                             <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
+                               NEW
+                             </span>
+                           )}
+                         </div>
+                         <p className={`text-base leading-relaxed ${
+                           notification.read ? 'text-gray-600' : 'text-blue-700'
+                         }`}>
+                           {notification.message || notification.content || 'No message'}
+                         </p>
+                         <div className="flex items-center gap-2 mt-3">
+                           <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                           <p className="text-sm text-gray-500 font-medium">
+                             {notification.timestamp?.seconds
+                               ? new Date(notification.timestamp.seconds * 1000).toLocaleString()
+                               : 'Unknown time'}
+                           </p>
+                         </div>
+                       </div>
+                       {!notification.read && (
+                         <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
+                       )}
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             ) : (
+               <div className="p-16 text-center">
+                 <div className="relative">
+                   <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mx-auto mb-6 flex items-center justify-center">
+                     <NotificationsIcon className="text-blue-400" sx={{ fontSize: 40 }} />
+                   </div>
+                   <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-200 rounded-full animate-ping"></div>
+                 </div>
+                 <h3 className="text-xl font-bold text-gray-700 mb-2">All caught up!</h3>
+                 <p className="text-gray-500">No new notifications at the moment</p>
+                 <p className="text-sm text-gray-400 mt-1">We'll notify you when something important happens</p>
+               </div>
+             )}
             </div>
           </div>
         </div>

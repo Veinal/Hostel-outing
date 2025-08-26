@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { FaUpload, FaDownload, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 
 export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
@@ -9,6 +9,8 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
   const [results, setResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
+
+  const normalizeEmail = (value) => (value || '').trim().toLowerCase();
 
   const parseCSV = (csvText) => {
     const lines = csvText.split('\n');
@@ -34,7 +36,7 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
 
   const createPendingStudent = async (studentData) => {
     try {
-      const email = studentData.email || studentData.Email;
+      const email = normalizeEmail(studentData.email || studentData.Email);
       if (!email) throw new Error('Missing email');
       const defaultPassword = generateDefaultPassword(email);
       const studentId = `student_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -61,7 +63,7 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
 
       return { success: true, email, password: defaultPassword, message: 'Pending student created' };
     } catch (error) {
-      return { success: false, email: studentData.email || 'Unknown', message: error.message };
+      return { success: false, email: normalizeEmail(studentData.email || studentData.Email) || 'Unknown', message: error.message };
     }
   };
 
@@ -88,13 +90,43 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
         const students = parseCSV(csvText);
         setProgress(prev => ({ ...prev, total: students.length }));
 
+        // Preload existing emails from both users and pendingStudents to prevent duplicates
+        const [usersSnap, pendingSnap] = await Promise.all([
+          getDocs(collection(db, 'users')),
+          getDocs(collection(db, 'pendingStudents')),
+        ]);
+        const existingEmails = new Set([
+          ...usersSnap.docs.map(d => normalizeEmail((d.data().email))),
+          ...pendingSnap.docs.map(d => normalizeEmail((d.data().email))),
+        ].filter(Boolean));
+
         const processed = [];
         let ok = 0, bad = 0;
         for (let i = 0; i < students.length; i++) {
           setProgress(prev => ({ ...prev, current: i + 1 }));
+          const emailCandidate = normalizeEmail(students[i].email || students[i].Email);
+          if (!emailCandidate) {
+            processed.push({ success: false, email: 'Unknown', message: 'Missing email' });
+            bad++;
+            setProgress(prev => ({ ...prev, failed: bad }));
+            continue;
+          }
+
+          if (existingEmails.has(emailCandidate)) {
+            processed.push({ success: false, email: emailCandidate, message: 'Duplicate: email already exists' });
+            bad++;
+            setProgress(prev => ({ ...prev, failed: bad }));
+            continue;
+          }
+
           const result = await createPendingStudent(students[i]);
           processed.push(result);
-          if (result.success) ok++; else bad++;
+          if (result.success) {
+            ok++;
+            existingEmails.add(emailCandidate);
+          } else {
+            bad++;
+          }
           setProgress(prev => ({ ...prev, success: ok, failed: bad }));
           await new Promise(r => setTimeout(r, 200));
         }
