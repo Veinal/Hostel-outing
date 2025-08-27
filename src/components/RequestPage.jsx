@@ -12,6 +12,10 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
 import dayjs from 'dayjs';
+import emailjs from '@emailjs/browser';
+
+// Initialize EmailJS with your service ID
+emailjs.init("SjHmsrhvp6R0qw-Vx"); // Replace with your actual EmailJS public key
 
 export const RequestPage = () => {
   // Helper function to format time with leading zeros
@@ -58,6 +62,7 @@ export const RequestPage = () => {
         const wardenList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().fullName || 'Unnamed Warden',
+          email: doc.data().email || '',
           status: doc.data().status || 'inactive',
         }));
         setWardens(wardenList);
@@ -91,17 +96,42 @@ export const RequestPage = () => {
     }
   }, [form.requestType, form.outDateTime, delayedReturn]);
 
+  // Function to get minimum date for outing requests
+  const getMinDateTime = () => {
+    if (form.requestType === 'Outing') {
+      // For outings, only allow today's date
+      const today = dayjs().startOf('day');
+      return today;
+    }
+    // For other request types, allow any future date
+    return dayjs();
+  };
+
+  // Function to get maximum date for outing requests
+  const getMaxDateTime = () => {
+    if (form.requestType === 'Outing') {
+      // For outings, only allow today's date
+      const today = dayjs().endOf('day');
+      return today;
+    }
+    // For other request types, no maximum limit
+    return null;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     // Special logic for requestType
     if (name === 'requestType') {
       if (value === 'Outing') {
+        const now = dayjs();
         setForm({
           ...form,
           requestType: value,
-          outDateTime: dayjs(),
-          returnDateTime: dayjs().add(1, 'hour'),
+          outDateTime: now,
+          returnDateTime: now.add(1, 'hour'),
         });
+        // Reset delayed return when switching to outing
+        setDelayedReturn(false);
       } else {
         setForm({
           ...form,
@@ -109,6 +139,8 @@ export const RequestPage = () => {
           outDateTime: null,
           returnDateTime: null,
         });
+        // Reset delayed return when switching away from outing
+        setDelayedReturn(false);
       }
     } else {
       setForm({ ...form, [name]: value });
@@ -137,19 +169,39 @@ export const RequestPage = () => {
       return;
     }
 
-    // Minimum Time Window Enforcement (4 hours before out-time)
-    // Only check if outDate is today
-    const now = dayjs();
-    const outDateTime = form.outDateTime;
-    const diffHours = outDateTime.diff(now, 'hour', true);
-    
-    const todayStr = now.format('YYYY-MM-DD');
-    const outDateStr = outDateTime.format('YYYY-MM-DD');
-    
-    if (outDateStr === todayStr) {
-      if (diffHours < 3.5) {
-        setSnackbar({ open: true, message: 'Out-time must be at least 4 hours from now.', severity: 'error' });
+    // Validation for outing requests
+    if (form.requestType === 'Outing') {
+      const now = dayjs();
+      const outDateTime = form.outDateTime;
+      const todayStr = now.format('YYYY-MM-DD');
+      const outDateStr = outDateTime.format('YYYY-MM-DD');
+      
+      // Check if outing is for today only
+      if (outDateStr !== todayStr) {
+        setSnackbar({ open: true, message: 'Outing requests must be for today only.', severity: 'error' });
         return;
+      }
+      
+      // Check minimum time window (2 hours before out-time for outings)
+      const diffHours = outDateTime.diff(now, 'hour', true);
+      if (diffHours < 1.5) {
+        setSnackbar({ open: true, message: 'Outing time must be at least 2 hours from now.', severity: 'error' });
+        return;
+      }
+    } else {
+      // For non-outing requests, check minimum time window (4 hours before out-time)
+      const now = dayjs();
+      const outDateTime = form.outDateTime;
+      const diffHours = outDateTime.diff(now, 'hour', true);
+      
+      const todayStr = now.format('YYYY-MM-DD');
+      const outDateStr = outDateTime.format('YYYY-MM-DD');
+      
+      if (outDateStr === todayStr) {
+        if (diffHours < 3.5) {
+          setSnackbar({ open: true, message: 'Out-time must be at least 4 hours from now.', severity: 'error' });
+          return;
+        }
       }
     }
 
@@ -199,6 +251,69 @@ export const RequestPage = () => {
 
       // Add notification to Firestore
       await addDoc(collection(db, 'notifications'), notificationData);
+
+      // Send email using EmailJS if warden has an email
+      if (selectedWarden.email) {
+        try {
+          // Option 1: Using EmailJS Template (Recommended)
+          const templateParams = {
+            to_email: selectedWarden.email,
+            to_name: form.warden,
+            student_name: student.name,
+            request_type: form.requestType,
+            out_date: form.outDateTime.format('YYYY-MM-DD'),
+            out_time: form.outDateTime.format('h:mm A'),
+            return_date: form.returnDateTime.format('YYYY-MM-DD'),
+            return_time: form.returnDateTime.format('h:mm A'),
+            location: form.location || '-',
+            reason: form.reason,
+          };
+
+          await emailjs.send(
+            'service_ozk7gdj', // Replace with your EmailJS service ID
+            'template_5mr7m3l', // Replace with your EmailJS template ID
+            templateParams
+          );
+
+          // Option 2: Send email without template (Alternative approach)
+          // Uncomment the code below if you prefer not to use a template
+          /*
+          const emailParams = {
+            to_email: selectedWarden.email,
+            to_name: form.warden,
+            subject: `New ${form.requestType} Request from ${student.name}`,
+            message: `
+              Hello ${form.warden},
+
+              A new ${form.requestType} request has been submitted by ${student.name}.
+
+              Request Details:
+              - Student Name: ${student.name}
+              - Request Type: ${form.requestType}
+              - Out Date: ${form.outDateTime.format('YYYY-MM-DD')}
+              - Out Time: ${form.outDateTime.format('h:mm A')}
+              - Return Date: ${form.returnDateTime.format('YYYY-MM-DD')}
+              - Return Time: ${form.returnDateTime.format('h:mm A')}
+              - Location: ${form.location || '-'}
+              - Reason: ${form.reason}
+
+              Please log into the hostel management system to review and take action on this request.
+
+              This is an automated notification. Please do not reply to this email.
+            `
+          };
+
+          await emailjs.send(
+            'YOUR_EMAILJS_SERVICE_ID',
+            'YOUR_EMAILJS_TEMPLATE_ID_FOR_DIRECT_EMAIL', // Different template for direct email
+            emailParams
+          );
+          */
+        } catch (emailError) {
+          console.error('Error sending email:', emailError);
+          // Don't fail the entire request if email fails
+        }
+      }
 
       setSnackbar({ open: true, message: 'Request submitted successfully!', severity: 'success' });
       setForm({
@@ -254,24 +369,22 @@ export const RequestPage = () => {
                 </select>
               </div>
 
-              <div className="flex-1 mt-4 md:mt-0">
-                <label className="block font-medium mb-1">
-                  Location {form.requestType === 'Outing' && <span className="text-red-500">*</span>}
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  className={`w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200 ${form.requestType !== 'Outing' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`}
-                  placeholder="Enter location"
-                  value={form.location || ''}
-                  onChange={handleChange}
-                  required={form.requestType === 'Outing'}
-                  disabled={form.requestType !== 'Outing'}
-                />
-                {form.requestType !== 'Outing' && (
-                  <p className="text-xs text-gray-400 mt-1">Location is only required for Outing requests.</p>
-                )}
-              </div>
+              {form.requestType === 'Outing' && (
+                <div className="flex-1 mt-4 md:mt-0">
+                  <label className="block font-medium mb-1">
+                    Location <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                    placeholder="Enter location"
+                    value={form.location || ''}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             {/* Reason Textarea */}
@@ -330,7 +443,8 @@ export const RequestPage = () => {
                 <DateTimePicker
                   value={form.outDateTime}
                   onChange={(value) => handleDateTimeChange('outDateTime', value)}
-                  minDateTime={dayjs()}
+                  minDateTime={getMinDateTime()}
+                  maxDateTime={getMaxDateTime()}
                   viewRenderers={{
                     hours: renderTimeViewClock,
                     minutes: renderTimeViewClock,
@@ -380,12 +494,17 @@ export const RequestPage = () => {
                     className="mr-2"
                   />
                   <label htmlFor="delayedReturn" className="text-sm">
-                    Flag Delayed Return (update expected return time)
+                    Flag Delayed Return (allows return after 7 PM)
                   </label>
                 </div>
                 {delayedReturn && (
                   <div className="text-yellow-600 text-xs">
-                    Warning: Warden will be alerted about delayed return.
+                    Warning: Warden will be alerted about delayed return. You can now set return time after 7 PM.
+                  </div>
+                )}
+                {!delayedReturn && (
+                  <div className="text-blue-600 text-xs">
+                    Return time is automatically set to 7 PM for weekend outings. Check the box above to allow later return.
                   </div>
                 )}
               </div>
