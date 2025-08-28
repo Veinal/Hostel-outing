@@ -413,21 +413,8 @@ export const StudentDashboard = () => {
                           <span className="font-medium">Approved At:</span>{' '}
                           {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
                         </p>
-                        {req.approvalNumber && (
-                          <p className="text-sm text-green-600">
-                            <span className="font-medium">Approval Number:</span>{' '}
-                            <span className="font-mono font-bold">{req.approvalNumber}</span>
-                          </p>
-                        )}
-                        {req.certificateId && (
-                          <button
-                            onClick={() => navigate(`/certificate/${req.certificateId}`)}
-                            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105"
-                          >
-                            <CheckCircleIcon fontSize="small" />
-                            View Approval Certificate
-                          </button>
-                        )}
+
+
                       </div>
                     )}
                     {req.rejectedAt && req.status === 'rejected' && (

@@ -13,8 +13,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { ManageStudents } from './ManageStudents';
 import { ManageWardens } from './ManageWardens';
 import { ManageRequests } from './ManageRequests';
-import { ApprovalCertificate } from './ApprovalCertificate';
-import { CertificateVerification } from './CertificateVerification';
+
 import { PageNotFound } from './PageNotFound';
 import GatePage from "./GatePage";
 
@@ -48,8 +47,7 @@ export const Router = () => {
             <Route path='/managestudents' element={<ManageStudents />} />
             <Route path='/managewardens' element={<ManageWardens />} />
             <Route path='/managerequests' element={<ManageRequests />} />
-            <Route path='/certificate/:certificateId' element={<ApprovalCertificate />} />
-            <Route path='/verify' element={<CertificateVerification />} />
+
             <Route path="/gate" element={<GatePage />} />
             <Route path='*' element={<PageNotFound/>} />
           </Routes>

@@ -12,8 +12,15 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useRef } from 'react';
-import { generateApprovalNumber, createApprovalCertificate } from '../utils/approvalUtils';
+
+import { getEmailTemplateParams, EMAIL_CONFIG } from '../utils/emailTemplates';
 import { useNavigate } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+
+// Initialize EmailJS with your service ID
+emailjs.init("SjHmsrhvp6R0qw-Vx"); // Replace with your actual EmailJS public key
 
 export const WardenDashboard = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -33,6 +40,7 @@ export const WardenDashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [highlightedRequest, setHighlightedRequest] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const navigate = useNavigate();
 
@@ -174,40 +182,63 @@ export const WardenDashboard = () => {
           console.error('Error fetching student details:', error);
         }
         
-        // Generate unique approval number
-        const approvalNumber = generateApprovalNumber();
-        
-        // Create approval certificate
-        const certificate = await createApprovalCertificate(
-          { 
-            ...requestData, 
-            id,
-            studentDetails: studentDetails
-          },
-          auth.currentUser,
-          approvalNumber
-        );
-        
-        // Update request with approval number and certificate ID
-        await updateDoc(requestRef, {
-          approvalNumber,
-          certificateId: certificate.id,
-        });
-        
-        // Send notification to student with certificate link
+        // Send notification to student
         await addDoc(collection(db, 'notifications'), {
           student: requestData.studentId, // recipient student UID
           sender: auth.currentUser.uid, // sender is the warden
           type: 'request_approved',
           requestId: id,
-          certificateId: certificate.id,
-          approvalNumber,
           title: 'Request Approved',
-          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been approved! Approval Number: ${approvalNumber}`,
+          message: `Your ${requestData.requestType} request for ${requestData.outDate} has been approved!`,
           status: 'approved',
           timestamp: serverTimestamp(),
           read: false,
         });
+        
+        // Send email notification to student
+        if (studentDetails?.email) {
+          try {
+            const               emailData = {
+                studentEmail: studentDetails.email,
+                studentName: studentDetails.fullName || requestData.studentName,
+                wardenName: auth.currentUser.displayName || 'Warden',
+                requestType: requestData.requestType,
+                outDate: requestData.outDate,
+                outTime: requestData.outTime,
+                returnDate: requestData.returnDate,
+                returnTime: requestData.returnTime,
+                location: requestData.location,
+                reason: requestData.reason
+              };
+
+            const templateParams = getEmailTemplateParams('approve', emailData);
+
+            await emailjs.send(
+              EMAIL_CONFIG.service_id,
+              templateParams.template_id,
+              templateParams
+            );
+            
+            setSnackbar({ 
+              open: true, 
+              message: `Request approved successfully! Email notification sent to ${studentDetails.fullName || requestData.studentName}.`, 
+              severity: 'success' 
+            });
+          } catch (emailError) {
+            console.error('Error sending approval email:', emailError);
+            setSnackbar({ 
+              open: true, 
+              message: 'Request approved but failed to send email notification.', 
+              severity: 'warning' 
+            });
+          }
+        } else {
+          setSnackbar({ 
+            open: true, 
+            message: 'Request approved successfully!', 
+            severity: 'success' 
+          });
+        }
         
         // Automatically notify parent
         await notifyParentAutomatically(requestData, id);
@@ -236,6 +267,19 @@ export const WardenDashboard = () => {
       const requestSnap = await getDoc(requestRef);
       if (requestSnap.exists()) {
         const requestData = requestSnap.data();
+        
+        // Fetch student details from users collection
+        let studentDetails = null;
+        try {
+          const studentRef = doc(db, 'users', requestData.studentId);
+          const studentSnap = await getDoc(studentRef);
+          if (studentSnap.exists()) {
+            studentDetails = studentSnap.data();
+          }
+        } catch (error) {
+          console.error('Error fetching student details:', error);
+        }
+        
         // Send notification to student
         await addDoc(collection(db, 'notifications'), {
           student: requestData.studentId, // recipient student UID
@@ -249,6 +293,52 @@ export const WardenDashboard = () => {
           timestamp: serverTimestamp(),
           read: false,
         });
+        
+        // Send email notification to student
+        if (studentDetails?.email) {
+          try {
+            const emailData = {
+              studentEmail: studentDetails.email,
+              studentName: studentDetails.fullName || requestData.studentName,
+              wardenName: auth.currentUser.displayName || 'Warden',
+              requestType: requestData.requestType,
+              outDate: requestData.outDate,
+              outTime: requestData.outTime,
+              returnDate: requestData.returnDate,
+              returnTime: requestData.returnTime,
+              location: requestData.location,
+              reason: requestData.reason,
+              rejectionReason: reason
+            };
+
+            const templateParams = getEmailTemplateParams('reject', emailData);
+
+            await emailjs.send(
+              EMAIL_CONFIG.service_id,
+              templateParams.template_id,
+              templateParams
+            );
+            
+            setSnackbar({ 
+              open: true, 
+              message: `Request rejected successfully! Email notification sent to ${studentDetails.fullName || requestData.studentName}.`, 
+              severity: 'info' 
+            });
+          } catch (emailError) {
+            console.error('Error sending rejection email:', emailError);
+            setSnackbar({ 
+              open: true, 
+              message: 'Request rejected but failed to send email notification.', 
+              severity: 'warning' 
+            });
+          }
+        } else {
+          setSnackbar({ 
+            open: true, 
+            message: 'Request rejected successfully!', 
+            severity: 'info' 
+          });
+        }
       }
       setAllRequests((prev) =>
         prev.map((req) =>
@@ -273,6 +363,19 @@ export const WardenDashboard = () => {
       const requestSnap = await getDoc(requestRef);
       if (requestSnap.exists()) {
         const requestData = requestSnap.data();
+        
+        // Fetch student details from users collection
+        let studentDetails = null;
+        try {
+          const studentRef = doc(db, 'users', requestData.studentId);
+          const studentSnap = await getDoc(studentRef);
+          if (studentSnap.exists()) {
+            studentDetails = studentSnap.data();
+          }
+        } catch (error) {
+          console.error('Error fetching student details:', error);
+        }
+        
         // Send notification to student
         await addDoc(collection(db, 'notifications'), {
           student: requestData.studentId, // recipient student UID
@@ -286,6 +389,52 @@ export const WardenDashboard = () => {
           timestamp: serverTimestamp(),
           read: false,
         });
+        
+        // Send email notification to student
+        if (studentDetails?.email) {
+          try {
+            const emailData = {
+              studentEmail: studentDetails.email,
+              studentName: studentDetails.fullName || requestData.studentName,
+              wardenName: auth.currentUser.displayName || 'Warden',
+              requestType: requestData.requestType,
+              outDate: requestData.outDate,
+              outTime: requestData.outTime,
+              returnDate: requestData.returnDate,
+              returnTime: requestData.returnTime,
+              location: requestData.location,
+              reason: requestData.reason,
+              cancellationReason: reason
+            };
+
+            const templateParams = getEmailTemplateParams('cancel', emailData);
+
+            await emailjs.send(
+              EMAIL_CONFIG.service_id,
+              templateParams.template_id,
+              templateParams
+            );
+            
+            setSnackbar({ 
+              open: true, 
+              message: `Request cancelled successfully! Email notification sent to ${studentDetails.fullName || requestData.studentName}.`, 
+              severity: 'warning' 
+            });
+          } catch (emailError) {
+            console.error('Error sending cancellation email:', emailError);
+            setSnackbar({ 
+              open: true, 
+              message: 'Request cancelled but failed to send email notification.', 
+              severity: 'warning' 
+            });
+          }
+        } else {
+          setSnackbar({ 
+            open: true, 
+            message: 'Request cancelled successfully!', 
+            severity: 'warning' 
+          });
+        }
       }
       setAllRequests((prev) =>
         prev.map((req) =>
@@ -371,6 +520,11 @@ export const WardenDashboard = () => {
         setTimeout(() => setHighlightedRequest(null), 2000);
       }
     }, 300); // Wait for modal to close
+  };
+
+  // Handle snackbar close
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -589,16 +743,6 @@ export const WardenDashboard = () => {
                     <div className="mt-4">
                       {/* Actions Row */}
                       <div className="flex flex-wrap gap-2">
-                        {/* View Certificate Button for Approved Requests */}
-                        {request.status?.toLowerCase() === 'approved' && request.certificateId && (
-                          <button
-                            onClick={() => navigate(`/certificate/${request.certificateId}`)}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
-                          >
-                            <CheckCircleIcon fontSize="small" />
-                            View Certificate
-                          </button>
-                        )}
                         {/* Cancel Button for Approved Requests */}
                         {request.status?.toLowerCase() === 'approved' && (
                           <button
@@ -865,6 +1009,18 @@ export const WardenDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Snackbar for email notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
