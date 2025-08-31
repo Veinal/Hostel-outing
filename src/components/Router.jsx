@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import { Home } from './Home';
 import { SignUp } from './SignUp';
 import { Login } from './Login';
@@ -13,6 +13,8 @@ import { AdminDashboard } from './AdminDashboard';
 import { ManageStudents } from './ManageStudents';
 import { ManageWardens } from './ManageWardens';
 import { ManageRequests } from './ManageRequests';
+import ApprovalCertificate from './ApprovalCertificate';
+import CertificateVerification from './CertificateVerification';
 
 import { PageNotFound } from './PageNotFound';
 import GatePage from "./GatePage";
@@ -49,10 +51,17 @@ export const Router = () => {
             <Route path='/managerequests' element={<ManageRequests />} />
 
             <Route path="/gate" element={<GatePage />} />
+            <Route path="/certificate/:certificateId" element={<CertificateWrapper />} />
+            <Route path="/verify" element={<CertificateVerification />} />
             <Route path='*' element={<PageNotFound/>} />
           </Routes>
         </Layout>
       </BrowserRouter>
     </div>
   );
+};
+
+const CertificateWrapper = () => {
+  const { certificateId } = useParams();
+  return <ApprovalCertificate certificateId={certificateId} />;
 };

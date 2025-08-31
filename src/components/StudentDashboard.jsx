@@ -32,18 +32,24 @@ const statusStyles = {
     bg: 'bg-orange-50 border-orange-200',
     text: 'text-orange-700',
   },
+  expired: {
+    icon: <PendingIcon className="text-gray-500" />,
+    bg: 'bg-gray-100 border-gray-300',
+    text: 'text-gray-500',
+  },
 };
 
 export const StudentDashboard = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('Latest');
   const [isLoading, setIsLoading] = useState(true); // Loading state
   const [notifications, setNotifications] = useState([]); // Notifications state
   const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
   const [showNotifications, setShowNotifications] = useState(false); // Modal state
   const [highlightedRequest, setHighlightedRequest] = useState(null);
-  const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled'];
+  const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired'];
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -56,10 +62,26 @@ export const StudentDashboard = () => {
           const q = query(requestsRef, where('studentId', '==', user.uid)); // Fetch requests for the current user
           const querySnapshot = await getDocs(q);
 
-          const fetchedRequests = querySnapshot.docs.map((doc) => ({
+          let fetchedRequests = querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
+
+          // Mark requests as expired if return date/time is in the past
+          const now = new Date();
+          fetchedRequests = fetchedRequests.map((req) => {
+            if (
+              req.status &&
+              ['pending', 'approved'].includes(req.status.toLowerCase()) &&
+              req.returnDate && req.returnTime
+            ) {
+              const returnDateTime = new Date(`${req.returnDate}T${req.returnTime}`);
+              if (returnDateTime < now) {
+                return { ...req, status: 'expired' };
+              }
+            }
+            return req;
+          });
 
           setRequests(fetchedRequests);
         } catch (error) {
@@ -314,24 +336,46 @@ export const StudentDashboard = () => {
           </div>
         )}
 
-        {/* Filter Buttons */}
+        {/* Filter and Sort Dropdowns */}
         <div className="bg-white p-4 rounded-md shadow flex flex-wrap items-center gap-2 mb-8">
           <span className="font-medium text-gray-700 whitespace-nowrap">Filter:</span>
-          {statuses.map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-150
-                ${filter === status
-                  ? status === 'Pending'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-800 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}
-              `}
+          <div className="relative">
+            <select
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              className="appearance-none px-4 pr-10 py-1.5 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-100 transition cursor-pointer"
+              style={{ minWidth: '120px' }}
             >
-              {status}
-            </button>
-          ))}
+              {statuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+            {/* Chevron Icon */}
+            <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
+          </div>
+          {/* Vertical Divider */}
+          <span className="mx-3 -mr-1 h-6 w-px bg-gray-300 hidden md:inline-block"></span>
+          {/* Sort Dropdown */}
+          <div className="relative ml-4">
+            <label htmlFor="sortBy" className="sr-only">Sort</label>
+            <select
+              id="sortBy"
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="appearance-none pl-4 pr-10 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-blue-50 transition cursor-pointer"
+              style={{ minWidth: '110px' }}
+            >
+              {['Latest', 'Oldest'].map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            {/* Chevron Icon */}
+            <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </span>
+          </div>
         </div>
 
         {/* Requests Cards */}
@@ -343,9 +387,11 @@ export const StudentDashboard = () => {
           <div className="grid md:grid-cols-3 gap-6">
             {[...filteredRequests]
               .sort((a, b) => {
-                const aTime = a.timestamp?.seconds || 0;
-                const bTime = b.timestamp?.seconds || 0;
-                return bTime - aTime; // Descending order: latest first
+                if (sortBy === 'Latest') {
+                  return (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0);
+                } else {
+                  return (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0);
+                }
               })
               .map((req) => {
                 const styles = statusStyles[req.status?.toLowerCase()] || {
@@ -413,8 +459,18 @@ export const StudentDashboard = () => {
                           <span className="font-medium">Approved At:</span>{' '}
                           {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
                         </p>
-
-
+                        
+                        {/* View Certificate Button */}
+                        {req.certificateId && (
+                          <div className="mt-3">
+                            <button
+                              onClick={() => navigate(`/certificate/${req.certificateId}`)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                            >
+                              <CheckCircleIcon fontSize="small"/> View Approval Certificate
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                     {req.rejectedAt && req.status === 'rejected' && (

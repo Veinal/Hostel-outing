@@ -37,6 +37,7 @@ export const RequestPage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
   const [delayedReturn, setDelayedReturn] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     // Fetch the currently logged-in student's ID and name from Firestore
@@ -156,16 +157,20 @@ export const RequestPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
 
     // Validate date times
     if (!form.outDateTime || !form.returnDateTime) {
       setSnackbar({ open: true, message: 'Please select both out and return times.', severity: 'error' });
+      setLoading(false);
       return;
     }
 
     // Check if return time is after out time
     if (form.returnDateTime.isBefore(form.outDateTime)) {
       setSnackbar({ open: true, message: 'Return time must be after out time.', severity: 'error' });
+      setLoading(false);
       return;
     }
 
@@ -179,6 +184,7 @@ export const RequestPage = () => {
       // Check if outing is for today only
       if (outDateStr !== todayStr) {
         setSnackbar({ open: true, message: 'Outing requests must be for today only.', severity: 'error' });
+        setLoading(false);
         return;
       }
       
@@ -186,6 +192,7 @@ export const RequestPage = () => {
       const diffHours = outDateTime.diff(now, 'hour', true);
       if (diffHours < 1.5) {
         setSnackbar({ open: true, message: 'Outing time must be at least 2 hours from now.', severity: 'error' });
+        setLoading(false);
         return;
       }
     } else {
@@ -200,6 +207,7 @@ export const RequestPage = () => {
       if (outDateStr === todayStr) {
         if (diffHours < 3.5) {
           setSnackbar({ open: true, message: 'Out-time must be at least 4 hours from now.', severity: 'error' });
+          setLoading(false);
           return;
         }
       }
@@ -210,6 +218,7 @@ export const RequestPage = () => {
 
       if (!selectedWarden) {
         setSnackbar({ open: true, message: 'Invalid warden selected. Please try again.', severity: 'error' });
+        setLoading(false);
         return;
       }
 
@@ -330,6 +339,8 @@ export const RequestPage = () => {
     } catch (error) {
       console.error('Error submitting request:', error);
       setSnackbar({ open: true, message: 'Failed to submit the request. Please try again.', severity: 'error' });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -445,6 +456,7 @@ export const RequestPage = () => {
                   onChange={(value) => handleDateTimeChange('outDateTime', value)}
                   minDateTime={getMinDateTime()}
                   maxDateTime={getMaxDateTime()}
+                  format="DD/MM/YYYY hh:mm A"
                   viewRenderers={{
                     hours: renderTimeViewClock,
                     minutes: renderTimeViewClock,
@@ -467,6 +479,7 @@ export const RequestPage = () => {
                   value={form.returnDateTime}
                   onChange={(value) => handleDateTimeChange('returnDateTime', value)}
                   minDateTime={form.outDateTime || dayjs()}
+                  format="DD/MM/YYYY hh:mm A"
                   viewRenderers={{
                     hours: renderTimeViewClock,
                     minutes: renderTimeViewClock,
@@ -522,9 +535,20 @@ export const RequestPage = () => {
               </Link>
               <button
                 type="submit"
-                className="px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                className={`px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer flex items-center justify-center ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+                disabled={loading}
               >
-                Submit Request
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Request'
+                )}
               </button>
             </div>
           </form>

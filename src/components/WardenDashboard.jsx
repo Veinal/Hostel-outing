@@ -14,6 +14,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import { useRef } from 'react';
 
 import { getEmailTemplateParams, EMAIL_CONFIG } from '../utils/emailTemplates';
+import { generateApprovalNumber, createApprovalCertificate } from '../utils/approvalUtils';
 import { useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
 import Snackbar from '@mui/material/Snackbar';
@@ -35,6 +36,7 @@ export const WardenDashboard = () => {
     action: null, // 'approve' or 'reject'
     requestId: null,
     reason: '', // For rejection reason
+    loading: false, // Loading state for modal actions
   });
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -56,10 +58,26 @@ export const WardenDashboard = () => {
           const q = query(requestsRef, where('wardenUid', '==', user.uid)); // Filter by warden's UID
           const querySnapshot = await getDocs(q);
 
-          const fetchedRequests = querySnapshot.docs.map((doc) => ({
+          let fetchedRequests = querySnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
           }));
+
+          // Mark requests as expired if return date/time is in the past
+          const now = new Date();
+          fetchedRequests = fetchedRequests.map((req) => {
+            if (
+              req.status &&
+              ['pending', 'approved'].includes(req.status.toLowerCase()) &&
+              req.returnDate && req.returnTime
+            ) {
+              const returnDateTime = new Date(`${req.returnDate}T${req.returnTime}`);
+              if (returnDateTime < now) {
+                return { ...req, status: 'expired' };
+              }
+            }
+            return req;
+          });
 
           setAllRequests(fetchedRequests);
         } catch (error) {
@@ -154,6 +172,7 @@ export const WardenDashboard = () => {
     Approved: allRequests.filter((r) => r.status?.toLowerCase() === 'approved').length,
     Rejected: allRequests.filter((r) => r.status?.toLowerCase() === 'rejected').length,
     Cancelled: allRequests.filter((r) => r.status?.toLowerCase() === 'cancelled').length,
+    Expired: allRequests.filter((r) => r.status?.toLowerCase() === 'expired').length,
   };
 
   // Modified Approve Request
@@ -238,6 +257,28 @@ export const WardenDashboard = () => {
             message: 'Request approved successfully!', 
             severity: 'success' 
           });
+        }
+        
+        // Generate approval certificate
+        try {
+          const approvalNumber = generateApprovalNumber();
+          const wardenData = {
+            fullName: auth.currentUser.displayName || 'Warden',
+            uid: auth.currentUser.uid,
+            displayName: auth.currentUser.displayName || 'Warden',
+            email: auth.currentUser.email || ''
+          };
+          
+          const certificateId = await createApprovalCertificate(
+            { ...requestData, id },
+            wardenData,
+            approvalNumber,
+            studentDetails // Pass student details to the certificate function
+          );
+          
+          console.log('Approval certificate generated:', certificateId);
+        } catch (certError) {
+          console.error('Error generating approval certificate:', certError);
         }
         
         // Automatically notify parent
@@ -555,21 +596,24 @@ export const WardenDashboard = () => {
         {/* Filter and Stats with Sort Dropdown */}
         <div className="mt-6 bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
-            {['All', 'Pending', 'Approved', 'Rejected', 'Cancelled'].map((type) => (
-              <button
-                key={type}
-                onClick={() => setFilter(type)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                  filter === type
-                    ? type === 'Pending'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-800 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                }`}
+            <div className="relative">
+              <label htmlFor="statusFilter" className="font-medium text-gray-700 whitespace-nowrap mr-2">Filter:</label>
+              <select
+                id="statusFilter"
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+                className="appearance-none pl-4 pr-10 py-1.5 rounded-full bg-white text-gray-700 border border-gray-200 shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-100 transition cursor-pointer"
+                style={{ minWidth: '120px' }}
               >
-                {type}
-              </button>
-            ))}
+                {['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired'].map((type) => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+              {/* Chevron Icon */}
+              <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </span>
+            </div>
             {/* Vertical Divider */}
             <span className="mx-3 h-6 w-px bg-gray-300 hidden md:inline-block"></span>
             {/* Sort Dropdown - visually attractive */}
@@ -604,6 +648,9 @@ export const WardenDashboard = () => {
             </span>
             <span className="flex items-center gap-1 text-orange-600">
               <span className="w-2 h-2 bg-orange-500 rounded-full"></span>Cancelled: {statusCount.Cancelled}
+            </span>
+            <span className="flex items-center gap-1 text-gray-600">
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>Expired: {statusCount.Expired}
             </span>
           </div>
         </div>
@@ -647,6 +694,11 @@ export const WardenDashboard = () => {
                   icon: <CancelIcon className="text-orange-600" />,
                   bg: 'bg-orange-50 border-orange-200',
                   text: 'text-orange-700',
+                },
+                expired: {
+                  icon: <PendingIcon className="text-gray-500" />,
+                  bg: 'bg-gray-100 border-gray-300',
+                  text: 'text-gray-500',
                 },
               }[request.status?.toLowerCase()] || {
                 icon: <PendingIcon className="text-gray-600" />,
@@ -745,12 +797,22 @@ export const WardenDashboard = () => {
                       <div className="flex flex-wrap gap-2">
                         {/* Cancel Button for Approved Requests */}
                         {request.status?.toLowerCase() === 'approved' && (
-                          <button
-                            onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
-                            className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
-                          >
-                            <CloseIcon fontSize="small"/> Cancel Request
-                          </button>
+                          <>
+                            <button
+                              onClick={() => setConfirmModal({ open: true, action: 'cancel', requestId: request.id, reason: '' })}
+                              className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                            >
+                              <CloseIcon fontSize="small"/> Cancel Request
+                            </button>
+                            {request.certificateId && (
+                              <button
+                                onClick={() => navigate(`/certificate/${request.certificateId}`)}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
+                              >
+                                <VisibilityIcon fontSize="small"/> View Certificate
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -824,44 +886,55 @@ export const WardenDashboard = () => {
 
       {/* Confirmation Modal */}
       {confirmModal.open && (
-        <div
-          className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
-          onClick={() => setConfirmModal({ open: false, action: null, requestId: null, reason: '' })}
-        >
+                 <div
+           className="fixed inset-0 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
+           onClick={() => !confirmModal.loading && setConfirmModal({ open: false, action: null, requestId: null, reason: '', loading: false })}
+         >
           <div
             className="bg-white rounded-xl shadow-lg px-7 py-5 w-full max-w-lg mx-4 sm:px-8 sm:py-8"
             onClick={e => e.stopPropagation()} // Prevent closing when clicking inside the modal
           >
-            <h3 className="text-lg font-semibold mb-6 ">
-              {confirmModal.action === 'approve'
-                ? 'Are you sure you want to approve this request?'
-                : confirmModal.action === 'reject'
-                ? 'Are you sure you want to reject this request?'
-                : 'Are you sure you want to cancel this approved request?'}
-            </h3>
+                         <h3 className="text-lg font-semibold mb-6 ">
+               {confirmModal.loading ? (
+                 <div className="flex items-center gap-2">
+                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                   Processing Request...
+                 </div>
+               ) : (
+                 <>
+                   {confirmModal.action === 'approve'
+                     ? 'Are you sure you want to approve this request?'
+                     : confirmModal.action === 'reject'
+                     ? 'Are you sure you want to reject this request?'
+                     : 'Are you sure you want to cancel this approved request?'}
+                 </>
+               )}
+             </h3>
             {(confirmModal.action === 'reject' || confirmModal.action === 'cancel') && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Reason for {confirmModal.action === 'reject' ? 'Rejection' : 'Cancellation'} <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                  rows={2}
-                  value={confirmModal.reason}
-                  onChange={e => setConfirmModal({ ...confirmModal, reason: e.target.value })}
-                  placeholder={`Enter reason for ${confirmModal.action === 'reject' ? 'rejection' : 'cancellation'}`}
-                  required
-                />
+                                 <textarea
+                   className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                   rows={2}
+                   value={confirmModal.reason}
+                   onChange={e => setConfirmModal({ ...confirmModal, reason: e.target.value })}
+                   placeholder={`Enter reason for ${confirmModal.action === 'reject' ? 'rejection' : 'cancellation'}`}
+                   required
+                   disabled={confirmModal.loading}
+                 />
               </div>
             )}
             <div className="flex justify-end gap-4 mt-8">
-              <button
-                className="flex items-center gap-2 px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                onClick={() => setConfirmModal({ open: false, action: null, requestId: null, reason: '' })}
-              >
-                <CloseIcon fontSize="small" />
-                Cancel
-              </button>
+                             <button
+                 className="flex items-center gap-2 px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                 onClick={() => setConfirmModal({ open: false, action: null, requestId: null, reason: '', loading: false })}
+                 disabled={confirmModal.loading}
+               >
+                 <CloseIcon fontSize="small" />
+                 Cancel
+               </button>
               <button
                 className={`flex items-center gap-2 px-4 py-2 rounded text-white ${
                   confirmModal.action === 'approve'
@@ -870,25 +943,49 @@ export const WardenDashboard = () => {
                     ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-orange-600 hover:bg-orange-700'
                 }`}
-                onClick={async () => {
-                  if (confirmModal.action === 'approve') {
-                    await handleApprove(confirmModal.requestId);
-                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
-                  } else if (confirmModal.action === 'reject') {
-                    if (!confirmModal.reason.trim()) return; // Require reason
-                    await handleReject(confirmModal.requestId, confirmModal.reason.trim());
-                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
-                  } else if (confirmModal.action === 'cancel') {
-                    if (!confirmModal.reason.trim()) return; // Require reason
-                    await handleCancel(confirmModal.requestId, confirmModal.reason.trim());
-                    setConfirmModal({ open: false, action: null, requestId: null, reason: '' });
-                  }
-                }}
-                disabled={(confirmModal.action === 'reject' || confirmModal.action === 'cancel') && !confirmModal.reason.trim()}
-              >
-                <CheckIcon fontSize="small" />
-                Confirm
-              </button>
+                                 onClick={async () => {
+                   // Set loading state
+                   setConfirmModal(prev => ({ ...prev, loading: true }));
+                   
+                   try {
+                     if (confirmModal.action === 'approve') {
+                       await handleApprove(confirmModal.requestId);
+                       setConfirmModal({ open: false, action: null, requestId: null, reason: '', loading: false });
+                     } else if (confirmModal.action === 'reject') {
+                       if (!confirmModal.reason.trim()) {
+                         setConfirmModal(prev => ({ ...prev, loading: false }));
+                         return; // Require reason
+                       }
+                       await handleReject(confirmModal.requestId, confirmModal.reason.trim());
+                       setConfirmModal({ open: false, action: null, requestId: null, reason: '', loading: false });
+                     } else if (confirmModal.action === 'cancel') {
+                       if (!confirmModal.reason.trim()) {
+                         setConfirmModal(prev => ({ ...prev, loading: false }));
+                         return; // Require reason
+                       }
+                       await handleCancel(confirmModal.requestId, confirmModal.reason.trim());
+                       setConfirmModal({ open: false, action: null, requestId: null, reason: '', loading: false });
+                     }
+                   } catch (error) {
+                     console.error('Error processing action:', error);
+                     // Reset loading state on error
+                     setConfirmModal(prev => ({ ...prev, loading: false }));
+                   }
+                 }}
+                                 disabled={(confirmModal.action === 'reject' || confirmModal.action === 'cancel') && !confirmModal.reason.trim() || confirmModal.loading}
+               >
+                 {confirmModal.loading ? (
+                   <>
+                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                     Processing...
+                   </>
+                 ) : (
+                   <>
+                     <CheckIcon fontSize="small" />
+                     Confirm
+                   </>
+                 )}
+               </button>
             </div>
           </div>
         </div>
