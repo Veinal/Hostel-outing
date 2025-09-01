@@ -16,7 +16,7 @@ import { ManageRequests } from './ManageRequests';
 import { ApprovalCertificate } from './ApprovalCertificate';
 import { CertificateVerification } from './CertificateVerification';
 import { PageNotFound } from './PageNotFound';
-import GatePage from "./GatePage";
+// import { GatePage } from "./GatePage";
 
 const Layout = ({ children }) => {
   const location = useLocation();
