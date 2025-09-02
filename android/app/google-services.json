@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "33157774452",
+    "firebase_url": "https://hostel-outing-1-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "hostel-outing-1",
+    "storage_bucket": "hostel-outing-1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:33157774452:android:83f76ee62ce4f5b9292521",
+        "android_client_info": {
+          "package_name": "com.solutionsx.approval_scanner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCAlS_8FqUu4GsDBUEJpdNtUtnF_ZUs0hA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
