@@ -25,6 +25,7 @@ export const createApprovalCertificate = async (requestData, wardenData, approva
       studentYear: requestData.studentDetails?.year || 'Not Available',
       studentBlock: requestData.studentDetails?.block || 'Not Available',
       studentRoom: requestData.studentDetails?.room || 'Not Available',
+      studentPhotoUrl: requestData.studentDetails?.photoUrl || '',
       requestType: requestData.requestType,
       reason: requestData.reason,
       outDate: requestData.outDate,

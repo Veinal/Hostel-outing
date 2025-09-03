@@ -8,7 +8,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import CloseIcon from '@mui/icons-material/Close';
 import { Link, useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 
 const statusStyles = {
@@ -57,6 +57,29 @@ export const StudentDashboard = () => {
       const user = auth.currentUser;
 
       if (user) {
+        // Check if the logged-in user is a student
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            if (userData.role !== 'student') {
+              // Redirect non-students away from student dashboard
+              navigate('/');
+              return;
+            }
+          } else {
+            // User document doesn't exist, redirect to home
+            navigate('/');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/');
+          return;
+        }
+
         try {
           const requestsRef = collection(db, 'outingRequests');
           const q = query(requestsRef, where('studentId', '==', user.uid)); // Fetch requests for the current user
@@ -102,7 +125,7 @@ export const StudentDashboard = () => {
     });
 
     return () => unsubscribe(); // Cleanup listener
-  }, []);
+  }, [navigate]);
 
   // Fetch notifications for the logged-in student
   useEffect(() => {
@@ -419,7 +442,17 @@ export const StudentDashboard = () => {
                     <div className="flex items-center text-sm text-gray-700 mb-1">
                       <CalendarTodayIcon className="w-4 h-4 mr-1" />
                       <span>
-                        <b>Out Date:</b> {req.outDate || 'N/A'} {req.outTime ? `at ${req.outTime}` : ''}
+                        <b>Out Date:</b>{' '}
+                        {req.outDate
+                          ? (() => {
+                              const d = new Date(req.outDate);
+                              const day = String(d.getDate()).padStart(2, '0');
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const year = d.getFullYear();
+                              return `${day}-${month}-${year}`;
+                            })()
+                          : 'N/A'}{' '}
+                        {req.outTime ? `at ${req.outTime}` : ''}
                       </span>
                     </div>
 
@@ -427,17 +460,33 @@ export const StudentDashboard = () => {
                     <div className="flex items-center text-sm text-gray-700 mb-2">
                       <AccessTimeIcon className="w-4 h-4 mr-1" />
                       <span>
-                        <b>Return Date:</b> {req.returnDate || 'N/A'} {req.returnTime ? `at ${req.returnTime}` : ''}
+                        <b>Return Date:</b>{' '}
+                        {req.returnDate
+                          ? (() => {
+                              const d = new Date(req.returnDate);
+                              const day = String(d.getDate()).padStart(2, '0');
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const year = d.getFullYear();
+                              return `${day}-${month}-${year}`;
+                            })()
+                          : 'N/A'}{' '}
+                        {req.returnTime ? `at ${req.returnTime}` : ''}
                       </span>
                     </div>
 
                     <hr className="my-3" />
 
                     <p className="text-sm">
-                      <span className="font-medium">Reason:</span> {req.reason || 'N/A'}
-                    </p>
-                    <p className="text-sm">
                       <span className="font-medium">Warden:</span> {req.warden || 'N/A'}
+                    </p>
+                    <p className="text-sm flex items-center flex-nowrap">
+                      <span className="font-medium">Reason:</span>
+                      <span
+                        className="truncate ml-1 max-w-[13rem] inline-block align-bottom"
+                        title={req.reason}
+                      >
+                        {req.reason || 'N/A'}
+                      </span>
                     </p>
                     
                     {/* Display rejection or cancellation reason */}

@@ -27,6 +27,7 @@ export const EditStudentProfile = () => {
   const [blocks, setBlocks] = useState([]); // Add this state for hostel blocks
   const [rooms, setRooms] = useState([]); // Add this state for rooms
   const [isNewProfile, setIsNewProfile] = useState(true); // <-- Add this
+  const [isLoading, setIsLoading] = useState(true); // Add loading state for role check
   const navigate = useNavigate();
 
   // Fetch academic branches from Firestore
@@ -49,31 +50,59 @@ export const EditStudentProfile = () => {
     fetchBranches();
   }, []);
 
-  // Fetch the current user's data on component mount
+  // Check if the logged-in user is a student and fetch their data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUserId(user.uid);
-
-        // Fetch existing data from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setFormData((prev) => ({
-            ...prev,
-            ...data,
-          }));
-          // Check if profile is new (all required fields are empty)
-          const requiredFields = ['fullName', 'phone', 'year', 'branch', 'room', 'block', 'gender', 'parentPhone'];
-          const isNew = requiredFields.some(field => !data[field]);
-          setIsNewProfile(isNew);
+    const checkStudentRole = async () => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // If no user is logged in, redirect to home page
+          navigate('/');
+          return;
         }
-      }
-    });
 
-    return () => unsubscribe();
-  }, []);
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            if (userRole !== 'student') {
+              // If the user is not a student, redirect to home page
+              navigate('/');
+              return;
+            } else {
+              // User is a student, allow access and set user data
+              setUserId(user.uid);
+              setFormData((prev) => ({
+                ...prev,
+                ...userData,
+              }));
+              // Check if profile is new (all required fields are empty)
+              const requiredFields = ['fullName', 'phone', 'year', 'branch', 'room', 'block', 'gender', 'parentPhone'];
+              const isNew = requiredFields.some(field => !userData[field]);
+              setIsNewProfile(isNew);
+              setIsLoading(false);
+            }
+          } else {
+            // If the user's role is not found, redirect to home page
+            navigate('/');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/');
+          return;
+        }
+      });
+
+      return unsubscribe;
+    };
+
+    checkStudentRole();
+  }, [navigate]);
 
   // Fetch hostel blocks when gender changes
   useEffect(() => {
@@ -208,6 +237,15 @@ export const EditStudentProfile = () => {
       setLoading(false);
     }
   };
+
+  // Show loading spinner while checking user role
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-12">

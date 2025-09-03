@@ -82,6 +82,8 @@ export const ApprovalCertificate = () => {
             .approval-number { background: #f3f4f6; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
             .approval-number span { font-size: 24px; font-weight: bold; color: #059669; }
             .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
+            .student-photo { text-align: center; }
+            .student-photo img { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
             .detail-item { margin-bottom: 15px; }
             .detail-label { font-weight: bold; color: #374151; margin-bottom: 5px; }
             .detail-value { color: #1f2937; }
@@ -106,6 +108,10 @@ export const ApprovalCertificate = () => {
             </div>
             
             <div class="details">
+              <div class="detail-item student-photo">
+                <div class="detail-label">Student Photo:</div>
+                ${certificate?.studentPhotoUrl ? `<img src="${certificate.studentPhotoUrl}" alt="Student Photo" />` : '<div class="detail-value">N/A</div>'}
+              </div>
               <div class="detail-item">
                 <div class="detail-label">Student Name:</div>
                 <div class="detail-value">${certificate?.studentName}</div>
@@ -288,6 +294,18 @@ export const ApprovalCertificate = () => {
                  Student Information
                </h3>
                <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-gray-600 text-sm min-w-[80px]">Photo:</span>
+                  {certificate.studentPhotoUrl ? (
+                    <img
+                      src={certificate.studentPhotoUrl}
+                      alt="Student"
+                      className="w-16 h-16 rounded-md object-cover border"
+                    />
+                  ) : (
+                    <span className="text-gray-500 text-sm">N/A</span>
+                  )}
+                </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                    <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Full Name:</label>
                    <p className="text-gray-800 text-sm sm:text-base">{certificate.studentName}</p>

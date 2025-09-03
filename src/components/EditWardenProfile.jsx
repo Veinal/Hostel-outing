@@ -19,27 +19,57 @@ export const EditWardenProfile = () => {
   const [photo, setPhoto] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [blocks, setBlocks] = useState([]); // For block dropdown options
+  const [isLoading, setIsLoading] = useState(true); // Add loading state for role check
 
   useEffect(() => {
-    setLoading(true);
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setEmail(user.email);
-        // Fetch warden's name from Firestore
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setFullName(data.fullName || '');
-          setBlock(data.block || '');
-          setStatus(data.status || '');
-          setPhoto(data.photo || '');
+    // Check if the logged-in user is a warden
+    const checkWardenRole = async () => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // If no user is logged in, redirect to home page
+          navigate('/');
+          return;
         }
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            if (userRole !== 'warden') {
+              // If the user is not a warden, redirect to home page
+              navigate('/');
+              return;
+            } else {
+              // User is a warden, allow access and set user data
+              setEmail(user.email);
+              setFullName(userData.fullName || '');
+              setBlock(userData.block || '');
+              setStatus(userData.status || '');
+              setPhoto(userData.photo || '');
+              setIsLoading(false);
+            }
+          } else {
+            // If the user's role is not found, redirect to home page
+            navigate('/');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/');
+          return;
+        }
+      });
+
+      return unsubscribe;
+    };
+
+    checkWardenRole();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchBlocks = async () => {
@@ -100,6 +130,15 @@ export const EditWardenProfile = () => {
     }
     setSubmitting(false);
   };
+
+  // Show loading spinner while checking user role
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6 md:p-12">

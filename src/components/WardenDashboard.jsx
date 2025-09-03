@@ -43,8 +43,54 @@ export const WardenDashboard = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [highlightedRequest, setHighlightedRequest] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [isRoleChecking, setIsRoleChecking] = useState(true); // Add loading state for role check
 
   const navigate = useNavigate();
+
+  // Check if the logged-in user is a warden
+  useEffect(() => {
+    const checkWardenRole = async () => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // If no user is logged in, redirect to home page
+          navigate('/');
+          return;
+        }
+
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            if (userRole !== 'warden') {
+              // If the user is not a warden, redirect to home page
+              navigate('/');
+              return;
+            } else {
+              // User is a warden, allow access
+              setIsRoleChecking(false);
+            }
+          } else {
+            // If the user's role is not found, redirect to home page
+            navigate('/');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/');
+          return;
+        }
+      });
+
+      return unsubscribe;
+    };
+
+    checkWardenRole();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -159,6 +205,15 @@ export const WardenDashboard = () => {
       console.error('Error marking all notifications as read:', error);
     }
   };
+
+  // Show loading spinner while checking user role
+  if (isRoleChecking) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
+  }
 
   // Filtered requests based on selected filter
   const filteredRequests =
@@ -727,7 +782,10 @@ export const WardenDashboard = () => {
                   <div className="flex items-center text-sm text-gray-700 mb-1">
                     <CalendarTodayIcon className="w-4 h-4 mr-1" />
                     <span>
-                      Out Date: {request.outDate || 'N/A'}
+                      Out Date: {request.outDate ? (() => {
+                        const [year, month, day] = request.outDate.split('-');
+                        return `${day}-${month}-${year}`;
+                      })() : 'N/A'}
                       {request.outTime && (
                         <span className="ml-2">
                           at {request.outTime}
@@ -738,7 +796,10 @@ export const WardenDashboard = () => {
                   <div className="flex items-center text-sm text-gray-700 mb-2">
                     <AccessTimeIcon className="w-4 h-4 mr-1" />
                     <span>
-                      Return Date: {request.returnDate || 'N/A'}
+                      Return Date: {request.returnDate ? (() => {
+                        const [year, month, day] = request.returnDate.split('-');
+                        return `${day}-${month}-${year}`;
+                      })() : 'N/A'}
                       {request.returnTime && (
                         <span className="ml-2">
                           at {request.returnTime}

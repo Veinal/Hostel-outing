@@ -38,22 +38,56 @@ export const RequestPage = () => {
   const navigate = useNavigate();
   const [delayedReturn, setDelayedReturn] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // New state for loading
 
   useEffect(() => {
-    // Fetch the currently logged-in student's ID and name from Firestore
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        setStudent({
-          id: user.uid,
-          name: userDoc.exists() ? userDoc.data().fullName || '' : '',
-        });
-      }
-    });
+    // Check if the logged-in user is a student
+    const checkStudentRole = async () => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // If no user is logged in, redirect to home page
+          navigate('/');
+          return;
+        }
 
-    return () => unsubscribe();
-  }, []);
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            if (userRole !== 'student') {
+              // If the user is not a student, redirect to home page
+              navigate('/');
+              return;
+            } else {
+              // User is a student, allow access and set student data
+              setStudent({
+                id: user.uid,
+                name: userData.fullName || '',
+              });
+              setIsLoading(false);
+            }
+          } else {
+            // If the user's role is not found, redirect to home page
+            navigate('/');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          navigate('/');
+          return;
+        }
+      });
+
+      return unsubscribe;
+    };
+
+    checkStudentRole();
+  }, [navigate]);
 
   useEffect(() => {
     const fetchWardens = async () => {
@@ -347,6 +381,15 @@ export const RequestPage = () => {
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
   };
+
+  // Show loading spinner while checking user role
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
