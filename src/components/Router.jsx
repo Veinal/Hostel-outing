@@ -13,8 +13,8 @@ import { AdminDashboard } from './AdminDashboard';
 import { ManageStudents } from './ManageStudents';
 import { ManageWardens } from './ManageWardens';
 import { ManageRequests } from './ManageRequests';
-import ApprovalCertificate from './ApprovalCertificate';
-import CertificateVerification from './CertificateVerification';
+import { ApprovalCertificate } from './ApprovalCertificate';
+import { CertificateVerification } from './CertificateVerification';
 
 import { PageNotFound } from './PageNotFound';
 import GatePage from "./GatePage";
@@ -51,17 +51,12 @@ export const Router = () => {
             <Route path='/managerequests' element={<ManageRequests />} />
 
             <Route path="/gate" element={<GatePage />} />
-            <Route path="/certificate/:certificateId" element={<CertificateWrapper />} />
-            <Route path="/verify" element={<CertificateVerification />} />
+            <Route path='/certificate/:certificateId' element={<ApprovalCertificate />} />
+            <Route path='/verify' element={<CertificateVerification />} />
             <Route path='*' element={<PageNotFound/>} />
           </Routes>
         </Layout>
       </BrowserRouter>
     </div>
   );
-};
-
-const CertificateWrapper = () => {
-  const { certificateId } = useParams();
-  return <ApprovalCertificate certificateId={certificateId} />;
 };

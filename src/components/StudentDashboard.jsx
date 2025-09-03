@@ -459,6 +459,12 @@ export const StudentDashboard = () => {
                           <span className="font-medium">Approved At:</span>{' '}
                           {new Date(req.approvedAt.seconds * 1000).toLocaleString()}
                         </p>
+                        {req.approvalNumber && (
+                          <p className="text-sm text-green-600">
+                            <span className="font-medium">Approval Number:</span>{' '}
+                            <span className="font-mono font-bold">{req.approvalNumber}</span>
+                          </p>
+                        )}
                         
                         {/* View Certificate Button */}
                         {req.certificateId && (

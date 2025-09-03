@@ -1,22 +1,17 @@
-import { addDoc, collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+// Utility functions for approval system
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 
-/**
- * Generates a unique approval number
- * Format: HO-{YEAR}-{TIMESTAMP}-{RANDOM}
- * Example: HO-2024-1703123456789-001
- */
+// Generate a unique approval number
 export const generateApprovalNumber = () => {
-  const year = new Date().getFullYear();
   const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-  return `HO-${year}-${timestamp}-${random}`;
+  const random = Math.floor(Math.random() * 1000);
+  const year = new Date().getFullYear();
+  return `HO-${year}-${timestamp}-${random.toString().padStart(3, '0')}`;
 };
 
-/**
- * Creates an approval certificate in the database
- */
-export const createApprovalCertificate = async (requestData, wardenData, approvalNumber, studentDetails) => {
+// Create approval certificate data
+export const createApprovalCertificate = async (requestData, wardenData, approvalNumber) => {
   try {
     const certificateData = {
       approvalNumber,
@@ -24,11 +19,12 @@ export const createApprovalCertificate = async (requestData, wardenData, approva
       studentId: requestData.studentId,
       wardenId: wardenData.uid,
       studentName: requestData.studentName,
-      studentRollNo: studentDetails?.rollNo || 'Not Available',
-      studentBranch: studentDetails?.branch || 'Not Available',
-      studentYear: studentDetails?.year || 'Not Available',
-      studentBlock: studentDetails?.block || 'Not Available',
-      studentRoom: studentDetails?.room || 'Not Available',
+      // Store student details from studentDetails object
+      studentRollNo: requestData.studentDetails?.rollNo || 'Not Available', // Note: rollNo field may not exist
+      studentBranch: requestData.studentDetails?.branch || 'Not Available',
+      studentYear: requestData.studentDetails?.year || 'Not Available',
+      studentBlock: requestData.studentDetails?.block || 'Not Available',
+      studentRoom: requestData.studentDetails?.room || 'Not Available',
       requestType: requestData.requestType,
       reason: requestData.reason,
       outDate: requestData.outDate,
@@ -41,50 +37,43 @@ export const createApprovalCertificate = async (requestData, wardenData, approva
       validUntil: requestData.returnDate, // Certificate valid until return date
     };
 
-    // Add certificate to database
+    // Store the certificate in Firestore
     const certificateRef = await addDoc(collection(db, 'approvalCertificates'), certificateData);
     
-    // Update the outing request with approval number and certificate ID
-    const requestRef = doc(db, 'outingRequests', requestData.id);
-    await updateDoc(requestRef, {
-      approvalNumber,
-      certificateId: certificateRef.id
-    });
-
-    return certificateRef.id;
+    return {
+      ...certificateData,
+      id: certificateRef.id,
+    };
   } catch (error) {
     console.error('Error creating approval certificate:', error);
     throw error;
   }
 };
 
-/**
- * Formats date for display
- */
+// Format date for display
 export const formatDate = (dateString) => {
-  if (!dateString) return '';
+  if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
+    weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
 };
 
-/**
- * Formats time for display
- */
+// Format time for display
 export const formatTime = (timeString) => {
-  if (!timeString) return '';
+  if (!timeString) return 'N/A';
   return timeString;
 };
 
-/**
- * Checks if certificate is still valid
- */
-export const isCertificateValid = (validUntil) => {
-  if (!validUntil) return false;
-  const validDate = new Date(validUntil);
-  const currentDate = new Date();
-  return currentDate <= validDate;
+// Generate QR code data for the approval
+export const generateQRData = (approvalNumber, requestId) => {
+  return JSON.stringify({
+    approvalNumber,
+    requestId,
+    timestamp: Date.now(),
+    type: 'hostel_outing_approval'
+  });
 };

@@ -259,24 +259,28 @@ export const WardenDashboard = () => {
           });
         }
         
-        // Generate approval certificate
+        // Generate approval certificate and update request with certificate info
         try {
           const approvalNumber = generateApprovalNumber();
           const wardenData = {
             fullName: auth.currentUser.displayName || 'Warden',
             uid: auth.currentUser.uid,
             displayName: auth.currentUser.displayName || 'Warden',
-            email: auth.currentUser.email || ''
+            email: auth.currentUser.email || '',
           };
-          
-          const certificateId = await createApprovalCertificate(
-            { ...requestData, id },
+
+          const certificate = await createApprovalCertificate(
+            { ...requestData, id, studentDetails },
             wardenData,
-            approvalNumber,
-            studentDetails // Pass student details to the certificate function
+            approvalNumber
           );
-          
-          console.log('Approval certificate generated:', certificateId);
+
+          await updateDoc(requestRef, {
+            approvalNumber,
+            certificateId: certificate.id,
+          });
+
+          console.log('Approval certificate generated:', certificate.id);
         } catch (certError) {
           console.error('Error generating approval certificate:', certError);
         }
