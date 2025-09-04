@@ -17,6 +17,7 @@ import { getEmailTemplateParams, EMAIL_CONFIG } from '../utils/emailTemplates';
 import { generateApprovalNumber, createApprovalCertificate } from '../utils/approvalUtils';
 import { useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
+import { sendTextBeeSms } from '../utils/textbee';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 
@@ -272,7 +273,7 @@ export const WardenDashboard = () => {
         // Send email notification to student
         if (studentDetails?.email) {
           try {
-            const               emailData = {
+            const emailData = {
                 studentEmail: studentDetails.email,
                 studentName: studentDetails.fullName || requestData.studentName,
                 wardenName: auth.currentUser.displayName || 'Warden',
@@ -306,7 +307,26 @@ export const WardenDashboard = () => {
               severity: 'warning' 
             });
           }
-        } else {
+        }
+
+        // Send SMS notification to student if they have a phone number
+        if (studentDetails?.phone) {
+          try {
+            const smsMessage = `Your ${requestData.requestType} request for ${requestData.outDate} at ${requestData.outTime} has been approved! Please check the system for details.`;
+            
+            await sendTextBeeSms({
+              recipients: [studentDetails.phone],
+              message: smsMessage
+            });
+            
+            console.log('SMS notification sent successfully to student');
+          } catch (smsError) {
+            console.error('Error sending SMS:', smsError);
+            // Don't fail the approval if SMS fails
+          }
+        }
+
+        if (!studentDetails?.email) {
           setSnackbar({ 
             open: true, 
             message: 'Request approved successfully!', 
@@ -432,7 +452,26 @@ export const WardenDashboard = () => {
               severity: 'warning' 
             });
           }
-        } else {
+        }
+
+        // Send SMS notification to student if they have a phone number
+        if (studentDetails?.phone) {
+          try {
+            const smsMessage = `Your ${requestData.requestType} request for ${requestData.outDate} at ${requestData.outTime} has been rejected. Reason: ${reason}. Please check the system for details.`;
+            
+            await sendTextBeeSms({
+              recipients: [studentDetails.phone],
+              message: smsMessage
+            });
+            
+            console.log('SMS notification sent successfully to student for rejection');
+          } catch (smsError) {
+            console.error('Error sending SMS for rejection:', smsError);
+            // Don't fail the rejection if SMS fails
+          }
+        }
+
+        if (!studentDetails?.email) {
           setSnackbar({ 
             open: true, 
             message: 'Request rejected successfully!', 
@@ -528,7 +567,26 @@ export const WardenDashboard = () => {
               severity: 'warning' 
             });
           }
-        } else {
+        }
+
+        // Send SMS notification to student if they have a phone number
+        if (studentDetails?.phone) {
+          try {
+            const smsMessage = `Your ${requestData.requestType} request for ${requestData.outDate} at ${requestData.outTime} has been cancelled. Reason: ${reason}. Please check the system for details.`;
+            
+            await sendTextBeeSms({
+              recipients: [studentDetails.phone],
+              message: smsMessage
+            });
+            
+            console.log('SMS notification sent successfully to student for cancellation');
+          } catch (smsError) {
+            console.error('Error sending SMS for cancellation:', smsError);
+            // Don't fail the cancellation if SMS fails
+          }
+        }
+
+        if (!studentDetails?.email) {
           setSnackbar({ 
             open: true, 
             message: 'Request cancelled successfully!', 

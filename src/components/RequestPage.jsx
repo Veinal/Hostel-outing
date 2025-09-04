@@ -13,6 +13,7 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers';
 import dayjs from 'dayjs';
 import emailjs from '@emailjs/browser';
+import { sendTextBeeSms } from '../utils/textbee';
 
 // Initialize EmailJS with your service ID
 emailjs.init("SjHmsrhvp6R0qw-Vx"); // Replace with your actual EmailJS public key
@@ -98,6 +99,7 @@ export const RequestPage = () => {
           id: doc.id,
           name: doc.data().fullName || 'Unnamed Warden',
           email: doc.data().email || '',
+          phone: doc.data().phone || '',
           status: doc.data().status || 'inactive',
         }));
         setWardens(wardenList);
@@ -355,6 +357,23 @@ export const RequestPage = () => {
         } catch (emailError) {
           console.error('Error sending email:', emailError);
           // Don't fail the entire request if email fails
+        }
+      }
+
+      // Send SMS notification if warden has a phone number
+      if (selectedWarden.phone) {
+        try {
+          const smsMessage = `New ${form.requestType} request from ${student.name} for ${form.outDateTime.format('YYYY-MM-DD')} at ${form.outDateTime.format('h:mm A')}. Please check the system to take action.`;
+          
+          await sendTextBeeSms({
+            recipients: [selectedWarden.phone],
+            message: smsMessage
+          });
+          
+          console.log('SMS notification sent successfully to warden');
+        } catch (smsError) {
+          console.error('Error sending SMS:', smsError);
+          // Don't fail the entire request if SMS fails
         }
       }
 

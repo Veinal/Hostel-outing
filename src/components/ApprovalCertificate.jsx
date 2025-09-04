@@ -83,7 +83,7 @@ export const ApprovalCertificate = () => {
             .approval-number span { font-size: 24px; font-weight: bold; color: #059669; }
             .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
             .student-photo { text-align: center; }
-            .student-photo img { width: 110px; height: 110px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
+            .student-photo img { width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
             .detail-item { margin-bottom: 15px; }
             .detail-label { font-weight: bold; color: #374151; margin-bottom: 5px; }
             .detail-value { color: #1f2937; }
@@ -270,7 +270,7 @@ export const ApprovalCertificate = () => {
         </div>
       </div>
 
-                 {/* Certificate */}
+        {/* Certificate */}
          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 border-2 sm:border-4 border-gray-800">
            {/* Approval Number */}
            <div className="text-center mb-6">
@@ -286,7 +286,29 @@ export const ApprovalCertificate = () => {
              </div>
            </div>
 
-                     {/* Student Details */}
+          {/* Identity Block */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center gap-4 sm:gap-6 mb-6">
+            {certificate.studentPhotoUrl ? (
+              <img
+                src={certificate.studentPhotoUrl}
+                alt="Student"
+                className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border-2 border-gray-200 shadow-sm"
+              />
+            ) : (
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+                No Photo
+              </div>
+            )}
+            <div className="text-center sm:text-left">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{certificate.studentName}</div>
+              <div className="text-sm sm:text-base text-gray-700 mt-1">
+                <span className="font-semibold">Roll Number:</span> {certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">{certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'} • Year {certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</div>
+            </div>
+          </div>
+
+          {/* Student Details */}
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
              <div>
                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -294,18 +316,6 @@ export const ApprovalCertificate = () => {
                  Student Information
                </h3>
                <div className="space-y-2 sm:space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold text-gray-600 text-sm min-w-[80px]">Photo:</span>
-                  {certificate.studentPhotoUrl ? (
-                    <img
-                      src={certificate.studentPhotoUrl}
-                      alt="Student"
-                      className="w-16 h-16 rounded-md object-cover border"
-                    />
-                  ) : (
-                    <span className="text-gray-500 text-sm">N/A</span>
-                  )}
-                </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                    <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Full Name:</label>
                    <p className="text-gray-800 text-sm sm:text-base">{certificate.studentName}</p>
@@ -368,7 +378,7 @@ export const ApprovalCertificate = () => {
            <div className="text-center mb-6">
              <h3 className="text-lg font-bold text-gray-800 mb-3">Verification QR Code</h3>
              <div className="inline-block bg-gray-100 p-3 rounded-lg">
-               <QRCode data={qrCodeUrl} size={100} />
+               <QRCode data={qrCodeUrl} size={120} />
              </div>
              <p className="text-xs text-gray-600 mt-2">
                Scan this QR code to verify the approval
