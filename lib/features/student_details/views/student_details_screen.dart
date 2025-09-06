@@ -7,7 +7,10 @@ import 'package:scannerapp/features/student_details/bloc/student_details_bloc.da
 class StudentDetailsScreen extends StatelessWidget {
   final String approvalNumber;
 
-  const StudentDetailsScreen({super.key, required this.approvalNumber});
+  const StudentDetailsScreen({
+    super.key,
+    required this.approvalNumber, required ApprovalCertificate certificate, required String usn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class StudentDetailsScreen extends StatelessWidget {
                 child: CircularProgressIndicator(),
               );
             } else if (state is StudentDetailsLoaded) {
-              final approval = state.approval;
+              final approval = state.approvalCertificate;
               final log = state.log?.data() as Map<String, dynamic>?;
 
               return SingleChildScrollView(
@@ -36,25 +39,31 @@ class StudentDetailsScreen extends StatelessWidget {
                   children: [
                     Text(
                       'Approval Number: ${approval.approvalNumber}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    Text('Name: ${approval.studentName}', style: const TextStyle(fontSize: 16)),
-                    Text('Student ID: ${approval.studentId}', style: const TextStyle(fontSize: 16)),
-                    Text('Branch: ${approval.studentBranch}', style: const TextStyle(fontSize: 16)),
-                    Text('Year: ${approval.studentYear}', style: const TextStyle(fontSize: 16)),
-                    Text('Room: ${approval.studentRoom}', style: const TextStyle(fontSize: 16)),
-                    Text('Roll No: ${approval.studentRollNo}', style: const TextStyle(fontSize: 16)),
+                    Text('Name: ${approval.studentName}',
+                        style: const TextStyle(fontSize: 16)),
+                    Text('Block: ${approval.studentBlock}',
+                        style: const TextStyle(fontSize: 16)),
+                    Text('Branch: ${approval.studentBranch}',
+                        style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 12),
-                    Text('Reason: ${approval.reason}', style: const TextStyle(fontSize: 16)),
-                    Text('Status: ${approval.status}', style: const TextStyle(fontSize: 16)),
-                    Text('Out: ${approval.outDate} at ${approval.outTime}', style: const TextStyle(fontSize: 16)),
-                    Text('Return: ${approval.returnDate} at ${approval.returnTime}', style: const TextStyle(fontSize: 16)),
-                    Text('Warden: ${approval.wardenName}', style: const TextStyle(fontSize: 16)),
+                    Text('Reason: ${approval.status}',
+                        style: const TextStyle(fontSize: 16)),
+                    Text('Out: ${approval.outDate} at ${approval.outTime}',
+                        style: const TextStyle(fontSize: 16)),
+                    Text(
+                        'Return: ${approval.returnDate} at ${approval.returnTime}',
+                        style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 20),
                     const Text(
                       'Log Times',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style:
+                      TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     if (log != null)

@@ -15,7 +15,7 @@ class ScannerScreen extends StatelessWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => StudentDetailsScreen(
-                certificate: state.certificate, usn: '', // ✅ pass certificate now
+                certificate: state.certificate, usn: '', approvalNumber: '', // ✅ pass certificate now
               ),
             ),
           );
