@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:scannerapp/core/models/approval_certificate.dart';
 import 'package:scannerapp/core/services/firebase_service.dart';
 import 'package:scannerapp/features/student_details/bloc/student_details_bloc.dart';
 
 class StudentDetailsScreen extends StatelessWidget {
-  final String usn;
+  final String approvalNumber;
 
-  const StudentDetailsScreen({super.key, required this.usn});
+  const StudentDetailsScreen({super.key, required this.approvalNumber});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => StudentDetailsBloc(
         RepositoryProvider.of<FirebaseService>(context),
-      )..add(FetchStudentDetails(usn)),
+      )..add(FetchStudentDetails(approvalNumber)),
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Student Details'),
+          title: const Text('Approval Details'),
         ),
         body: BlocBuilder<StudentDetailsBloc, StudentDetailsState>(
           builder: (context, state) {
@@ -25,32 +26,32 @@ class StudentDetailsScreen extends StatelessWidget {
                 child: CircularProgressIndicator(),
               );
             } else if (state is StudentDetailsLoaded) {
-              final student = state.student;
+              final approval = state.approval;
               final log = state.log?.data() as Map<String, dynamic>?;
 
-              return Padding(
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (student.imageUrl.isNotEmpty)
-                      Center(
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: NetworkImage(student.imageUrl),
-                        ),
-                      ),
-                    const SizedBox(height: 16),
                     Text(
-                      'Name: ${student.name}',
-                      style: const TextStyle(fontSize: 18),
+                      'Approval Number: ${approval.approvalNumber}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'USN: ${student.usn}',
-                      style: const TextStyle(fontSize: 18),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    Text('Name: ${approval.studentName}', style: const TextStyle(fontSize: 16)),
+                    Text('Student ID: ${approval.studentId}', style: const TextStyle(fontSize: 16)),
+                    Text('Branch: ${approval.studentBranch}', style: const TextStyle(fontSize: 16)),
+                    Text('Year: ${approval.studentYear}', style: const TextStyle(fontSize: 16)),
+                    Text('Room: ${approval.studentRoom}', style: const TextStyle(fontSize: 16)),
+                    Text('Roll No: ${approval.studentRollNo}', style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 12),
+                    Text('Reason: ${approval.reason}', style: const TextStyle(fontSize: 16)),
+                    Text('Status: ${approval.status}', style: const TextStyle(fontSize: 16)),
+                    Text('Out: ${approval.outDate} at ${approval.outTime}', style: const TextStyle(fontSize: 16)),
+                    Text('Return: ${approval.returnDate} at ${approval.returnTime}', style: const TextStyle(fontSize: 16)),
+                    Text('Warden: ${approval.wardenName}', style: const TextStyle(fontSize: 16)),
+                    const SizedBox(height: 20),
                     const Text(
                       'Log Times',
                       style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),

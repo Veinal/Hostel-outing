@@ -1,11 +1,10 @@
 part of 'student_details_bloc.dart';
 
-
 abstract class StudentDetailsState extends Equatable {
   const StudentDetailsState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class StudentDetailsInitial extends StudentDetailsState {}
@@ -13,13 +12,13 @@ class StudentDetailsInitial extends StudentDetailsState {}
 class StudentDetailsLoading extends StudentDetailsState {}
 
 class StudentDetailsLoaded extends StudentDetailsState {
-  final Student student;
+  final ApprovalCertificate approvalCertificate;
   final DocumentSnapshot? log;
 
-  const StudentDetailsLoaded(this.student, this.log);
+  const StudentDetailsLoaded(this.approvalCertificate, this.log);
 
   @override
-  List<Object> get props => [student, log!];
+  List<Object?> get props => [approvalCertificate, log];
 }
 
 class StudentDetailsError extends StudentDetailsState {
@@ -28,5 +27,5 @@ class StudentDetailsError extends StudentDetailsState {
   const StudentDetailsError(this.message);
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }

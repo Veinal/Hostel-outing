@@ -9,13 +9,15 @@ abstract class ScannerState extends Equatable {
 
 class ScannerInitial extends ScannerState {}
 
-class QrCodeScanned extends ScannerState {
-  final String usn;
+class ScannerLoading extends ScannerState {}
 
-  const QrCodeScanned(this.usn);
+class QrCodeDetailsLoaded extends ScannerState {
+  final ApprovalCertificate certificate;
+
+  const QrCodeDetailsLoaded(this.certificate);
 
   @override
-  List<Object> get props => [usn];
+  List<Object> get props => [certificate];
 }
 
 class ScannerError extends ScannerState {

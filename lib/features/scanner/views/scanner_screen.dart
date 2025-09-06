@@ -11,10 +11,12 @@ class ScannerScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<ScannerBloc, ScannerState>(
       listener: (context, state) {
-        if (state is QrCodeScanned) {
+        if (state is QrCodeDetailsLoaded) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => StudentDetailsScreen(usn: state.usn),
+              builder: (context) => StudentDetailsScreen(
+                certificate: state.certificate, usn: '', // ✅ pass certificate now
+              ),
             ),
           );
         } else if (state is ScannerError) {
