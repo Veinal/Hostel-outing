@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { formatDate, formatTime, generateQRData } from '../utils/approvalUtils';
 import { QRCode } from './QRCode';
+import QRCodeLib from 'qrcode';
 import { 
   Print as PrintIcon, 
   Download as DownloadIcon, 
@@ -51,151 +52,132 @@ export const ApprovalCertificate = () => {
     window.print();
   };
 
-  const handleDownload = () => {
-    // Create a printable version and download as PDF
+  const handleDownload = async () => {
+    // Generate a real QR code image (data URL) for embedding in the print view
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCodeLib.toDataURL(qrCodeUrl, {
+        width: 150,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      });
+    } catch (e) {
+      console.error('Failed to generate QR for download view', e);
+    }
+
+    // Open printable window mirroring the on-screen certificate design
     const printWindow = window.open('', '_blank');
-    
-    // Generate QR pattern for the download version
-    const generateQRPattern = (text) => {
-      const hash = text.split('').reduce((a, b) => {
-        a = ((a << 5) - a + b.charCodeAt(0)) & 0xffffffff;
-        return a;
-      }, 0);
-      
-      const pattern = [];
-      for (let i = 0; i < 25; i++) {
-        pattern.push((hash >> i) & 1);
-      }
-      return pattern;
-    };
-    
     printWindow.document.write(`
       <html>
         <head>
           <title>Approval Certificate - ${certificate?.approvalNumber}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .certificate { border: 3px solid #1f2937; padding: 30px; max-width: 800px; margin: 0 auto; }
-            .header { text-align: center; border-bottom: 2px solid #1f2937; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { font-size: 28px; font-weight: bold; color: #1f2937; margin-bottom: 10px; }
-            .subtitle { font-size: 16px; color: #6b7280; }
-            .approval-number { background: #f3f4f6; padding: 15px; text-align: center; margin: 20px 0; border-radius: 8px; }
-            .approval-number span { font-size: 24px; font-weight: bold; color: #059669; }
-            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 30px 0; }
-            .student-photo { text-align: center; }
-            .student-photo img { width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
-            .detail-item { margin-bottom: 15px; }
-            .detail-label { font-weight: bold; color: #374151; margin-bottom: 5px; }
-            .detail-value { color: #1f2937; }
-            .qr-section { text-align: center; margin: 30px 0; }
-            .qr-code { max-width: 150px; }
-            .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 14px; }
-            .warden-signature { margin-top: 30px; text-align: right; }
-            .signature-line { border-top: 1px solid #000; width: 200px; display: inline-block; margin-top: 5px; }
-            @media print { body { margin: 0; } .certificate { border: none; } }
+            body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 0; background: #f9fafb; }
+            .page { padding: 16px 0; }
+            .container { max-width: 896px; margin: 0 auto; padding: 0 16px; }
+            .card { background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); padding: 24px; border: 4px solid #1f2937; }
+            .section { margin-bottom: 24px; }
+            .title { text-align: center; font-weight: 700; color: #1f2937; font-size: 20px; margin: 0 0 8px; }
+            .badge { display: inline-flex; align-items: center; gap: 6px; color: #059669; font-weight: 600; font-size: 12px; }
+            .approvalBox { background: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 12px; text-align: center; }
+            .approvalLabel { color: #4b5563; font-size: 14px; margin: 0 0 4px; }
+            .approvalNumber { color: #059669; font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 24px; word-break: break-all; margin: 0; }
+            .flexRow { display: flex; align-items: center; justify-content: center; gap: 16px; }
+            .avatar { width: 128px; height: 128px; border-radius: 8px; object-fit: cover; border: 2px solid #e5e7eb; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+            .placeholder { width: 128px; height: 128px; border-radius: 8px; border: 2px dashed #d1d5db; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 14px; }
+            .name { font-size: 20px; font-weight: 700; color: #111827; margin: 0; }
+            .meta { color: #374151; font-size: 14px; margin-top: 4px; }
+            .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+            .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+            .label { color: #6b7280; font-weight: 600; font-size: 14px; min-width: 80px; }
+            .value { color: #111827; font-size: 14px; }
+            .qrWrap { text-align: center; margin-top: 8px; }
+            .qrBox { display: inline-block; background: #f3f4f6; padding: 12px; border-radius: 8px; }
+            .qrImg { width: 120px; height: 120px; display: block; }
+            .sig { text-align: right; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+            .sigLine { border-top: 2px solid #1f2937; width: 96px; margin: 4px auto 0; }
+            .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 16px; }
+            @media print { body { background: #ffffff; } .card { border-width: 2px; box-shadow: none; } .page { padding: 0; } }
           </style>
         </head>
         <body>
-          <div class="certificate">
-            <div class="header">
-              <div class="title">HOSTEL OUTING APPROVAL CERTIFICATE</div>
-              <div class="subtitle">Official Authorization Document</div>
-            </div>
-            
-            <div class="approval-number">
-              <div>Approval Number:</div>
-              <span>${certificate?.approvalNumber}</span>
-            </div>
-            
-            <div class="details">
-              <div class="detail-item student-photo">
-                <div class="detail-label">Student Photo:</div>
-                ${certificate?.studentPhotoUrl ? `<img src="${certificate.studentPhotoUrl}" alt="Student Photo" />` : '<div class="detail-value">N/A</div>'}
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Student Name:</div>
-                <div class="detail-value">${certificate?.studentName}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Roll Number:</div>
-                <div class="detail-value">${certificate?.studentRollNo}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Branch:</div>
-                <div class="detail-value">${certificate?.studentBranch}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Year:</div>
-                <div class="detail-value">${certificate?.studentYear}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Block:</div>
-                <div class="detail-value">${certificate?.studentBlock}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Room:</div>
-                <div class="detail-value">${certificate?.studentRoom}</div>
-              </div>
-            </div>
-            
-            <div class="details">
-              <div class="detail-item">
-                <div class="detail-label">Request Type:</div>
-                <div class="detail-value">${certificate?.requestType}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Reason:</div>
-                <div class="detail-value">${certificate?.reason}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Out Date:</div>
-                <div class="detail-value">${formatDate(certificate?.outDate)}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Out Time:</div>
-                <div class="detail-value">${formatTime(certificate?.outTime)}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Return Date:</div>
-                <div class="detail-value">${formatDate(certificate?.returnDate)}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Return Time:</div>
-                <div class="detail-value">${formatTime(certificate?.returnTime)}</div>
-              </div>
-            </div>
-            
-            <div class="qr-section">
-              <div>Verification QR Code:</div>
-              <div class="qr-code">
-                <div style="display: inline-block; background: white; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
-                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; width: 150px; height: 150px;">
-                    ${generateQRPattern(qrCodeUrl).map((cell, index) => 
-                      `<div style="width: 100%; height: 100%; background: ${cell ? '#000' : '#fff'}; min-height: 1px;"></div>`
-                    ).join('')}
+          <div class="page">
+            <div class="container">
+              <div class="card">
+                <!-- Header and approval status -->
+                <div class="section" style="text-align:center;">
+                  <div class="approvalBox">
+                    <p class="approvalLabel">Approval Number</p>
+                    <p class="approvalNumber">${certificate.approvalNumber}</p>
                   </div>
-                  <div style="text-align: center; font-size: 12px; color: #666; margin-top: 4px;">QR Code</div>
+                  <div class="badge">APPROVED</div>
+                </div>
+
+                <!-- Identity block -->
+                <div class="section">
+                  <div class="flexRow">
+                    ${certificate.studentPhotoUrl ? `<img src="${certificate.studentPhotoUrl}" alt="Student" class="avatar" />` : `<div class="placeholder">No Photo</div>`}
+                    <div style="text-align:center;">
+                      <p class="name">${certificate.studentName}</p>
+                      <p class="meta"><strong>Roll Number:</strong> ${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
+                      <p class="meta">${certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'} • Year ${certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Details grid -->
+                <div class="section grid2">
+                  <div class="grid">
+                    <div><span class="label">Full Name:</span> <span class="value">${certificate.studentName}</span></div>
+                    <div><span class="label">Roll Number:</span> <span class="value">${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</span></div>
+                    <div><span class="label">Branch:</span> <span class="value">${certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'}</span></div>
+                    <div><span class="label">Year:</span> <span class="value">${certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</span></div>
+                    <div><span class="label">Block:</span> <span class="value">${certificate.studentBlock || certificate.studentDetails?.block || 'N/A'}</span></div>
+                    <div><span class="label">Room:</span> <span class="value">${certificate.studentRoom || certificate.studentDetails?.room || 'N/A'}</span></div>
+                  </div>
+                  <div class="grid">
+                    <div><span class="label">Request Type:</span> <span class="value">${certificate.requestType}</span></div>
+                    <div><span class="label">Reason:</span> <span class="value">${certificate.reason}</span></div>
+                    <div><span class="label">Out Date:</span> <span class="value">${formatDate(certificate.outDate)}</span></div>
+                    <div><span class="label">Out Time:</span> <span class="value">${formatTime(certificate.outTime)}</span></div>
+                    <div><span class="label">Return Date:</span> <span class="value">${formatDate(certificate.returnDate)}</span></div>
+                    <div><span class="label">Return Time:</span> <span class="value">${formatTime(certificate.returnTime)}</span></div>
+                  </div>
+                </div>
+
+                <!-- QR section -->
+                <div class="section qrWrap">
+                  <h3 style="color:#1f2937; font-weight:700; margin:0 0 8px;">Verification QR Code</h3>
+                  <div class="qrBox">
+                    ${qrDataUrl ? `<img class="qrImg" src="${qrDataUrl}" alt="QR Code" />` : '<div style="width:120px;height:120px;display:flex;align-items:center;justify-content:center;background:#fff;color:#9ca3af;border:1px solid #e5e7eb;">QR unavailable</div>'}
+                  </div>
+                  <p style="color:#6b7280; font-size: 12px; margin-top: 6px;">Scan this QR code to verify the approval</p>
+                </div>
+
+                <!-- Signature -->
+                <div class="sig">
+                  <div style="display:inline-block;text-align:center;">
+                    <p style="font-weight:600;color:#111827;margin:0 0 4px;font-size:12px;">Approved by:</p>
+                    <p style="color:#4b5563;margin:0 0 6px;font-size:12px;">${certificate.wardenName}</p>
+                    <div class="sigLine"></div>
+                    <p style="color:#6b7280;margin:6px 0 0;font-size:11px;">Warden</p>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                  <p><strong>Valid until:</strong> ${formatDate(certificate.returnDate)}</p>
+                  <p><strong>Generated on:</strong> ${formatDate(certificate.approvedAt?.toDate?.() || new Date())}</p>
+                  <p>Keep this document safe and present it when leaving/entering the hostel premises</p>
                 </div>
               </div>
-            </div>
-            
-            <div class="warden-signature">
-              <div>Approved by:</div>
-              <div>${certificate?.wardenName}</div>
-              <div class="signature-line"></div>
-              <div>Warden</div>
-            </div>
-            
-            <div class="footer">
-              <p>This certificate is valid until ${formatDate(certificate?.returnDate)}</p>
-              <p>Generated on ${formatDate(certificate?.approvedAt?.toDate?.() || new Date())}</p>
-              <p>Keep this document safe and present it when leaving/entering the hostel premises</p>
             </div>
           </div>
         </body>
       </html>
     `);
     printWindow.document.close();
+    printWindow.focus();
     printWindow.print();
   };
 

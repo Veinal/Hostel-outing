@@ -73,8 +73,6 @@ export const formatTime = (timeString) => {
 export const generateQRData = (approvalNumber, requestId) => {
   return JSON.stringify({
     approvalNumber,
-    requestId,
-    timestamp: Date.now(),
-    type: 'hostel_outing_approval'
+    requestId
   });
 };
