@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ApprovalCertificate {
   final String approvalNumber;
   final String studentName;
+  final String studentUsn;
   final String studentBlock;
   final String studentBranch;
   final String outDate;
@@ -14,6 +15,7 @@ class ApprovalCertificate {
   ApprovalCertificate({
     required this.approvalNumber,
     required this.studentName,
+    required this.studentUsn,
     required this.studentBlock,
     required this.studentBranch,
     required this.outDate,
@@ -29,6 +31,7 @@ class ApprovalCertificate {
     return ApprovalCertificate(
       approvalNumber: data['approvalNumber'] ?? '',
       studentName: data['studentName'] ?? '',
+      studentUsn: data['studentUsn'] ?? '',
       studentBlock: data['studentBlock'] ?? '',
       studentBranch: data['studentBranch'] ?? '',
       outDate: data['outDate'] ?? '',

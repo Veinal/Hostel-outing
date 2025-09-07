@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:scannerapp/core/models/approval_certificate.dart';
 import 'package:scannerapp/core/services/firebase_service.dart';
+import 'dart:convert';
 
 part 'scanner_event.dart';
 part 'scanner_state.dart';
@@ -13,17 +14,25 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
     on<ScanQrCode>((event, emit) async {
       emit(ScannerLoading());
 
-      final certificate =
-      await _firebaseService.getApprovalDetails(event.qrCode);
+      try {
+        // Decode the QR code into JSON
+        final qrData = jsonDecode(event.qrCode);
+        final approvalNumber = qrData['approvalNumber'];
 
-      if (certificate != null) {
-        // Log the verification
-        await _firebaseService.logTime(certificate.approvalNumber);
+        // Fetch details from Firestore
+        final certificate = await _firebaseService.getApprovalDetails(approvalNumber);
 
-        // Emit the certificate details to the UI
-        emit(QrCodeDetailsLoaded(certificate));
-      } else {
-        emit(const ScannerError('Approval Certificate not found'));
+        if (certificate != null) {
+          // Log the scan (in/out)
+          await _firebaseService.logTime(approvalNumber);
+
+          // Emit success
+          emit(QrCodeDetailsLoaded(certificate));
+        } else {
+          emit(const ScannerError('Approval Certificate not found'));
+        }
+      } catch (e) {
+        emit(const ScannerError('Invalid QR Code format'));
       }
     });
   }
