@@ -7,20 +7,49 @@ class FirebaseService {
   /// Fetch approval certificate details using approvalNumber
   Future<ApprovalCertificate?> getApprovalDetails(String approvalNumber) async {
     try {
+      print("🔍 Fetching approval certificate for: $approvalNumber");
+
       final snapshot = await _firestore
           .collection('approvalCertificates')
-          .doc(approvalNumber)
+          .where('approvalNumber', isEqualTo: approvalNumber)
+          .limit(1)
           .get();
 
-      if (snapshot.exists) {
-        return ApprovalCertificate.fromFirestore(snapshot);
+      print("📦 Firestore returned ${snapshot.docs.length} docs");
+
+      if (snapshot.docs.isNotEmpty) {
+        print("✅ Certificate data: ${snapshot.docs.first.data()}");
+        return ApprovalCertificate.fromFirestore(snapshot.docs.first);
       } else {
+        print("❌ No approval certificate found for $approvalNumber");
         return null;
       }
-    } catch (e) {
-      rethrow;
+    } catch (e, st) {
+      print("🔥 Error in getApprovalDetails: $e\n$st");
+      return null;
     }
   }
+
+  // Future<ApprovalCertificate?> getApprovalDetails(String approvalNumber) async {
+  //   try {
+  //     // Query by approvalNumber field
+  //     final query = await _firestore
+  //         .collection('approvalCertificates')
+  //         .where('approvalNumber', isEqualTo: approvalNumber)
+  //         .limit(1)
+  //         .get();
+  //
+  //     if (query.docs.isNotEmpty) {
+  //       return ApprovalCertificate.fromFirestore(query.docs.first);
+  //     }
+  //
+  //     return null;
+  //   } catch (e) {
+  //     print("Error in getApprovalDetails: $e");
+  //     return null;
+  //   }
+  // }
+
 
   /// Log student scan time (in/out)
   Future<void> logTime(String approvalNumber) async {

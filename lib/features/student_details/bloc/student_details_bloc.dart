@@ -16,9 +16,9 @@ class StudentDetailsBloc
       emit(StudentDetailsLoading());
       try {
         final approval =
-        await _firebaseService.getApprovalDetails(event.usn);
+        await _firebaseService.getApprovalDetails(event.approvalNumber);
         final log =
-        await _firebaseService.getLatestLog(event.usn);
+        await _firebaseService.getLatestLog(event.approvalNumber);
 
         if (approval != null) {
           emit(StudentDetailsLoaded(approval, log));

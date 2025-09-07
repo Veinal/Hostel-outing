@@ -15,12 +15,18 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
       emit(ScannerLoading());
 
       try {
-        // Decode the QR code into JSON
+        print("📲 Raw QR code: ${event.qrCode}");
         final qrData = jsonDecode(event.qrCode);
         final approvalNumber = qrData['approvalNumber'];
+        print("🔑 Parsed approvalNumber: $approvalNumber");
 
-        // Fetch details from Firestore
         final certificate = await _firebaseService.getApprovalDetails(approvalNumber);
+        // // Decode the QR code into JSON
+        // final qrData = jsonDecode(event.qrCode);
+        // final approvalNumber = qrData['approvalNumber'];
+        //
+        // // Fetch details from Firestore
+        //final certificate = await _firebaseService.getApprovalDetails(approvalNumber);
 
         if (certificate != null) {
           // Log the scan (in/out)

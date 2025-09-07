@@ -6,10 +6,14 @@ import 'package:scannerapp/features/student_details/bloc/student_details_bloc.da
 
 class StudentDetailsScreen extends StatelessWidget {
   final String approvalNumber;
+  final ApprovalCertificate certificate;
+  final String usn;
 
   const StudentDetailsScreen({
     super.key,
-    required this.approvalNumber, required ApprovalCertificate certificate, required String usn,
+    required this.approvalNumber,
+    required this.certificate,
+    required this.usn,
   });
 
   @override
@@ -56,8 +60,7 @@ class StudentDetailsScreen extends StatelessWidget {
                         style: const TextStyle(fontSize: 16)),
                     Text('Out: ${approval.outDate} at ${approval.outTime}',
                         style: const TextStyle(fontSize: 16)),
-                    Text(
-                        'Return: ${approval.returnDate} at ${approval.returnTime}',
+                    Text('Return: ${approval.returnDate} at ${approval.returnTime}',
                         style: const TextStyle(fontSize: 16)),
                     const SizedBox(height: 20),
                     const Text(
@@ -92,8 +95,9 @@ class StudentDetailsScreen extends StatelessWidget {
                 child: Text(state.message),
               );
             } else {
+              // Default fallback if state is StudentDetailsInitial
               return const Center(
-                child: Text('Something went wrong.'),
+                child: Text('Fetching approval details...'),
               );
             }
           },
