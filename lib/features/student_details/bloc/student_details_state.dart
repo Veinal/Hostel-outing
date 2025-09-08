@@ -14,8 +14,9 @@ class StudentDetailsLoading extends StudentDetailsState {}
 class StudentDetailsLoaded extends StudentDetailsState {
   final ApprovalCertificate approvalCertificate;
   final DocumentSnapshot? log;
+  final Student? student;
 
-  const StudentDetailsLoaded(this.approvalCertificate, this.log);
+  const StudentDetailsLoaded(this.approvalCertificate, this.log, this.student);
 
   @override
   List<Object?> get props => [approvalCertificate, log];

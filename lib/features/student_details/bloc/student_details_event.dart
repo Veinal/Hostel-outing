@@ -9,10 +9,11 @@ abstract class StudentDetailsEvent extends Equatable {
 
 class FetchStudentDetails extends StudentDetailsEvent {
   final String approvalNumber;
+  final String studentId;
 
-  const FetchStudentDetails(this.approvalNumber);
+  const FetchStudentDetails(this.approvalNumber, this.studentId);
 
   @override
-  List<Object> get props => [approvalNumber];
+  List<Object> get props => [approvalNumber, studentId];
 }
 
