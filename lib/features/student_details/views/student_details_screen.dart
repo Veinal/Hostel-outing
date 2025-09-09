@@ -72,6 +72,8 @@ class StudentDetailsScreen extends StatelessWidget {
                           // Student Info
                           Container(
                             padding: const EdgeInsets.all(16),
+                            //height: 150,
+                            width:double.infinity,
                             decoration: BoxDecoration(
                               color: Colors.blue.shade50,
                               borderRadius: BorderRadius.circular(12),
@@ -194,30 +196,55 @@ class StudentDetailsScreen extends StatelessWidget {
 
         // ✅ Bottom buttons
         bottomNavigationBar: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          padding: const EdgeInsets.all(16.0), // 👈 give some margin
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // 👈 makes the Column shrink to fit buttons
             children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text("Scan Again"),
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ScannerScreen()),
-                  );
-                },
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.qr_code_scanner, size: 26),
+                  label: const Text("Scan Again"),
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScannerScreen()),
+                    );
+                  },
+                ),
               ),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.home),
-                label: const Text("Home"),
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
-                        (route) => false,
-                  );
-                },
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.home, size: 26),
+                  label: const Text("Home"),
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                    );
+                  },
+                ),
               ),
             ],
           ),

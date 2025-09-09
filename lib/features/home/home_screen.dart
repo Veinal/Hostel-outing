@@ -7,21 +7,43 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Approval Certificate Scanner")),
+      appBar: AppBar(
+        title: const Text("Approval Certificate Scanner"),
+        centerTitle: true,
+      ),
       body: Center(
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            textStyle: const TextStyle(fontSize: 18),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade100, // 👈 soft background color
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: const Offset(2, 4),
+              ),
+            ],
           ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ScannerScreen()),
-            );
-          },
-          icon: const Icon(Icons.qr_code_scanner, size: 28),
-          label: const Text("Scan Approval Certificate"),
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue, // 👈 high-contrast button color
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ScannerScreen()),
+              );
+            },
+            icon: const Icon(Icons.qr_code_scanner, size: 30),
+            label: const Text("Scan Approval Certificate"),
+          ),
         ),
       ),
     );
