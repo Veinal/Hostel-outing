@@ -3,14 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Student {
   final String usn;
   final String name;
-  final String imageUrl;
+  final String photoUrl;
   final DateTime? outTime;
   final DateTime? inTime;
 
   Student({
     required this.usn,
     required this.name,
-    required this.imageUrl,
+    required this.photoUrl,
     this.outTime,
     this.inTime,
   });
@@ -20,7 +20,7 @@ class Student {
     return Student(
       usn: doc.id,
       name: data['name'] ?? '',
-      imageUrl: data['imageUrl'] ?? '',
+      photoUrl: data['photoUrl'] ?? '',
       outTime: data['outTime']?.toDate(),
       inTime: data['inTime']?.toDate(),
     );

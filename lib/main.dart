@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:scannerapp/core/services/firebase_service.dart';
+import 'package:scannerapp/features/home/home_screen.dart';
 import 'package:scannerapp/features/scanner/bloc/scanner_bloc.dart';
-import 'package:scannerapp/features/scanner/views/scanner_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,11 +23,12 @@ class MyApp extends StatelessWidget {
           RepositoryProvider.of<FirebaseService>(context),
         ),
         child: MaterialApp(
-          title: 'Scanner App',
+          debugShowCheckedModeBanner: false,
+          title: 'Hostel Outing System',
           theme: ThemeData(
             primarySwatch: Colors.blue,
           ),
-          home: const ScannerScreen(),
+          home: const HomeScreen(), // ✅ Start at Home, not Scanner
         ),
       ),
     );

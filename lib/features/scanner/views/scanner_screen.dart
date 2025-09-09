@@ -29,11 +29,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
           _hasScanned = true;
           await _controller.stop(); // ✅ stop scanning before navigation
 
-          Navigator.of(context).pushReplacement( // replace so scanner doesn’t stay behind
+          Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) => StudentDetailsScreen(
                 certificate: state.certificate,
-                usn: state.certificate.studentUsn ?? '', // ✅ extract if available
+                usn: state.certificate.studentUsn ?? '',
                 approvalNumber: state.certificate.approvalNumber ?? '',
               ),
             ),
@@ -42,13 +42,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message)),
           );
-          _hasScanned = false; // allow retry if error
+          _hasScanned = false;
           _controller.start(); // restart scanning if failed
         }
       },
       child: Scaffold(
         appBar: AppBar(
           title: const Text('QR Scanner'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              onPressed: () {
+                // ✅ Pop back to HomeScreen
+                Navigator.of(context).popUntil((route) => route.isFirst);
+              },
+            ),
+          ],
         ),
         body: MobileScanner(
           controller: _controller,
