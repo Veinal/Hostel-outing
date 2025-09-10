@@ -975,6 +975,7 @@ export const WardenDashboard = () => {
               <div className="w-full">
                 <div className="grid grid-cols-1 gap-y-3">
                   <DetailRow label="Email" value={selectedRequest.studentDetails?.email} />
+                  <DetailRow label="USN" value={selectedRequest.studentDetails?.usn || 'N/A'} />
                   <DetailRow label="Phone" value={selectedRequest.studentDetails?.phone} />
                   <DetailRow label="Branch" value={selectedRequest.studentDetails?.branch} isLong />
                   <DetailRow label="Year" value={selectedRequest.studentDetails?.year} />

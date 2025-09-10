@@ -504,6 +504,7 @@ export const ManageStudents = () => {
                 <div className="w-full">
                   <div className="grid grid-cols-1 gap-y-3">
                     <DetailRow label="Email" value={selectedStudent.email} />
+                    <DetailRow label="USN" value={selectedStudent.usn || 'N/A'} />
                     <DetailRow label="Phone" value={selectedStudent.phone} />
                     <DetailRow label="Branch" value={selectedStudent.branch} isLong />
                     <DetailRow label="Year" value={selectedStudent.year} />

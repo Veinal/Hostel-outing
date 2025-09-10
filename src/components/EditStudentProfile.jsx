@@ -18,6 +18,7 @@ export const EditStudentProfile = () => {
     gender: '',
     photoUrl: '',
     parentPhone: '',
+    usn: '',
   });
   const [userId, setUserId] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
@@ -182,6 +183,11 @@ export const EditStudentProfile = () => {
         return;
       }
     }
+    
+    if (!formData.usn.trim()) {
+      setSnackbar({ open: true, message: 'Please enter your USN.', severity: 'error' });
+      return;
+    }
 
     if (!/^\d{10}$/.test(formData.phone)) {
       setSnackbar({ open: true, message: 'Phone number must be exactly 10 digits.', severity: 'error' });
@@ -256,6 +262,7 @@ export const EditStudentProfile = () => {
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} />
+            <InputField label="USN" name="usn" value={formData.usn} onChange={handleChange} />
             <InputField label="Phone Number" name="phone" type="tel" value={formData.phone} onChange={handleChange} />
 
             <SelectField

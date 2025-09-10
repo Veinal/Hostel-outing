@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, OAuthProvider, sendPasswordResetEmail, createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import { doc, getDoc, collection, query, where, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -33,10 +33,47 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+  
+  // Check if user is already logged in and redirect accordingly
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            // Redirect based on role
+            if (userRole === 'admin') {
+              navigate('/admindashboard');
+            } else if (userRole === 'student') {
+              navigate('/studentdashboard');
+            } else if (userRole === 'warden') {
+              navigate('/wardendashboard');
+            } else {
+              // If role is not recognized, redirect to home
+              navigate('/');
+            }
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+        }
+      }
+      setIsAuthChecking(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   // Google Login
   const handleGoogleLogin = async () => {
@@ -186,6 +223,16 @@ export const Login = () => {
     }
     setLoading(false);
   };
+
+  // Show loading state while checking authentication
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" style={{backgroundImage : "url('https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_1922,h_689/https://mite.ac.in/wp-content/uploads/2020/07/slider-1-mite.jpg')",backgroundSize:"cover",backgroundPosition:"center"}}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+        <p className="ml-4 text-white">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div>

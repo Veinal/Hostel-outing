@@ -1,15 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase'; 
-import { doc, setDoc } from 'firebase/firestore'; // Import Firestore methods
+import { doc, setDoc, getDoc } from 'firebase/firestore'; // Import Firestore methods
 
 export const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Check if user is already logged in and redirect accordingly
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          // Fetch the user's role from Firestore
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const userRole = userData.role;
+            
+            // Redirect based on role
+            if (userRole === 'admin') {
+              navigate('/admindashboard');
+            } else if (userRole === 'student') {
+              navigate('/studentdashboard');
+            } else if (userRole === 'warden') {
+              navigate('/wardendashboard');
+            } else {
+              // If role is not recognized, redirect to home
+              navigate('/');
+            }
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+        }
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -45,6 +82,16 @@ export const SignUp = () => {
       setError(err.message);
     }
   };
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" style={{backgroundImage : "url('https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_1922,h_689/https://mite.ac.in/wp-content/uploads/2020/07/slider-1-mite.jpg')",backgroundSize:"cover",backgroundPosition:"center"}}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+        <p className="ml-4 text-white">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4" style={{backgroundImage : "url('https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_1922,h_689/https://mite.ac.in/wp-content/uploads/2020/07/slider-1-mite.jpg')",backgroundSize:"cover",backgroundPosition:"center"}}>
