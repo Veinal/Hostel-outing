@@ -29,11 +29,20 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         //final certificate = await _firebaseService.getApprovalDetails(approvalNumber);
 
         if (certificate != null) {
-          // Log the scan (in/out)
+          // Update approval certificate with scan logic (out → in → expired)
+          final outcome = await _firebaseService.logScanToApprovalCertificate(approvalNumber);
+
+          if (outcome == 'expired') {
+            emit(const ScannerError('QR code expired'));
+            return;
+          }
+
+          // Optionally keep legacy logs too
           await _firebaseService.logTime(approvalNumber);
 
-          // Emit success
-          emit(QrCodeDetailsLoaded(certificate));
+          // Emit success with up-to-date certificate (re-fetch to reflect changes)
+          final refreshed = await _firebaseService.getApprovalDetails(approvalNumber);
+          emit(QrCodeDetailsLoaded(refreshed ?? certificate));
         } else {
           emit(const ScannerError('Approval Certificate not found'));
         }

@@ -67,6 +67,7 @@ class FirebaseService {
 
   /// Log student scan time (in/out)
   Future<void> logTime(String approvalNumber) async {
+    // Kept for backward compatibility with existing logs collection if used elsewhere
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -81,13 +82,72 @@ class FirebaseService {
     if (snapshot.exists) {
       final data = snapshot.data() as Map<String, dynamic>;
       if (data['inTime'] != null && data['outTime'] == null) {
-        // Log out time
         await logRef.update({'outTime': now});
       }
     } else {
-      // Log in time
       await logRef.set({'inTime': now});
     }
+  }
+
+  /// Update approval certificate with step-out / step-in times.
+  /// Returns one of: 'logged_out', 'logged_in', 'expired'
+  Future<String> logScanToApprovalCertificate(String approvalNumber) async {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String formatDate(DateTime dt) =>
+        '${dt.year}-${twoDigits(dt.month)}-${twoDigits(dt.day)}';
+    String formatTime(DateTime dt) =>
+        '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
+
+    final now = DateTime.now();
+    final outDate = formatDate(now);
+    final outTime = formatTime(now);
+
+    final query = await _firestore
+        .collection('approvalCertificates')
+        .where('approvalNumber', isEqualTo: approvalNumber)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) {
+      throw Exception('Approval Certificate not found');
+    }
+
+    final doc = query.docs.first;
+    final data = doc.data();
+
+    final currentStatus = (data['status'] ?? '') as String;
+    final existingOutTime = (data['outTime'] ?? '') as String;
+    final existingReturnTime = (data['returnTime'] ?? '') as String;
+
+    // If already completed/expired (both times present or explicit status)
+    if ((existingOutTime.isNotEmpty && existingReturnTime.isNotEmpty) ||
+        currentStatus.toLowerCase() == 'expired') {
+      return 'expired';
+    }
+
+    if (existingOutTime.isEmpty) {
+      // First scan → step out
+      await doc.reference.update({
+        'outDate': outDate,
+        'outTime': outTime,
+        'status': 'stepped_out',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return 'logged_out';
+    }
+
+    if (existingReturnTime.isEmpty) {
+      // Second scan → step in and expire
+      await doc.reference.update({
+        'returnDate': outDate,
+        'returnTime': outTime,
+        'status': 'expired',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return 'logged_in';
+    }
+
+    return 'expired';
   }
 
   /// Get latest log for given approvalNumber
