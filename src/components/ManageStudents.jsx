@@ -143,7 +143,8 @@ export const ManageStudents = () => {
   const filteredStudents = sortedStudents.filter(student => {
     const matchesSearch =
       student.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      student.email?.toLowerCase().includes(search.toLowerCase());
+      student.email?.toLowerCase().includes(search.toLowerCase()) ||
+      (student.usn && student.usn.toLowerCase().includes(search.toLowerCase()));
     const matchesBranch = filterBranch ? student.branch === filterBranch : true;
     const matchesYear = filterYear ? student.year === filterYear : true;
     const matchesBlock = filterBlock ? student.block === filterBlock : true;
@@ -506,6 +507,7 @@ export const ManageStudents = () => {
                     <DetailRow label="Email" value={selectedStudent.email} />
                     <DetailRow label="USN" value={selectedStudent.usn || 'N/A'} />
                     <DetailRow label="Phone" value={selectedStudent.phone} />
+                    <DetailRow label="Parent Phone" value={selectedStudent.parentPhone || 'N/A'} />
                     <DetailRow label="Branch" value={selectedStudent.branch} isLong />
                     <DetailRow label="Year" value={selectedStudent.year} />
                     <DetailRow label="Block" value={selectedStudent.block} />

@@ -17,7 +17,6 @@ import { ApprovalCertificate } from './ApprovalCertificate';
 import { CertificateVerification } from './CertificateVerification';
 
 import { PageNotFound } from './PageNotFound';
-import GatePage from "./GatePage";
 
 const Layout = ({ children }) => {
   const location = useLocation();
@@ -50,7 +49,6 @@ export const Router = () => {
             <Route path='/managewardens' element={<ManageWardens />} />
             <Route path='/managerequests' element={<ManageRequests />} />
 
-            <Route path="/gate" element={<GatePage />} />
             <Route path='/certificate/:certificateId' element={<ApprovalCertificate />} />
             <Route path='/verify' element={<CertificateVerification />} />
             <Route path='*' element={<PageNotFound/>} />

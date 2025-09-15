@@ -359,45 +359,63 @@ export const StudentDashboard = () => {
           </div>
         )}
 
-        {/* Filter and Sort Dropdowns */}
-        <div className="bg-white p-4 rounded-md shadow flex flex-wrap items-center gap-2 mb-8">
-          <span className="font-medium text-gray-700 whitespace-nowrap">Filter:</span>
-          <div className="relative">
-            <select
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-              className="appearance-none px-4 pr-10 py-1.5 rounded-full text-sm font-medium bg-white text-gray-700 border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-100 transition cursor-pointer"
-              style={{ minWidth: '120px' }}
+        {/* Filter Buttons and Sort Buttons */}
+        <div className="bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
+            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Filter:</span>
+            <button 
+              onClick={() => setFilter('All')} 
+              className={`flex items-center gap-1 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors ${filter === 'All' ? 'bg-blue-100 ring-2 ring-blue-300' : ''}`}
             >
-              {statuses.map((status) => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
-            {/* Chevron Icon */}
-            <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>All
+            </button>
+            <button 
+              onClick={() => setFilter('Pending')} 
+              className={`flex items-center gap-1 text-yellow-600 hover:bg-yellow-100 px-2 py-1 rounded-md transition-colors ${filter === 'Pending' ? 'bg-yellow-100 ring-2 ring-yellow-300' : ''}`}
+            >
+              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending
+            </button>
+            <button 
+              onClick={() => setFilter('Approved')} 
+              className={`flex items-center gap-1 text-green-600 hover:bg-green-100 px-2 py-1 rounded-md transition-colors ${filter === 'Approved' ? 'bg-green-100 ring-2 ring-green-300' : ''}`}
+            >
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>Approved
+            </button>
+            <button 
+              onClick={() => setFilter('Rejected')} 
+              className={`flex items-center gap-1 text-red-600 hover:bg-red-100 px-2 py-1 rounded-md transition-colors ${filter === 'Rejected' ? 'bg-red-100 ring-2 ring-red-300' : ''}`}
+            >
+              <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected
+            </button>
+            <button 
+              onClick={() => setFilter('Cancelled')} 
+              className={`flex items-center gap-1 text-orange-600 hover:bg-orange-100 px-2 py-1 rounded-md transition-colors ${filter === 'Cancelled' ? 'bg-orange-100 ring-2 ring-orange-300' : ''}`}
+            >
+              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>Cancelled
+            </button>
+            <button 
+              onClick={() => setFilter('Expired')} 
+              className={`flex items-center gap-1 text-gray-600 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors ${filter === 'Expired' ? 'bg-gray-100 ring-2 ring-gray-300' : ''}`}
+            >
+              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>Expired
+            </button>
           </div>
-          {/* Vertical Divider */}
-          <span className="mx-3 -mr-1 h-6 w-px bg-gray-300 hidden md:inline-block"></span>
-          {/* Sort Dropdown */}
-          <div className="relative ml-4">
-            <label htmlFor="sortBy" className="sr-only">Sort</label>
-            <select
-              id="sortBy"
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              className="appearance-none pl-4 pr-10 py-1.5 rounded-full bg-white border border-gray-200 shadow-sm text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-blue-50 transition cursor-pointer"
-              style={{ minWidth: '110px' }}
+          
+          {/* Sort Buttons */}
+          <div className="flex flex-wrap gap-2 text-sm items-center mt-3 md:mt-0">
+            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Sort:</span>
+            <button 
+              onClick={() => setSortBy('Latest')} 
+              className={`flex items-center gap-1 text-purple-600 hover:bg-purple-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Latest' ? 'bg-purple-100 ring-2 ring-purple-300' : ''}`}
             >
-              {['Latest', 'Oldest'].map(option => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-            {/* Chevron Icon */}
-            <span className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </span>
+              Latest
+            </button>
+            <button 
+              onClick={() => setSortBy('Oldest')} 
+              className={`flex items-center gap-1 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Oldest' ? 'bg-indigo-100 ring-2 ring-indigo-300' : ''}`}
+            >
+              Oldest
+            </button>
           </div>
         </div>
 

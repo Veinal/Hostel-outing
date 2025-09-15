@@ -322,7 +322,7 @@ export const Login = () => {
             )}
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              {/* <p className="text-sm text-gray-600">
                 Don&apos;t have an account?{' '}
                 <Link
                   to="/signup"
@@ -330,7 +330,7 @@ export const Login = () => {
                 >
                   Sign up
                 </Link>
-              </p>
+              </p> */}
             </div>
           </div>
         </div>
