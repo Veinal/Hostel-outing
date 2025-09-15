@@ -21,7 +21,7 @@ This system implements a comprehensive approval certificate generation and verif
 - **QR Code**: Embedded verification QR code for easy scanning
 
 ### 3. Certificate Features
-- Student information (name, roll number, branch, year, block, room)
+- Student information (name, USN, branch, year, block, room)
 - Outing details (type, reason, dates, times)
 - Warden approval signature
 - Validity period (until return date)
@@ -54,7 +54,7 @@ This system implements a comprehensive approval certificate generation and verif
   studentId: "student-uid",
   wardenId: "warden-uid",
   studentName: "Student Full Name",
-  studentRollNo: "Roll Number",
+  studentRollNo: "USN",
   studentBranch: "Branch Name",
   studentYear: "Year",
   studentBlock: "Block",

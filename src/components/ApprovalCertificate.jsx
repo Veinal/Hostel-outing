@@ -119,7 +119,7 @@ export const ApprovalCertificate = () => {
                     ${certificate.studentPhotoUrl ? `<img src="${certificate.studentPhotoUrl}" alt="Student" class="avatar" />` : `<div class="placeholder">No Photo</div>`}
                     <div style="text-align:center;">
                       <p class="name">${certificate.studentName}</p>
-                      <p class="meta"><strong>Roll Number:</strong> ${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
+                      <p class="meta"><strong>USN:</strong> ${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
                       <p class="meta">${certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'} • Year ${certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</p>
                     </div>
                   </div>
@@ -129,7 +129,7 @@ export const ApprovalCertificate = () => {
                 <div class="section grid2">
                   <div class="grid">
                     <div><span class="label">Full Name:</span> <span class="value">${certificate.studentName}</span></div>
-                    <div><span class="label">Roll Number:</span> <span class="value">${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</span></div>
+                    <div><span class="label">USN:</span> <span class="value">${certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</span></div>
                     <div><span class="label">Branch:</span> <span class="value">${certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'}</span></div>
                     <div><span class="label">Year:</span> <span class="value">${certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</span></div>
                     <div><span class="label">Block:</span> <span class="value">${certificate.studentBlock || certificate.studentDetails?.block || 'N/A'}</span></div>
@@ -284,7 +284,7 @@ export const ApprovalCertificate = () => {
             <div className="text-center sm:text-left">
               <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{certificate.studentName}</div>
               <div className="text-sm sm:text-base text-gray-700 mt-1">
-                <span className="font-semibold">Roll Number:</span> {certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}
+                <span className="font-semibold">USN:</span> {certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}
               </div>
               <div className="text-sm text-gray-600 mt-1">{certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'} • Year {certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</div>
             </div>
@@ -303,7 +303,7 @@ export const ApprovalCertificate = () => {
                    <p className="text-gray-800 text-sm sm:text-base">{certificate.studentName}</p>
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Roll Number:</label>
+                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">USN:</label>
                    <p className="text-gray-800 text-sm sm:text-base">{certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
                  </div>
                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">

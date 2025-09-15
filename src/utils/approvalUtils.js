@@ -20,7 +20,7 @@ export const createApprovalCertificate = async (requestData, wardenData, approva
       wardenId: wardenData.uid,
       studentName: requestData.studentName,
       // Store student details from studentDetails object
-      studentRollNo: requestData.studentDetails?.rollNo || 'Not Available', // Note: rollNo field may not exist
+      studentRollNo: requestData.studentDetails?.rollNo || 'Not Available', // Note: rollNo field represents the USN
       studentBranch: requestData.studentDetails?.branch || 'Not Available',
       studentYear: requestData.studentDetails?.year || 'Not Available',
       studentBlock: requestData.studentDetails?.block || 'Not Available',

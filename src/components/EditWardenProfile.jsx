@@ -10,7 +10,6 @@ import axios from 'axios';
 export const EditWardenProfile = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate(); // <-- Add this
@@ -147,7 +146,7 @@ export const EditWardenProfile = () => {
           <h2 className="text-3xl font-extrabold text-gray-800 mb-1">Warden Profile</h2>
           <p className="text-gray-500 mb-6">Update your information</p>
 
-          {(loading || submitting) && (
+          {submitting && (
             <div className="flex justify-center items-center my-8">
               <svg
                 className="animate-spin h-8 w-8 text-blue-600"
@@ -175,7 +174,7 @@ export const EditWardenProfile = () => {
           <form
             onSubmit={handleSave}
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
-            style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? 'none' : 'auto' }}
+            style={{ opacity: submitting ? 0.5 : 1, pointerEvents: submitting ? 'none' : 'auto' }}
           >
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1" htmlFor="fullName">
@@ -188,7 +187,7 @@ export const EditWardenProfile = () => {
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 required
-                disabled={loading || submitting}
+                disabled={submitting}
               />
             </div>
             <div>
@@ -257,7 +256,7 @@ export const EditWardenProfile = () => {
               <button
                 type="button"
                 className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
-                disabled={loading || submitting}
+                disabled={submitting}
                 onClick={() => navigate('/wardendashboard')}
               >
                 Cancel
@@ -265,7 +264,7 @@ export const EditWardenProfile = () => {
               <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200 flex items-center"
-                disabled={loading || submitting}
+                disabled={submitting}
               >
                 {submitting ? (
                   <svg
@@ -303,7 +302,7 @@ export const EditWardenProfile = () => {
             <button
               onClick={handleChangePassword}
               className="mt-4 md:mt-0 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold px-5 py-2 rounded-lg transition"
-              disabled={loading || submitting}
+              disabled={submitting}
             >
               Change Password
             </button>

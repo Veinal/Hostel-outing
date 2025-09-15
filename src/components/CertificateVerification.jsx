@@ -253,7 +253,7 @@ export const CertificateVerification = () => {
                         <span className="ml-2 text-gray-800">{certificate.studentName}</span>
                       </div>
                       <div>
-                         <span className="font-medium text-gray-600">Roll Number:</span>
+                         <span className="font-medium text-gray-600">USN:</span>
                          <span className="ml-2 text-gray-800">{certificate.studentRollNo || 'Not Available'}</span>
                        </div>
                       <div>
