@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
 import { doc, updateDoc, getDoc, collection, getDocs } from 'firebase/firestore'; // Import Firestore methods
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, sendPasswordResetEmail } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; // Import Axios for Cloudinary API requests
 import Snackbar from '@mui/material/Snackbar';
@@ -29,6 +29,8 @@ export const EditStudentProfile = () => {
   const [rooms, setRooms] = useState([]); // Add this state for rooms
   const [isNewProfile, setIsNewProfile] = useState(true); // <-- Add this
   const [isLoading, setIsLoading] = useState(true); // Add loading state for role check
+  const [canEditPhoto, setCanEditPhoto] = useState(false); // State to track if photo can be edited
+  const [passwordResetSent, setPasswordResetSent] = useState(false); // State to track password reset status
   const navigate = useNavigate();
 
   // Fetch academic branches from Firestore
@@ -85,6 +87,10 @@ export const EditStudentProfile = () => {
               const requiredFields = ['fullName', 'phone', 'year', 'branch', 'room', 'block', 'gender', 'parentPhone'];
               const isNew = requiredFields.some(field => !userData[field]);
               setIsNewProfile(isNew);
+              
+              // Check if photo can be edited (only if no photo URL exists)
+              setCanEditPhoto(!userData.photoUrl);
+              
               setIsLoading(false);
             }
           } else {
@@ -174,6 +180,22 @@ export const EditStudentProfile = () => {
     setPhotoFile(file);
   };
 
+  const handlePasswordReset = async () => {
+    try {
+      const user = auth.currentUser;
+      if (user && user.email) {
+        await sendPasswordResetEmail(auth, user.email);
+        setPasswordResetSent(true);
+        setSnackbar({ open: true, message: 'Password reset email sent!', severity: 'success' });
+      } else {
+        setSnackbar({ open: true, message: 'Unable to send password reset email.', severity: 'error' });
+      }
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      setSnackbar({ open: true, message: 'Failed to send password reset email.', severity: 'error' });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -261,9 +283,28 @@ export const EditStudentProfile = () => {
           <p className="text-gray-500 mb-6">Update your information</p>
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} />
-            <InputField label="USN" name="usn" value={formData.usn} onChange={handleChange} />
-            <InputField label="Phone Number" name="phone" type="tel" value={formData.phone} onChange={handleChange} />
+            <InputField 
+              label="Full Name" 
+              name="fullName" 
+              value={formData.fullName} 
+              onChange={handleChange} 
+              disabled={true} 
+            />
+            <InputField 
+              label="USN" 
+              name="usn" 
+              value={formData.usn} 
+              onChange={handleChange} 
+              disabled={true} 
+            />
+            <InputField 
+              label="Phone Number" 
+              name="phone" 
+              type="tel" 
+              value={formData.phone} 
+              onChange={handleChange} 
+              disabled={true} 
+            />
 
             <SelectField
               label="Year of Study"
@@ -323,6 +364,7 @@ export const EditStudentProfile = () => {
               type="tel"
               value={formData.parentPhone}
               onChange={handleChange}
+              disabled={true}
             />
 
             {/* Upload Photo Field */}
@@ -336,23 +378,31 @@ export const EditStudentProfile = () => {
                     className="w-10 h-10 rounded-full object-cover border border-gray-300"
                   />
                 )}
-                <input
-                  id="photoUpload"
-                  type="file"
-                  name="photo"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="photoUpload"
-                  className="inline-block text-xs text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2.5 rounded-md shadow-sm transition duration-200"
-                >
-                  Choose Photo
-                </label>
-                {photoFile && (
-                  <p className="text-xs text-gray-600 ml-2 truncate">
-                    Selected: {photoFile.name}
+                {canEditPhoto ? (
+                  <>
+                    <input
+                      id="photoUpload"
+                      type="file"
+                      name="photo"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="photoUpload"
+                      className="inline-block text-xs text-center cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2.5 rounded-md shadow-sm transition duration-200"
+                    >
+                      Choose Photo
+                    </label>
+                    {photoFile && (
+                      <p className="text-xs text-gray-600 ml-2 truncate">
+                        Selected: {photoFile.name}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-gray-600 ml-2">
+                    Photo cannot be changed after initial upload
                   </p>
                 )}
               </div>
@@ -370,6 +420,14 @@ export const EditStudentProfile = () => {
                 Cancel
               </button>
             )}
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
+              disabled={loading || passwordResetSent}
+            >
+              {passwordResetSent ? 'Email Sent' : 'Change Password'}
+            </button>
             <button
               type="submit"
               onClick={handleSubmit}
@@ -423,7 +481,7 @@ export const EditStudentProfile = () => {
   );
 };
 
-const InputField = ({ label, name, type = 'text', value, onChange }) => (
+const InputField = ({ label, name, type = 'text', value, onChange, disabled = false }) => (
   <div>
     <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
     <input
@@ -431,8 +489,9 @@ const InputField = ({ label, name, type = 'text', value, onChange }) => (
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full border rounded-lg px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+      className={`w-full border rounded-lg px-3 py-2 text-sm ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500'} transition`}
       required
+      disabled={disabled}
       {...(name === 'phone' || name === 'parentPhone'
         ? {
             maxLength: 10,
