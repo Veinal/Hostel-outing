@@ -136,9 +136,8 @@ export const RequestPage = () => {
   // Function to get minimum date for outing requests
   const getMinDateTime = () => {
     if (form.requestType === 'Outing') {
-      // For outings, only allow today's date
-      const today = dayjs().startOf('day');
-      return today;
+      // For outings, only allow current time onwards on today's date
+      return dayjs();
     }
     // For other request types, allow any future date
     return dayjs();
@@ -148,6 +147,30 @@ export const RequestPage = () => {
   const getMaxDateTime = () => {
     if (form.requestType === 'Outing') {
       // For outings, only allow today's date
+      const today = dayjs().endOf('day');
+      return today;
+    }
+    // For other request types, no maximum limit
+    return null;
+  };
+
+  // Function to get minimum return date/time for outing requests
+  const getMinReturnDateTime = () => {
+    if (form.requestType === 'Outing') {
+      // For outings, return time must be after out time and on the same day
+      if (form.outDateTime) {
+        return form.outDateTime;
+      }
+      return dayjs();
+    }
+    // For other request types, return time must be after out time
+    return form.outDateTime || dayjs();
+  };
+
+  // Function to get maximum return date/time for outing requests
+  const getMaxReturnDateTime = () => {
+    if (form.requestType === 'Outing') {
+      // For outings, return time must be on the same day
       const today = dayjs().endOf('day');
       return today;
     }
@@ -214,8 +237,10 @@ export const RequestPage = () => {
     if (form.requestType === 'Outing') {
       const now = dayjs();
       const outDateTime = form.outDateTime;
+      const returnDateTime = form.returnDateTime;
       const todayStr = now.format('YYYY-MM-DD');
       const outDateStr = outDateTime.format('YYYY-MM-DD');
+      const returnDateStr = returnDateTime.format('YYYY-MM-DD');
       
       // Check if outing is for today only
       if (outDateStr !== todayStr) {
@@ -224,15 +249,29 @@ export const RequestPage = () => {
         return;
       }
       
-      // Check minimum time window (2 hours before out-time for outings)
+      // Check if return time is also for today only
+      if (returnDateStr !== todayStr) {
+        setSnackbar({ open: true, message: 'Return time for outing requests must be on the same day.', severity: 'error' });
+        setLoading(false);
+        return;
+      }
+      
+      // Check minimum time window (1.5 hours before out-time for outings)
       const diffHours = outDateTime.diff(now, 'hour', true);
       if (diffHours < 1.5) {
         setSnackbar({ open: true, message: 'Outing time must be at least 2 hours from now.', severity: 'error' });
         setLoading(false);
         return;
       }
+      
+      // Check if out time is not in the past
+      if (outDateTime.isBefore(now)) {
+        setSnackbar({ open: true, message: 'Out time cannot be in the past.', severity: 'error' });
+        setLoading(false);
+        return;
+      }
     } else {
-      // For non-outing requests, check minimum time window (4 hours before out-time)
+      // For non-outing requests (Leave, Home Going, Other), check minimum time window (4 hours before out-time)
       const now = dayjs();
       const outDateTime = form.outDateTime;
       const diffHours = outDateTime.diff(now, 'hour', true);
@@ -438,6 +477,7 @@ export const RequestPage = () => {
                   </option>
                   <option value="Outing">Outing</option>
                   <option value="Leave">Leave</option>
+                  <option value="Home Going">Home Going</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
@@ -531,6 +571,9 @@ export const RequestPage = () => {
                     },
                   }}
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  Please make sure to select AM or PM correctly.
+                </div>
               </div>
 
               <div>
@@ -540,7 +583,8 @@ export const RequestPage = () => {
                 <DateTimePicker
                   value={form.returnDateTime}
                   onChange={(value) => handleDateTimeChange('returnDateTime', value)}
-                  minDateTime={form.outDateTime || dayjs()}
+                  minDateTime={getMinReturnDateTime()}
+                  maxDateTime={getMaxReturnDateTime()}
                   format="DD/MM/YYYY hh:mm A"
                   viewRenderers={{
                     hours: renderTimeViewClock,
@@ -554,6 +598,9 @@ export const RequestPage = () => {
                     },
                   }}
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  Please make sure to select AM or PM correctly.
+                </div>
               </div>
             </div>
 
