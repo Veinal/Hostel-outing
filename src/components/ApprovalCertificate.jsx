@@ -222,10 +222,10 @@ export const ApprovalCertificate = () => {
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-300 transition"
+            className="flex items-center gap-1 bg-gray-200 text-gray-700 px-2 sm:px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-300 transition"
           >
             <ArrowLeftIcon fontSize="small" />
-            <span>Back</span>
+            <span className="hidden sm:inline">Back</span>
           </button>
           <div className="flex-grow text-center">
             <h1 className="text-xl font-bold text-gray-800 mb-1">
@@ -239,14 +239,14 @@ export const ApprovalCertificate = () => {
               className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"
             >
               <PrintIcon fontSize="small" />
-              Print
+              <span className="hidden sm:inline">Print</span>
             </button>
             <button
               onClick={handleDownload}
               className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700"
             >
               <DownloadIcon fontSize="small" />
-              Download
+              <span className="hidden sm:inline">Download</span>
             </button>
           </div>
         </div>
@@ -298,29 +298,29 @@ export const ApprovalCertificate = () => {
                  Student Information
                </h3>
                <div className="space-y-2 sm:space-y-3">
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Full Name:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentName}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Full Name:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentName}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">USN:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">USN:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentRollNo || certificate.studentDetails?.rollNo || 'N/A'}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Branch:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Branch:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Year:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Year:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Block:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentBlock || certificate.studentDetails?.block || 'N/A'}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Block:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentBlock || certificate.studentDetails?.block || 'N/A'}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Room:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.studentRoom || certificate.studentDetails?.room || 'N/A'}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Room:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentRoom || certificate.studentDetails?.room || 'N/A'}</p>
                  </div>
                </div>
              </div>
@@ -328,29 +328,29 @@ export const ApprovalCertificate = () => {
                          <div>
                <h3 className="text-lg font-bold text-gray-800 mb-3">Request Details</h3>
                <div className="space-y-2 sm:space-y-3">
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Request Type:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.requestType}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Request Type:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.requestType}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Reason:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{certificate.reason}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Reason:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.reason}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Out Date:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{formatDate(certificate.outDate)}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Out Date:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{formatDate(certificate.outDate)}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Out Time:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{formatTime(certificate.outTime)}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Out Time:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{formatTime(certificate.outTime)}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Return Date:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{formatDate(certificate.returnDate)}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Return Date:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{formatDate(certificate.returnDate)}</p>
                  </div>
-                 <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                   <label className="font-semibold text-gray-600 text-sm min-w-[80px]">Return Time:</label>
-                   <p className="text-gray-800 text-sm sm:text-base">{formatTime(certificate.returnTime)}</p>
+                 <div className="flex items-center gap-2">
+                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Return Time:</label>
+                   <p className="text-gray-900 text-sm sm:text-base font-medium">{formatTime(certificate.returnTime)}</p>
                  </div>
                </div>
              </div>

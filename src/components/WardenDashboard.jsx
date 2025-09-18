@@ -947,10 +947,11 @@ export const WardenDashboard = () => {
       {isModalOpen && selectedRequest && (
         <div
           className="fixed inset-0 bg-opacity-50 backdrop-blur-md flex justify-center items-center z-50"
+          style={{ minHeight: '100vh' }}
           onClick={handleCloseModal} // Close modal when clicking outside
         >
           <div
-            className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-2xl mx-4"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-2 sm:mx-4 p-4 sm:p-8 max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()} // Prevent closing when clicking inside modal
           >
             <h2 className="text-2xl font-bold mb-6 text-center uppercase tracking-wide text-blue-700">Student Details</h2>

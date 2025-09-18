@@ -409,11 +409,12 @@ export const EditStudentProfile = () => {
             </div>
           </form>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-8" /> {/* Add vertical gap between photo and buttons */}
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
             {!isNewProfile && ( 
               <button
                 type="button"
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2 sm:px-6 sm:py-2 rounded-xl shadow-md transition duration-200 w-full sm:w-auto"
                 disabled={loading}
                 onClick={() => navigate('/studentdashboard')}
               >
@@ -423,7 +424,7 @@ export const EditStudentProfile = () => {
             <button
               type="button"
               onClick={handlePasswordReset}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200"
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-4 py-2 sm:px-6 sm:py-2 rounded-xl shadow-md transition duration-200 w-full sm:w-auto"
               disabled={loading || passwordResetSent}
             >
               {passwordResetSent ? 'Email Sent' : 'Change Password'}
@@ -431,7 +432,7 @@ export const EditStudentProfile = () => {
             <button
               type="submit"
               onClick={handleSubmit}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl shadow-md transition duration-200 flex items-center"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 sm:px-6 sm:py-2 rounded-xl shadow-md transition duration-200 flex items-center justify-center w-full sm:w-auto"
               disabled={loading}
             >
               {loading && (

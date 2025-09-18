@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth, db } from '../firebase'; // Import Firebase auth and Firestore
-import { doc, getDoc } from 'firebase/firestore'; // Import Firestore methods
-import { FiLogOut, FiUser } from 'react-icons/fi'; // Add FiUser
+import { auth, db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { FiLogOut, FiUser } from 'react-icons/fi';
 
 export const NavBar = () => {
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState(''); // Add this state
-  const [showLogoutModal, setShowLogoutModal] = useState(false); // State for modal visibility
+  const [role, setRole] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const navigate = useNavigate();
+
+  // Helper to get first name from full name
+  const getFirstName = (name) => {
+    if (!name) return '';
+    return name.split(' ')[0];
+  };
 
   // Listen for authentication state changes
   useEffect(() => {
@@ -50,13 +56,24 @@ export const NavBar = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await signOut(auth); // Sign out the user
-      // localStorage.removeItem('fullName'); // Remove full name from localStorage
+      await signOut(auth);
       setShowLogoutModal(false);
-      navigate('/'); // Redirect to the login page
+      navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
     }
+  };
+
+  // Responsive: remove right margin on small screens, only add on md+
+  // Also, only show first name
+  const getDisplayName = () => {
+    if (fullName) {
+      return getFirstName(fullName);
+    }
+    if (user && user.email) {
+      return user.email.split('@')[0];
+    }
+    return '';
   };
 
   return (
@@ -70,31 +87,32 @@ export const NavBar = () => {
             alt="MITE Logo"
           />
           <span className="font-semibold ml-3 text-xl hidden md:inline">MITE Hostel</span>
-          
-          {/* Verification Link */}
-          {/* <div className="ml-8">
-            <Link
-              to="/verify"
-              className="text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors duration-200"
-            >
-              Verify Certificate
-            </Link>
-          </div> */}
         </div>
+        
         <div className="navbar-end flex items-center">
           {user ? (
             <>
-              <span className="text-gray-700 font-medium mr-4">
-                Hi, {fullName || user.email.split('@')[0]}
+              <span
+                className="
+                  text-gray-700 font-medium
+                  mr-0 md:mr-4
+                  truncate
+                  max-w-[90px] xs:max-w-[120px] sm:max-w-[160px] md:max-w-none
+                  text-base xs:text-base sm:text-base md:text-base
+                  "
+                style={{ minWidth: 0 }}
+                title={getDisplayName()}
+              >
+                Hi, {getDisplayName()}
               </span>
               {/* Show Edit Profile icon only for students and wardens */}
               {user && role !== 'admin' && (
                 <Link
                   to={role === 'warden' ? '/editwardenprofile' : '/editstudentprofile'}
-                  className="mr-2" // Reduced margin-right for less gap
+                  className="mr-2"
                   title="Edit Profile"
                 >
-                  <FiUser className="text-blue-700 hover:text-blue-900 md:w-7 md:h-7 w-5 h-5" />
+                  <FiUser className="text-blue-700 hover:text-blue-900 md:w-7 md:h-7 w-5 h-5 ml-1" />
                   <span className="sr-only">Edit Profile</span>
                 </Link>
               )}
@@ -122,23 +140,23 @@ export const NavBar = () => {
       {showLogoutModal && (
         <div
           className="fixed inset-0 bg-opacity-30 backdrop-blur-sm flex justify-center items-center z-50"
-          onClick={() => setShowLogoutModal(false)} // Close modal when clicking outside
+          onClick={() => setShowLogoutModal(false)}
         >
           <div
             className="bg-white rounded-lg p-8 shadow-lg w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold mb-4">Confirm Logout</h2>
             <p className="mb-6">Are you sure you want to logout?</p>
             <div className="flex justify-end space-x-4">
               <button
-                onClick={() => setShowLogoutModal(false)} // Close the modal
+                onClick={() => setShowLogoutModal(false)}
                 className="btn bg-gray-300 text-gray-700 hover:bg-gray-400 px-4 py-2 rounded-md"
               >
                 Cancel
               </button>
               <button
-                onClick={handleLogout} // Perform logout
+                onClick={handleLogout}
                 className="btn bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded-md"
               >
                 Logout
