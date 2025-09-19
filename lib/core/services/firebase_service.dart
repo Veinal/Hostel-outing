@@ -51,6 +51,26 @@ class FirebaseService {
     }
   }
 
+  Future<DocumentSnapshot?> getApprovalDocument(String approvalNumber) async {
+    try {
+      // Query by approvalNumber field
+      final query = await _firestore
+          .collection('approvalCertificates')
+          .where('approvalNumber', isEqualTo: approvalNumber)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        return query.docs.first;
+      }
+
+      return null;
+    } catch (e) {
+      print("Error in getApprovalDocument: $e");
+      return null;
+    }
+  }
+
   Future<Student?> getStudentDetails(String usn) async {
     try {
       final doc = await _firestore.collection('students').doc(usn).get();
@@ -81,73 +101,100 @@ class FirebaseService {
 
     if (snapshot.exists) {
       final data = snapshot.data() as Map<String, dynamic>;
-      if (data['inTime'] != null && data['outTime'] == null) {
-        await logRef.update({'outTime': now});
+      if (data['outTime'] != null && data['inTime'] == null) {
+        await logRef.update({'inTime': now});
       }
     } else {
-      await logRef.set({'inTime': now});
+      await logRef.set({'outTime': now});
     }
   }
 
   /// Update approval certificate with step-out / step-in times.
   /// Returns one of: 'logged_out', 'logged_in', 'expired'
   Future<String> logScanToApprovalCertificate(String approvalNumber) async {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String formatDate(DateTime dt) =>
-        '${dt.year}-${twoDigits(dt.month)}-${twoDigits(dt.day)}';
-    String formatTime(DateTime dt) =>
-        '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
+    print("🚀 logScanToApprovalCertificate called with: $approvalNumber");
+    
+    try {
+      String twoDigits(int n) => n.toString().padLeft(2, '0');
+      String formatDate(DateTime dt) =>
+          '${dt.year}-${twoDigits(dt.month)}-${twoDigits(dt.day)}';
+      String formatTime(DateTime dt) =>
+          '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}';
 
-    final now = DateTime.now();
-    final outDate = formatDate(now);
-    final outTime = formatTime(now);
+      final now = DateTime.now();
+      final outDate = formatDate(now);
+      final outTime = formatTime(now);
+      
+      print("📅 Formatted date/time: $outDate at $outTime");
 
-    final query = await _firestore
-        .collection('approvalCertificates')
-        .where('approvalNumber', isEqualTo: approvalNumber)
-        .limit(1)
-        .get();
+      final query = await _firestore
+          .collection('approvalCertificates')
+          .where('approvalNumber', isEqualTo: approvalNumber)
+          .limit(1)
+          .get();
 
-    if (query.docs.isEmpty) {
-      throw Exception('Approval Certificate not found');
-    }
+      print("🔍 Firestore query returned ${query.docs.length} documents");
+
+      if (query.docs.isEmpty) {
+        print("❌ No approval certificate found");
+        throw Exception('Approval Certificate not found');
+      }
 
     final doc = query.docs.first;
     final data = doc.data();
 
     final currentStatus = (data['status'] ?? '') as String;
-    final existingOutTime = (data['outTime'] ?? '') as String;
-    final existingReturnTime = (data['returnTime'] ?? '') as String;
+    // Check for actual scan times, not the original planned times
+    final actualOutTime = (data['actualOutTime'] ?? '') as String;
+    final actualReturnTime = (data['actualReturnTime'] ?? '') as String;
 
-    // If already completed/expired (both times present or explicit status)
-    if ((existingOutTime.isNotEmpty && existingReturnTime.isNotEmpty) ||
+    print("🔍 Debug scan logic:");
+    print("  - currentStatus: '$currentStatus'");
+    print("  - actualOutTime: '$actualOutTime'");
+    print("  - actualReturnTime: '$actualReturnTime'");
+    print("  - status == 'expired': ${currentStatus.toLowerCase() == 'expired'}");
+    print("  - both times present: ${actualOutTime.isNotEmpty && actualReturnTime.isNotEmpty}");
+
+    // If already completed/expired (both actual scan times present or explicit status)
+    if ((actualOutTime.isNotEmpty && actualReturnTime.isNotEmpty) ||
         currentStatus.toLowerCase() == 'expired') {
+      print("  - Returning 'expired'");
       return 'expired';
     }
 
-    if (existingOutTime.isEmpty) {
+    if (actualOutTime.isEmpty) {
       // First scan → step out
+      print("  - First scan: logging out time");
       await doc.reference.update({
-        'outDate': outDate,
-        'outTime': outTime,
+        'actualOutDate': outDate,
+        'actualOutTime': outTime,
         'status': 'stepped_out',
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      print("  - Returning 'logged_out'");
       return 'logged_out';
     }
 
-    if (existingReturnTime.isEmpty) {
+    if (actualReturnTime.isEmpty) {
       // Second scan → step in and expire
+      print("  - Second scan: logging in time");
       await doc.reference.update({
-        'returnDate': outDate,
-        'returnTime': outTime,
+        'actualReturnDate': outDate,
+        'actualReturnTime': outTime,
         'status': 'expired',
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      print("  - Returning 'logged_in'");
       return 'logged_in';
     }
 
-    return 'expired';
+      print("  - Fallback: returning 'expired'");
+      return 'expired';
+    } catch (e, stackTrace) {
+      print("💥 Exception in logScanToApprovalCertificate: $e");
+      print("📚 Stack trace: $stackTrace");
+      rethrow;
+    }
   }
 
   /// Get latest log for given approvalNumber

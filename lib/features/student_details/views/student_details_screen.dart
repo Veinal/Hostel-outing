@@ -36,9 +36,17 @@ class StudentDetailsScreen extends StatelessWidget {
             } else if (state is StudentDetailsLoaded) {
               final approval = state.approvalCertificate;
               final log = state.log?.data() as Map<String, dynamic>?;
-              final bool hasOutTime = (approval.outTime).isNotEmpty;
-              final bool hasInTime = (approval.returnTime).isNotEmpty;
               final Student? student = state.student;
+              
+              // Determine actual scan status
+              String scanStatus = 'Not Scanned';
+              if (log != null) {
+                if (log['outTime'] != null && log['inTime'] == null) {
+                  scanStatus = 'Stepped Out';
+                } else if (log['outTime'] != null && log['inTime'] != null) {
+                  scanStatus = 'Stepped In';
+                }
+              }
 
               return LayoutBuilder(
                 builder: (context, constraints) {
@@ -119,7 +127,9 @@ class StudentDetailsScreen extends StatelessWidget {
                                     style: const TextStyle(fontSize: 18)),
                                 Text('Warden: ${approval.wardenName ?? "N/A"}',
                                     style: const TextStyle(fontSize: 18)),
-                                Text('Purpose: ${approval.status}',
+                                Text('Purpose: ${approval.purpose ?? "N/A"}',
+                                    style: const TextStyle(fontSize: 18)),
+                                Text('Status: $scanStatus',
                                     style: const TextStyle(fontSize: 18)),
                                 Text('Return: ${approval.returnDate} at ${approval.returnTime}',
                                     style: const TextStyle(fontSize: 18)),
@@ -128,7 +138,7 @@ class StudentDetailsScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 20),
 
-                          // Latest Scan (Approval-based)
+                          // Log Times
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
@@ -139,26 +149,25 @@ class StudentDetailsScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Latest Scan',
+                                const Text('Log Times',
                                     style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 8),
-                                if (hasOutTime && !hasInTime)
-                                  Text(
-                                    'Out Time: ${approval.outDate} at ${approval.outTime}',
-                                    style: const TextStyle(fontSize: 18),
-                                  )
-                                else if (hasOutTime && hasInTime)
-                                  Text(
-                                    'In Time: ${approval.returnDate} at ${approval.returnTime}',
-                                    style: const TextStyle(fontSize: 18),
-                                  )
-                                else
-                                  const Text(
-                                    'No scan logged yet.',
-                                    style: TextStyle(fontSize: 18),
-                                  ),
+                                if (log != null) ...[
+                                  if (log['outTime'] != null)
+                                    Text(
+                                      'Out Time: ${log['outTime'].toDate()}',
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  if (log['inTime'] != null)
+                                    Text(
+                                      'In Time: ${log['inTime'].toDate()}',
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                ] else
+                                  const Text('No log times found for today.',
+                                      style: TextStyle(fontSize: 18)),
                               ],
                             ),
                           ),

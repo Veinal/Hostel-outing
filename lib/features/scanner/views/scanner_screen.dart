@@ -39,11 +39,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
           );
         } else if (state is ScannerError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
+          // Show centered alert dialog for watchman
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Scan Result'),
+                content: Text(state.message),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _hasScanned = false;
+                      _controller.start(); // restart scanning
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              );
+            },
           );
-          _hasScanned = false;
-          _controller.start(); // restart scanning if failed
         }
       },
       child: Scaffold(
