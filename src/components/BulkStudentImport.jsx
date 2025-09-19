@@ -29,19 +29,16 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
     return data;
   };
 
-  const generateDefaultPassword = (fullName) => {
-    const firstName = (fullName || '').trim().split(' ')[0] || 'student';
-    // Remove any special characters and convert to lowercase
-    const cleanFirstName = firstName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    return `${cleanFirstName}123`;
+  const generateDefaultPassword = (email) => {
+    const emailPrefix = (email || '').split('@')[0] || 'student';
+    return `${emailPrefix}@123`;
   };
 
   const createPendingStudent = async (studentData) => {
     try {
       const email = normalizeEmail(studentData.email || studentData.Email);
       if (!email) throw new Error('Missing email');
-      const fullName = studentData.fullName || studentData['Full Name'] || studentData.name || studentData.Name || '';
-      const defaultPassword = generateDefaultPassword(fullName);
+      const defaultPassword = generateDefaultPassword(email);
       const studentId = `student_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
       const studentDoc = {
@@ -56,7 +53,7 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
         block: studentData.block || studentData.Block || '',
         room: studentData.room || studentData.Room || '',
         role: 'student',
-        // photoUrl excluded from bulk import - students can add photos later
+        photoUrl: studentData.photoUrl || studentData['Photo URL'] || '',
         createdAt: new Date(),
         defaultPassword,
         isFirstLogin: true,
@@ -149,9 +146,9 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   };
 
   const downloadTemplate = () => {
-    const template = `email,fullName,phone,usn,parentPhone,branch,year,block,room
-student1@example.com,John Doe,1234567890,1MS21CS001,9876543210,Computer Science,2,A,101
-student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engineering,3,B,205`;
+    const template = `email,fullName,phone,usn,parentPhone,branch,year,block,room,photoUrl
+student1@example.com,John Doe,1234567890,1MS21CS001,9876543210,Computer Science,2,A,101,https://example.com/photo1.jpg
+student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engineering,3,B,205,https://example.com/photo2.jpg`;
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -191,8 +188,8 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
                 <ul className="text-blue-700 text-sm space-y-1">
                   <li>• Upload a CSV file with student details</li>
                   <li>• Required: email, fullName, phone, usn, parentPhone, branch, year, block, room</li>
-                  <li>• Photos are excluded from bulk import - students can add photos after login</li>
-                  <li>• Default password format: firstname123</li>
+                  <li>• Optional: photoUrl</li>
+                  <li>• Default password format: email_prefix@123</li>
                   <li>• Accounts are created as pending and activated on first login</li>
                 </ul>
               </div>
