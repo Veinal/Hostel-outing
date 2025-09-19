@@ -73,10 +73,35 @@ class FirebaseService {
 
   Future<Student?> getStudentDetails(String usn) async {
     try {
-      final doc = await _firestore.collection('students').doc(usn).get();
+      final trimmed = usn.trim();
+      // Try exact
+      DocumentSnapshot doc = await _firestore.collection('students').doc(trimmed).get();
       if (doc.exists) {
         return Student.fromFirestore(doc);
       }
+
+      // Try uppercase
+      doc = await _firestore.collection('students').doc(trimmed.toUpperCase()).get();
+      if (doc.exists) {
+        return Student.fromFirestore(doc);
+      }
+
+      // Try lowercase
+      doc = await _firestore.collection('students').doc(trimmed.toLowerCase()).get();
+      if (doc.exists) {
+        return Student.fromFirestore(doc);
+      }
+
+      // Try query by field if exists
+      final query = await _firestore
+          .collection('students')
+          .where('usn', isEqualTo: trimmed)
+          .limit(1)
+          .get();
+      if (query.docs.isNotEmpty) {
+        return Student.fromFirestore(query.docs.first);
+      }
+
       return null;
     } catch (e) {
       print('Error getting student details: $e');

@@ -60,6 +60,18 @@ class StudentDetailsScreen extends StatelessWidget {
                       height: isWide ? 220 : 180,
                       width: isWide ? 220 : 180,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: isWide ? 220 : 180,
+                          width: isWide ? 220 : 180,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.broken_image,
+                              size: 100, color: Colors.white),
+                        );
+                      },
                     )
                         : Container(
                       height: isWide ? 220 : 180,
