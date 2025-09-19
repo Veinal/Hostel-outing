@@ -18,6 +18,7 @@ export const ManageStudents = () => {
   const [filterBranch, setFilterBranch] = useState('');
   const [filterYear, setFilterYear] = useState('');
   const [filterBlock, setFilterBlock] = useState('');
+  const [filterGender, setFilterGender] = useState('');
   const [sortField, setSortField] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
   const [branchOptions, setBranchOptions] = useState([]); // <-- For branch filter dropdown
@@ -148,7 +149,8 @@ export const ManageStudents = () => {
     const matchesBranch = filterBranch ? student.branch === filterBranch : true;
     const matchesYear = filterYear ? student.year === filterYear : true;
     const matchesBlock = filterBlock ? student.block === filterBlock : true;
-    return matchesSearch && matchesBranch && matchesYear && matchesBlock;
+    const matchesGender = filterGender ? (student.gender || '') === filterGender : true;
+    return matchesSearch && matchesBranch && matchesYear && matchesBlock && matchesGender;
   });
 
   // Pagination logic (use filteredStudents instead of students)
@@ -285,6 +287,22 @@ export const ManageStudents = () => {
                   ))}
                 </select>
               </div>
+              <div className="flex flex-col w-full sm:w-32">
+                <label className="text-xs font-semibold text-gray-700 mb-1">Gender</label>
+                <select
+                  value={filterGender}
+                  onChange={e => {
+                    setFilterGender(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="select select-bordered w-full sm:w-32"
+                >
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
               {(filterBranch || filterYear || filterBlock) && (
                 <div className="flex flex-col w-full sm:w-32 justify-end">
                   <button
@@ -293,6 +311,7 @@ export const ManageStudents = () => {
                       setFilterBranch('');
                       setFilterYear('');
                       setFilterBlock('');
+                      setFilterGender('');
                       setCurrentPage(1);
                     }}
                   >
@@ -384,6 +403,24 @@ export const ManageStudents = () => {
                 </th>
                 <th className="bg-gray-100 text-gray-600">
                   <div className="flex items-center gap-1">
+                    Gender
+                    <button
+                      onClick={() => handleSort('gender')}
+                      className="ml-1"
+                      title="Sort"
+                    >
+                      {sortField === 'gender' && sortOrder === 'asc' ? (
+                        <FaSortAmountDown className="text-gray-800" />
+                      ) : sortField === 'gender' && sortOrder === 'desc' ? (
+                        <FaSortAmountUp className="text-gray-800" />
+                      ) : (
+                        <FaSortAmountDown className="opacity-30 text-gray-800" />
+                      )}
+                    </button>
+                  </div>
+                </th>
+                <th className="bg-gray-100 text-gray-600">
+                  <div className="flex items-center gap-1">
                     Block
                     <button
                       onClick={() => handleSort('block')}
@@ -424,6 +461,7 @@ export const ManageStudents = () => {
                     <td className="text-gray-800">{student.email}</td>
                     <td className="text-gray-800">{student.branch || 'N/A'}</td>
                     <td className="text-gray-800">{student.year || 'N/A'}</td>
+                    <td className="text-gray-800">{student.gender || 'N/A'}</td>
                     <td className="text-gray-800">{student.block || 'N/A'}</td>
                     <td>
                       <div className="flex items-center gap-2">

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { db } from '../firebase';
 import { collection, getDocs, deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { FaUpload } from 'react-icons/fa';
 import { SideBar } from './SideBar';
+import { BulkWardenImport } from './BulkWardenImport';
 import axios from 'axios';
 
 export const ManageWardens = () => {
@@ -16,6 +18,7 @@ export const ManageWardens = () => {
   const [editForm, setEditForm] = useState({ fullName: '', email: '', block: '', status: '', photo: '' });
   const [editPhotoFile, setEditPhotoFile] = useState(null);
   const [blocks, setBlocks] = useState([]); // State for all hostel blocks
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const navigate = useNavigate();
   const rowsPerPage = 10;
 
@@ -96,6 +99,18 @@ export const ManageWardens = () => {
     setSelectedWarden(warden);
   };
 
+  const handleWardensAdded = () => {
+    const refetch = async () => {
+      const wardensCollection = collection(db, 'users');
+      const wardenDocs = await getDocs(wardensCollection);
+      const wardenList = wardenDocs.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((user) => user.role === 'warden');
+      setWardens(wardenList);
+    };
+    refetch();
+  };
+
   const handleEdit = (warden) => {
     setEditWarden(warden);
     setEditForm({
@@ -126,6 +141,13 @@ export const ManageWardens = () => {
       <main className="flex-1 p-8 bg-gray-50">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Manage Wardens</h1>
+          <button
+            onClick={() => setShowBulkImport(true)}
+            className="btn btn-primary"
+          >
+            <FaUpload className="mr-2" />
+            Bulk Import Wardens
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="table w-full border border-gray-200 rounded-lg shadow">
@@ -395,6 +417,14 @@ export const ManageWardens = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Bulk Import Modal */}
+        {showBulkImport && (
+          <BulkWardenImport
+            onClose={() => setShowBulkImport(false)}
+            onWardensAdded={handleWardensAdded}
+          />
         )}
       </main>
     </div>

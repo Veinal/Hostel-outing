@@ -96,6 +96,7 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
                     <th>Photo</th>
                     <th>Full Name</th>
                     <th>Email</th>
+                    <th>Gender</th>
                     <th>Branch</th>
                     <th>Year</th>
                     <th>Block</th>
@@ -112,6 +113,7 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
                       </td>
                       <td>{s.fullName}</td>
                       <td className="font-mono text-sm">{s.email}</td>
+                      <td>{s.gender || 'N/A'}</td>
                       <td>{s.branch || 'N/A'}</td>
                       <td>{s.year || 'N/A'}</td>
                       <td>{s.block || 'N/A'}</td>
@@ -147,6 +149,7 @@ export const PendingStudents = ({ onClose, onStudentsActivated }) => {
                     <div className="grid grid-cols-1 gap-y-3">
                       <DetailRow label="Email" value={selected.email} />
                       <DetailRow label="Phone" value={selected.phone} />
+                      <DetailRow label="Gender" value={selected.gender} />
                       <DetailRow label="Branch" value={selected.branch} />
                       <DetailRow label="Year" value={selected.year} />
                       <DetailRow label="Block" value={selected.block} />

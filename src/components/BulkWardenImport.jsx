@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { doc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { FaUpload, FaDownload, FaSpinner, FaCheckCircle } from 'react-icons/fa';
 
-export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
+export const BulkWardenImport = ({ onClose, onWardensAdded }) => {
   const [file, setFile] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, success: 0, failed: 0 });
@@ -11,13 +11,12 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   const [showResults, setShowResults] = useState(false);
 
   const normalizeEmail = (value) => (value || '').trim().toLowerCase();
-  const normalizeGender = (value) => {
+  const normalizeStatus = (value) => {
     const v = (value || '').toString().trim().toLowerCase();
-    if (!v) return '';
-    if (['male', 'm'].includes(v)) return 'Male';
-    if (['female', 'f'].includes(v)) return 'Female';
-    if (['other', 'o', 'others', 'non-binary', 'nonbinary'].includes(v)) return 'Other';
-    return '';
+    if (!v) return 'active'; // Default to active
+    if (['active', 'a', '1', 'true', 'yes'].includes(v)) return 'active';
+    if (['inactive', 'i', '0', 'false', 'no'].includes(v)) return 'inactive';
+    return 'active'; // Default fallback
   };
 
   const parseCSV = (csvText) => {
@@ -38,46 +37,45 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   };
 
   const generateDefaultPassword = (email) => {
-    const emailPrefix = (email || '').split('@')[0] || 'student';
+    const emailPrefix = (email || '').split('@')[0] || 'warden';
     return `${emailPrefix}@123`;
   };
 
-  const createPendingStudent = async (studentData) => {
+  const createWarden = async (wardenData) => {
     try {
-      const email = normalizeEmail(studentData.email || studentData.Email);
+      const email = normalizeEmail(wardenData.email || wardenData.Email);
       if (!email) throw new Error('Missing email');
       const defaultPassword = generateDefaultPassword(email);
-      const studentId = `student_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const wardenId = `warden_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
-      const studentDoc = {
-        uid: studentId,
+      const wardenDoc = {
+        uid: wardenId,
         email,
-        fullName: studentData.fullName || studentData['Full Name'] || studentData.name || studentData.Name || '',
-        phone: studentData.phone || studentData.Phone || studentData.phoneNumber || '',
-        usn: studentData.usn || studentData.USN || '',
-        parentPhone: studentData.parentPhone || studentData['Parent Phone'] || studentData.parentPhoneNumber || '',
-        branch: studentData.branch || studentData.Branch || '',
-        year: studentData.year || studentData.Year || '',
-        block: studentData.block || studentData.Block || '',
-        room: studentData.room || studentData.Room || '',
-        gender: normalizeGender(studentData.gender || studentData.Gender),
-        role: 'student',
+        fullName: wardenData.fullName || wardenData['Full Name'] || wardenData.name || wardenData.Name || '',
+        phone: wardenData.phone || wardenData.Phone || wardenData.phoneNumber || '',
+        block: wardenData.block || wardenData.Block || '',
+        status: normalizeStatus(wardenData.status || wardenData.Status),
+        role: 'warden',
         createdAt: new Date(),
         defaultPassword,
         isFirstLogin: true,
-        status: 'pending_activation',
+        photo: '', // Will be set when warden uploads their photo
         tempCredentials: { email, password: defaultPassword }
       };
 
-      if (!studentDoc.gender) {
-        throw new Error('Missing or invalid gender (use Male/Female/Other)');
+      if (!wardenDoc.fullName) {
+        throw new Error('Missing full name');
       }
 
-      await setDoc(doc(db, 'pendingStudents', studentId), studentDoc);
+      if (!wardenDoc.block) {
+        throw new Error('Missing block assignment');
+      }
 
-      return { success: true, email, password: defaultPassword, message: 'Pending student created' };
+      await setDoc(doc(db, 'users', wardenId), wardenDoc);
+
+      return { success: true, email, password: defaultPassword, message: 'Warden created successfully' };
     } catch (error) {
-      return { success: false, email: normalizeEmail(studentData.email || studentData.Email) || 'Unknown', message: error.message };
+      return { success: false, email: normalizeEmail(wardenData.email || wardenData.Email) || 'Unknown', message: error.message };
     }
   };
 
@@ -101,24 +99,20 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
     reader.onload = async (e) => {
       try {
         const csvText = String(e.target?.result || '');
-        const students = parseCSV(csvText);
-        setProgress(prev => ({ ...prev, total: students.length }));
+        const wardens = parseCSV(csvText);
+        setProgress(prev => ({ ...prev, total: wardens.length }));
 
-        // Preload existing emails from both users and pendingStudents to prevent duplicates
-        const [usersSnap, pendingSnap] = await Promise.all([
-          getDocs(collection(db, 'users')),
-          getDocs(collection(db, 'pendingStudents')),
-        ]);
-        const existingEmails = new Set([
-          ...usersSnap.docs.map(d => normalizeEmail((d.data().email))),
-          ...pendingSnap.docs.map(d => normalizeEmail((d.data().email))),
-        ].filter(Boolean));
+        // Preload existing emails from users collection to prevent duplicates
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const existingEmails = new Set(
+          usersSnap.docs.map(d => normalizeEmail(d.data().email)).filter(Boolean)
+        );
 
         const processed = [];
         let ok = 0, bad = 0;
-        for (let i = 0; i < students.length; i++) {
+        for (let i = 0; i < wardens.length; i++) {
           setProgress(prev => ({ ...prev, current: i + 1 }));
-          const emailCandidate = normalizeEmail(students[i].email || students[i].Email);
+          const emailCandidate = normalizeEmail(wardens[i].email || wardens[i].Email);
           if (!emailCandidate) {
             processed.push({ success: false, email: 'Unknown', message: 'Missing email' });
             bad++;
@@ -133,7 +127,7 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
             continue;
           }
 
-          const result = await createPendingStudent(students[i]);
+          const result = await createWarden(wardens[i]);
           processed.push(result);
           if (result.success) {
             ok++;
@@ -147,7 +141,7 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
 
         setResults(processed);
         setShowResults(true);
-        if (ok > 0 && typeof onStudentsAdded === 'function') onStudentsAdded();
+        if (ok > 0 && typeof onWardensAdded === 'function') onWardensAdded();
       } catch (err) {
         alert('Error processing file: ' + (err?.message || String(err)));
       } finally {
@@ -158,14 +152,14 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   };
 
   const downloadTemplate = () => {
-    const template = `email,fullName,phone,usn,parentPhone,branch,year,block,room,gender
-student1@example.com,John Doe,1234567890,1MS21CS001,9876543210,Computer Science,2,A,101,Male
-student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engineering,3,B,205,Female`;
+    const template = `email,fullName,phone,block,status
+warden1@example.com,John Smith,1234567890,Block A,active
+warden2@example.com,Jane Doe,0987654321,Block B,inactive`;
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'student_import_template.csv';
+    a.download = 'warden_import_template.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -179,7 +173,7 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'import_results.csv';
+    a.download = 'warden_import_results.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -189,7 +183,7 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Bulk Import Students</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Bulk Import Wardens</h2>
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
           </div>
 
@@ -198,10 +192,12 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-800 mb-2">Instructions:</h3>
                 <ul className="text-blue-700 text-sm space-y-1">
-                  <li>• Upload a CSV file with student details</li>
-                <li>• Required: email, fullName, phone, usn, parentPhone, branch, year, block, room, gender</li>
+                  <li>• Upload a CSV file with warden details</li>
+                  <li>• Required: email, fullName, block, status</li>
+                  <li>• Optional: phone</li>
+                  <li>• Status: active/inactive (defaults to active if not specified)</li>
                   <li>• Default password format: email_prefix@123</li>
-                  <li>• Accounts are created as pending and activated on first login</li>
+                  <li>• Wardens can change their password on first login</li>
                 </ul>
               </div>
 
@@ -226,7 +222,7 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
               {file && (
                 <div className="flex justify-center">
                   <button onClick={processFile} disabled={isProcessing} className="btn btn-primary btn-lg">
-                    {isProcessing ? (<><FaSpinner className="animate-spin mr-2" />Processing...</>) : (<><FaUpload className="mr-2" />Import Students</>)}
+                    {isProcessing ? (<><FaSpinner className="animate-spin mr-2" />Processing...</>) : (<><FaUpload className="mr-2" />Import Wardens</>)}
                   </button>
                 </div>
               )}
@@ -303,5 +299,3 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
     </div>
   );
 };
-
-
