@@ -33,7 +33,7 @@ export const RequestPage = () => {
     returnDateTime: null,
   });
 
-  const [student, setStudent] = useState({ id: '', name: '' });
+  const [student, setStudent] = useState({ id: '', name: '', usn: '' });
   const [wardens, setWardens] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
@@ -69,6 +69,7 @@ export const RequestPage = () => {
               setStudent({
                 id: user.uid,
                 name: userData.fullName || '',
+                usn: userData.usn || '',
               });
               setIsLoading(false);
             }
@@ -308,6 +309,7 @@ export const RequestPage = () => {
         returnTime: form.returnDateTime.format('h:mm A'),
         studentId: student.id,
         studentName: student.name,
+        studentUSN: student.usn || '',
         wardenUid: selectedWarden.id,
         status: 'pending',
         timestamp: new Date(),
