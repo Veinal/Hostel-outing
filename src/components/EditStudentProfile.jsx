@@ -7,7 +7,7 @@ import axios from 'axios'; // Import Axios for Cloudinary API requests
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 
-export const EditStudentProfile = () => {
+export const EditStudentProfile = ({ onProfileUpdated }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -256,7 +256,11 @@ export const EditStudentProfile = () => {
       setSnackbar({ open: true, message: 'Profile updated successfully!', severity: 'success' });
       setTimeout(() => {
         setSnackbar({ ...snackbar, open: false });
-        navigate('/studentdashboard');
+        if (onProfileUpdated) {
+          onProfileUpdated();
+        } else {
+          navigate('/studentdashboard');
+        }
       }, 1500);
     } catch (err) {
       console.error('Error updating profile:', err);

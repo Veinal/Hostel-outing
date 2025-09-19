@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase'; // Import Firestore and Firebase Auth
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { EditStudentProfile } from './EditStudentProfile';
 
 const statusStyles = {
   approved: {
@@ -49,6 +50,8 @@ export const StudentDashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0); // Unread notifications count
   const [showNotifications, setShowNotifications] = useState(false); // Modal state
   const [highlightedRequest, setHighlightedRequest] = useState(null);
+  const [showEditProfile, setShowEditProfile] = useState(false); // State for EditStudentProfile modal
+  const [userData, setUserData] = useState(null); // State to store user data
   const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Expired'];
 
   useEffect(() => {
@@ -64,6 +67,7 @@ export const StudentDashboard = () => {
           
           if (userSnap.exists()) {
             const userData = userSnap.data();
+            setUserData(userData); // Store user data for photo check
             if (userData.role !== 'student') {
               // Redirect non-students away from student dashboard
               navigate('/');
@@ -126,6 +130,16 @@ export const StudentDashboard = () => {
 
     return () => unsubscribe(); // Cleanup listener
   }, [navigate]);
+
+  // Check if student has photo and show EditStudentProfile modal if not
+  useEffect(() => {
+    if (userData && userData.role === 'student') {
+      // Check if photo is missing or empty
+      if (!userData.photoUrl || userData.photoUrl.trim() === '') {
+        setShowEditProfile(true);
+      }
+    }
+  }, [userData]);
 
   // Fetch notifications for the logged-in student
   useEffect(() => {
@@ -214,6 +228,32 @@ export const StudentDashboard = () => {
         setTimeout(() => setHighlightedRequest(null), 1500);
       }
     }, 300); // Wait for modal to close
+  };
+
+  // Handle closing EditStudentProfile modal
+  const handleCloseEditProfile = () => {
+    setShowEditProfile(false);
+  };
+
+  // Handle profile update completion
+  const handleProfileUpdated = () => {
+    setShowEditProfile(false);
+    // Refresh user data to check if photo was uploaded
+    const refreshUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            setUserData(userSnap.data());
+          }
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
+      }
+    };
+    refreshUserData();
   };
 
   return (
@@ -566,6 +606,32 @@ export const StudentDashboard = () => {
           <p className="text-center text-gray-600">No requests found.</p>
         )}
       </div>
+      
+      {/* EditStudentProfile Modal */}
+      {showEditProfile && (
+        <div className="fixed inset-0 bg-gradient-to-br from-black/40 to-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Complete Your Profile</h2>
+                <button 
+                  onClick={handleCloseEditProfile} 
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-blue-800 mb-2">Profile Setup Required</h3>
+                <p className="text-blue-700 text-sm">
+                  Please upload your photo and complete your profile information to continue using the system.
+                </p>
+              </div>
+              <EditStudentProfile onProfileUpdated={handleProfileUpdated} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

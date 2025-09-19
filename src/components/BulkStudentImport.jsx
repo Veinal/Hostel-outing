@@ -53,7 +53,6 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
         block: studentData.block || studentData.Block || '',
         room: studentData.room || studentData.Room || '',
         role: 'student',
-        photoUrl: studentData.photoUrl || studentData['Photo URL'] || '',
         createdAt: new Date(),
         defaultPassword,
         isFirstLogin: true,
@@ -146,9 +145,9 @@ export const BulkStudentImport = ({ onClose, onStudentsAdded }) => {
   };
 
   const downloadTemplate = () => {
-    const template = `email,fullName,phone,usn,parentPhone,branch,year,block,room,photoUrl
-student1@example.com,John Doe,1234567890,1MS21CS001,9876543210,Computer Science,2,A,101,https://example.com/photo1.jpg
-student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engineering,3,B,205,https://example.com/photo2.jpg`;
+    const template = `email,fullName,phone,usn,parentPhone,branch,year,block,room
+student1@example.com,John Doe,1234567890,1MS21CS001,9876543210,Computer Science,2,A,101
+student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engineering,3,B,205`;
     const blob = new Blob([template], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -188,7 +187,6 @@ student2@example.com,Jane Smith,0987654321,1MS21EE002,8765432109,Electrical Engi
                 <ul className="text-blue-700 text-sm space-y-1">
                   <li>• Upload a CSV file with student details</li>
                   <li>• Required: email, fullName, phone, usn, parentPhone, branch, year, block, room</li>
-                  <li>• Optional: photoUrl</li>
                   <li>• Default password format: email_prefix@123</li>
                   <li>• Accounts are created as pending and activated on first login</li>
                 </ul>
