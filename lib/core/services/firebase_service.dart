@@ -110,29 +110,6 @@ class FirebaseService {
   }
 
 
-  /// Log student scan time (in/out)
-  Future<void> logTime(String approvalNumber) async {
-    // Kept for backward compatibility with existing logs collection if used elsewhere
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    final logRef = _firestore
-        .collection('logs')
-        .doc(approvalNumber)
-        .collection('scans')
-        .doc(today.toIso8601String());
-
-    final snapshot = await logRef.get();
-
-    if (snapshot.exists) {
-      final data = snapshot.data() as Map<String, dynamic>;
-      if (data['outTime'] != null && data['inTime'] == null) {
-        await logRef.update({'inTime': now});
-      }
-    } else {
-      await logRef.set({'outTime': now});
-    }
-  }
 
   /// Update approval certificate with step-out / step-in times.
   /// Returns one of: 'logged_out', 'logged_in', 'expired'
@@ -222,23 +199,4 @@ class FirebaseService {
     }
   }
 
-  /// Get latest log for given approvalNumber
-  Future<DocumentSnapshot?> getLatestLog(String approvalNumber) async {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    final logRef = _firestore
-        .collection('logs')
-        .doc(approvalNumber)
-        .collection('scans')
-        .doc(today.toIso8601String());
-
-    final snapshot = await logRef.get();
-
-    if (snapshot.exists) {
-      return snapshot;
-    } else {
-      return null;
-    }
-  }
 }

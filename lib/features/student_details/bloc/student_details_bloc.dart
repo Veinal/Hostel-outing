@@ -20,13 +20,11 @@ class StudentDetailsBloc
       try {
         final approval =
         await _firebaseService.getApprovalDetails(event.approvalNumber);
-        final log =
-        await _firebaseService.getLatestLog(event.approvalNumber);
         final student =
         await _firebaseService.getStudentDetails(event.studentId);
 
         if (approval != null) {
-          emit(StudentDetailsLoaded(approval, log, student));
+          emit(StudentDetailsLoaded(approval, null, student));
         } else {
           emit(const StudentDetailsError('Approval not found'));
         }

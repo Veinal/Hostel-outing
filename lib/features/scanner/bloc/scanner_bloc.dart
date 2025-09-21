@@ -29,8 +29,9 @@ class ScannerBloc extends Bloc<ScannerEvent, ScannerState> {
         //final certificate = await _firebaseService.getApprovalDetails(approvalNumber);
 
         if (certificate != null) {
-          // Log the scan (in/out)
-          await _firebaseService.logTime(approvalNumber);
+          // Log the scan (in/out) using the proper method
+          final scanResult = await _firebaseService.logScanToApprovalCertificate(approvalNumber);
+          print("📊 Scan result: $scanResult");
 
           // Emit success
           emit(QrCodeDetailsLoaded(certificate));

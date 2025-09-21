@@ -14,6 +14,10 @@ class ApprovalCertificate {
   final String? purpose;
   final String? roomNumber;
   final String? wardenName;
+  final String? actualOutDate;
+  final String? actualOutTime;
+  final String? actualReturnDate;
+  final String? actualReturnTime;
 
   ApprovalCertificate({
     required this.approvalNumber,
@@ -29,6 +33,10 @@ class ApprovalCertificate {
     this.purpose,
     this.roomNumber,
     this.wardenName,
+    this.actualOutDate,
+    this.actualOutTime,
+    this.actualReturnDate,
+    this.actualReturnTime,
   });
 
   /// Factory constructor to create from Firestore document
@@ -48,6 +56,10 @@ class ApprovalCertificate {
       purpose: data['purpose'],
       roomNumber: data['roomNumber'],
       wardenName: data['wardenName'],
+      actualOutDate: data['actualOutDate'],
+      actualOutTime: data['actualOutTime'],
+      actualReturnDate: data['actualReturnDate'],
+      actualReturnTime: data['actualReturnTime'],
     );
   }
 }

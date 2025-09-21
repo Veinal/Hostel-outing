@@ -35,16 +35,15 @@ class StudentDetailsScreen extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             } else if (state is StudentDetailsLoaded) {
               final approval = state.approvalCertificate;
-              final log = state.log?.data() as Map<String, dynamic>?;
               final Student? student = state.student;
               
-              // Determine actual scan status
+              // Determine actual scan status based on actual scan times
               String scanStatus = 'Not Scanned';
-              if (log != null) {
-                if (log['outTime'] != null && log['inTime'] == null) {
-                  scanStatus = 'Stepped Out';
-                } else if (log['outTime'] != null && log['inTime'] != null) {
+              if (approval.actualOutTime != null && approval.actualOutTime!.isNotEmpty) {
+                if (approval.actualReturnTime != null && approval.actualReturnTime!.isNotEmpty) {
                   scanStatus = 'Stepped In';
+                } else {
+                  scanStatus = 'Stepped Out';
                 }
               }
 
@@ -161,24 +160,23 @@ class StudentDetailsScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Log Times',
+                                const Text('Actual Scan Times',
                                     style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 8),
-                                if (log != null) ...[
-                                  if (log['outTime'] != null)
+                                if (approval.actualOutTime != null && approval.actualOutTime!.isNotEmpty) ...[
+                                  Text(
+                                    'Out Time: ${approval.actualOutDate} at ${approval.actualOutTime}',
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                  if (approval.actualReturnTime != null && approval.actualReturnTime!.isNotEmpty)
                                     Text(
-                                      'Out Time: ${log['outTime'].toDate()}',
-                                      style: const TextStyle(fontSize: 18),
-                                    ),
-                                  if (log['inTime'] != null)
-                                    Text(
-                                      'In Time: ${log['inTime'].toDate()}',
+                                      'In Time: ${approval.actualReturnDate} at ${approval.actualReturnTime}',
                                       style: const TextStyle(fontSize: 18),
                                     ),
                                 ] else
-                                  const Text('No log times found for today.',
+                                  const Text('No scan times recorded yet.',
                                       style: TextStyle(fontSize: 18)),
                               ],
                             ),
