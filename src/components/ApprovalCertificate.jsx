@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -20,6 +20,7 @@ export const ApprovalCertificate = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const certRef = useRef(null);
 
   useEffect(() => {
     const fetchCertificate = async () => {
@@ -48,11 +49,7 @@ export const ApprovalCertificate = () => {
     }
   }, [certificateId]);
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownload = async () => {
+  const handlePrint = async () => {
     // Generate a real QR code image (data URL) for embedding in the print view
     let qrDataUrl = '';
     try {
@@ -62,10 +59,10 @@ export const ApprovalCertificate = () => {
         color: { dark: '#000000', light: '#FFFFFF' }
       });
     } catch (e) {
-      console.error('Failed to generate QR for download view', e);
+      console.error('Failed to generate QR for print view', e);
     }
 
-    // Open printable window mirroring the on-screen certificate design
+    // Open printable window with the same format as download
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html>
@@ -181,6 +178,267 @@ export const ApprovalCertificate = () => {
     printWindow.print();
   };
 
+  const handleDownload = async () => {
+    try {
+      const ensureScript = (src) => new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) { existing.onload ? existing.onload = () => resolve() : resolve(); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Failed to load ' + src));
+        document.head.appendChild(s);
+      });
+
+      await ensureScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF) throw new Error('jsPDF not available');
+
+      // Build assets
+      // 1) QR code as data URL
+      let qrDataUrl = '';
+      try {
+        qrDataUrl = await QRCodeLib.toDataURL(qrCodeUrl, { width: 180, margin: 2, color: { dark: '#000000', light: '#FFFFFF' } });
+      } catch (e) {
+        console.error('Failed to generate QR:', e);
+      }
+
+      // 2) Student photo as data URL (if accessible), else skip
+      let studentPhotoDataUrl = '';
+      if (certificate.studentPhotoUrl) {
+        try {
+          const res = await fetch(certificate.studentPhotoUrl, { mode: 'cors' });
+          const blob = await res.blob();
+          const reader = new FileReader();
+          const dataUrlPromise = new Promise((resolve) => { reader.onloadend = () => resolve(reader.result); });
+          reader.readAsDataURL(blob);
+          studentPhotoDataUrl = await dataUrlPromise;
+        } catch (e) {
+          console.warn('Could not inline student photo; skipping image in PDF');
+        }
+      }
+
+      // Create PDF with a card and two-column layout similar to on-screen
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const outerMargin = 32; // page padding
+      const cardPad = 32; // inner card padding
+      const cardX = outerMargin;
+      const cardY = outerMargin;
+      const cardW = pageWidth - outerMargin * 2;
+      const cardH = pageHeight - outerMargin * 2;
+
+      // Card border (rounded)
+      pdf.setDrawColor(31, 41, 55);
+      pdf.setLineWidth(3);
+      if (pdf.roundedRect) {
+        pdf.roundedRect(cardX, cardY, cardW, cardH, 10, 10);
+      } else {
+        pdf.rect(cardX, cardY, cardW, cardH);
+      }
+
+      let y = cardY + cardPad;
+      const xCenter = cardX + cardW / 2;
+
+      // Approval box (center)
+      const apprBoxW = cardW - cardPad * 2;
+      const apprBoxX = cardX + cardPad;
+      pdf.setFillColor(243, 244, 246);
+      pdf.setDrawColor(229, 231, 235);
+      pdf.setLineWidth(1);
+      if (pdf.roundedRect) {
+        pdf.roundedRect(apprBoxX, y, apprBoxW, 56, 6, 6, 'F');
+      } else {
+        pdf.rect(apprBoxX, y, apprBoxW, 56, 'F');
+      }
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(11);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Approval Number', xCenter, y + 18, { align: 'center' });
+      pdf.setFont('courier', 'bold');
+      pdf.setFontSize(24);
+      pdf.setTextColor(5, 150, 105);
+      pdf.text(String(certificate.approvalNumber || ''), xCenter, y + 40, { align: 'center' });
+      y += 74;
+
+      // Status badge
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(5, 150, 105);
+      pdf.text('APPROVED', xCenter, y, { align: 'center' });
+      y += 22;
+
+      // Identity row: photo at left, text on same horizontal line when possible
+      const photoSize = 96;
+      const textGap = 16;
+      const textAreaW = cardW - cardPad * 2 - photoSize - textGap;
+      const photoX = cardX + cardPad;
+      const photoY = y;
+      if (studentPhotoDataUrl) {
+        try { pdf.addImage(studentPhotoDataUrl, 'JPEG', photoX, photoY, photoSize, photoSize); } catch {}
+      } else {
+        pdf.setDrawColor(209, 213, 219);
+        pdf.rect(photoX, photoY, photoSize, photoSize);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(156, 163, 175);
+        pdf.text('No Photo', photoX + photoSize / 2, photoY + photoSize / 2, { align: 'center' });
+      }
+
+      const textX = photoX + photoSize + textGap;
+      const textY = photoY + 6;
+      const usn = certificate.studentUSN || certificate.studentDetails?.usn || 'N/A';
+      const branch = certificate.studentBranch || certificate.studentDetails?.branch || 'N/A';
+      const year = certificate.studentYear || certificate.studentDetails?.year || 'N/A';
+
+      // Line 1: Name (bold)
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.setTextColor(17, 24, 39);
+      pdf.text(String(certificate.studentName || ''), textX, textY + 16);
+
+      // Line 2: USN
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(12);
+      pdf.setTextColor(55, 65, 81);
+      pdf.text(`USN: ${usn}`, textX, textY + 32);
+
+      // Line 3: Branch and Year, allow wrapping and use smaller font
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(11);
+      pdf.setTextColor(55, 65, 81);
+      const branchYear = `${branch} • Year ${year}`;
+      const wrappedBY = pdf.splitTextToSize(branchYear, textAreaW);
+      pdf.text(wrappedBY, textX, textY + 48);
+      const wrappedCount = Array.isArray(wrappedBY) ? wrappedBY.length : 1;
+      const blockHeight = 48 + wrappedCount * 14; // approx line height
+      y = Math.max(photoY + photoSize, photoY + blockHeight) + 12;
+      // Extra gap before two-column grid
+      y += 8;
+
+      // Two-column details grid with titles and bottom borders
+      const gridPadX = cardX + cardPad;
+      const gridW = cardW - cardPad * 2;
+      const gap = 36;
+      const colW = (gridW - gap) / 2;
+      const leftX = gridPadX;
+      const rightX = gridPadX + colW + gap;
+
+      const drawSectionTitle = (x, title) => {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.setTextColor(31, 41, 55);
+        pdf.text(title, x, y);
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(1);
+        pdf.line(x, y + 6, x + colW, y + 6);
+      };
+      drawSectionTitle(leftX, 'Student Information');
+      drawSectionTitle(rightX, 'Request Details');
+      y += 18;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(11);
+      const labelColor = [107, 114, 128];
+      const valueColor = [17, 24, 39];
+      const lineH = 18;
+      let yLeft = y;
+      let yRight = y;
+      const row = (x, yy, label, value) => {
+        pdf.setTextColor(...labelColor);
+        pdf.text(`${label}:`, x, yy);
+        pdf.setTextColor(...valueColor);
+        const valueX = x + 90;
+        const maxW = x + colW - valueX;
+        const lines = pdf.splitTextToSize(String(value ?? ''), maxW);
+        pdf.text(lines, valueX, yy);
+        return Array.isArray(lines) ? lines.length : 1;
+      };
+      yLeft += row(leftX, yLeft, 'Full Name', certificate.studentName) * lineH;
+      yLeft += row(leftX, yLeft, 'USN', usn) * lineH;
+      yLeft += row(leftX, yLeft, 'Branch', branch) * lineH;
+      yLeft += row(leftX, yLeft, 'Year', year) * lineH;
+      yLeft += row(leftX, yLeft, 'Block', certificate.studentBlock || certificate.studentDetails?.block || 'N/A') * lineH;
+      yLeft += row(leftX, yLeft, 'Room', certificate.studentRoom || certificate.studentDetails?.room || 'N/A') * lineH;
+
+      yRight += row(rightX, yRight, 'Request Type', certificate.requestType) * lineH;
+      yRight += row(rightX, yRight, 'Reason', certificate.reason) * lineH;
+      yRight += row(rightX, yRight, 'Out Date', formatDate(certificate.outDate)) * lineH;
+      yRight += row(rightX, yRight, 'Out Time', formatTime(certificate.outTime)) * lineH;
+      yRight += row(rightX, yRight, 'Return Date', formatDate(certificate.returnDate)) * lineH;
+      yRight += row(rightX, yRight, 'Return Time', formatTime(certificate.returnTime)) * lineH;
+
+      y = Math.max(yLeft, yRight) + 20;
+
+      // QR section centered
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Verification QR Code', xCenter, y, { align: 'center' });
+      y += 12;
+      pdf.setFillColor(243, 244, 246);
+      const qrOuter = 110;
+      const qrX = xCenter - qrOuter / 2;
+      const qrY = y;
+      if (pdf.roundedRect) {
+        pdf.roundedRect(qrX, qrY, qrOuter, qrOuter, 8, 8, 'F');
+      } else {
+        pdf.rect(qrX, qrY, qrOuter, qrOuter, 'F');
+      }
+      if (qrDataUrl) {
+        try { pdf.addImage(qrDataUrl, 'JPEG', qrX + 6, qrY + 6, qrOuter - 12, qrOuter - 12); } catch {}
+      }
+      y += qrOuter + 10;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text('Scan this QR code to verify the approval', xCenter, y, { align: 'center' });
+      y += 22;
+
+      // Distribute remaining space so signature/footer sit at the bottom of the card
+      const estimatedFooterBlock = 70; // signature + footer
+      const remaining = (cardY + cardH) - (y + estimatedFooterBlock + cardPad);
+      if (remaining > 0) {
+        y += remaining;
+      }
+
+      // Signature block right aligned
+      const sigW = 160;
+      const sigX1 = cardX + cardW - cardPad - sigW;
+      pdf.setDrawColor(31, 41, 55);
+      pdf.setLineWidth(2);
+      pdf.line(sigX1, y, sigX1 + sigW, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(17, 24, 39);
+      pdf.text('Approved by:', sigX1, y - 8);
+      pdf.setTextColor(75, 85, 99);
+      const wardenName = String(
+        certificate.wardenName ||
+        certificate.approvedByName ||
+        certificate.approvedBy ||
+        (certificate.warden && (certificate.warden.fullName || certificate.warden.name)) ||
+        'Warden'
+      );
+      pdf.text(wardenName, sigX1, y + 16);
+      y += 34;
+
+      // Footer centered
+      pdf.setFontSize(10);
+      pdf.setTextColor(107, 114, 128);
+      pdf.text(`Valid until: ${formatDate(certificate.returnDate)}`, xCenter, y, { align: 'center' });
+      y += 14;
+      pdf.text(`Generated on: ${formatDate(certificate.approvedAt?.toDate?.() || new Date())}`, xCenter, y, { align: 'center' });
+      y += 14;
+      pdf.text('Keep this document safe and present it when leaving/entering the hostel premises', xCenter, y, { align: 'center' });
+
+      pdf.save(`Approval_Certificate_${certificate.approvalNumber}.pdf`);
+    } catch (err) {
+      console.error('Screenshot PDF download failed:', err);
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -218,7 +476,7 @@ export const ApprovalCertificate = () => {
     <div className="min-h-screen bg-gray-50 py-4 sm:py-6">
     <div className="max-w-4xl mx-auto px-3 sm:px-4">
       {/* Header with Actions */}
-      <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div className="bg-white rounded-lg shadow-lg p-4 mb-4 print:hidden">
         <div className="flex items-center justify-between gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -253,7 +511,7 @@ export const ApprovalCertificate = () => {
       </div>
 
         {/* Certificate */}
-         <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 border-2 sm:border-4 border-gray-800">
+         <div id="certificate-capture" ref={certRef} className="bg-white rounded-lg shadow-lg p-4 sm:p-6 border-2 sm:border-4 border-gray-800">
            {/* Approval Number */}
            <div className="text-center mb-6">
              <div className="bg-gray-100 rounded-lg p-4 mb-3">
@@ -274,6 +532,8 @@ export const ApprovalCertificate = () => {
               <img
                 src={certificate.studentPhotoUrl}
                 alt="Student"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
                 className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border-2 border-gray-200 shadow-sm"
               />
             ) : (
@@ -299,27 +559,27 @@ export const ApprovalCertificate = () => {
                </h3>
                <div className="space-y-2 sm:space-y-3">
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Full Name:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Full Name:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentName}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">USN:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">USN:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentUSN || certificate.studentDetails?.usn || 'N/A'}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Branch:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Branch:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentBranch || certificate.studentDetails?.branch || 'N/A'}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Year:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Year:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentYear || certificate.studentDetails?.year || 'N/A'}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Block:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Block:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentBlock || certificate.studentDetails?.block || 'N/A'}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Room:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Room:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.studentRoom || certificate.studentDetails?.room || 'N/A'}</p>
                  </div>
                </div>
@@ -329,27 +589,27 @@ export const ApprovalCertificate = () => {
                <h3 className="text-lg font-bold text-gray-800 mb-3">Request Details</h3>
                <div className="space-y-2 sm:space-y-3">
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Request Type:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Request Type:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.requestType}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Reason:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Reason:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{certificate.reason}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Out Date:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Out Date:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{formatDate(certificate.outDate)}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Out Time:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Out Time:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{formatTime(certificate.outTime)}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Return Date:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Return Date:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{formatDate(certificate.returnDate)}</p>
                  </div>
                  <div className="flex items-center gap-2">
-                   <label className="font-semibold text-blue-700 text-sm min-w-[80px] flex-shrink-0">Return Time:</label>
+                   <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">Return Time:</label>
                    <p className="text-gray-900 text-sm sm:text-base font-medium">{formatTime(certificate.returnTime)}</p>
                  </div>
                </div>

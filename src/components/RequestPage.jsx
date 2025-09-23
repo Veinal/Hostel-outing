@@ -259,8 +259,8 @@ export const RequestPage = () => {
       
       // Check minimum time window (1.5 hours before out-time for outings)
       const diffHours = outDateTime.diff(now, 'hour', true);
-      if (diffHours < 1.5) {
-        setSnackbar({ open: true, message: 'Outing time must be at least 2 hours from now.', severity: 'error' });
+      if (diffHours < 1) {
+        setSnackbar({ open: true, message: 'Outing time must be at least 1 hour from now.', severity: 'error' });
         setLoading(false);
         return;
       }
