@@ -61,4 +61,15 @@ export class CertificatesService {
       throw new AppError(ERROR_CODES.GATE_QR_INVALID, 'Invalid or expired QR token', 400);
     }
   }
+
+  static async getByApprovalNumber(approvalNumber) {
+    const request = await db.outingRequest.findUnique({
+      where: { approvalNumber },
+      include: { certificate: true }
+    });
+    if (!request || !request.certificate) {
+      throw new AppError(ERROR_CODES.NOT_FOUND, 'Certificate not found for this approval number', 404);
+    }
+    return request.certificate;
+  }
 }

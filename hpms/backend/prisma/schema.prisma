@@ -146,6 +146,7 @@ model OutingRequest {
   @@index([wardenId])
   @@index([status])
   @@index([expectedReturnDateTime])
+  @@index([createdAt])
 }
 
 model ApprovalCertificate {
@@ -198,4 +199,14 @@ model AuditLog {
   performedBy String    // User ID
   metadata    Json?
   createdAt   DateTime  @default(now())
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }

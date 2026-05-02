@@ -20,4 +20,13 @@ export class CertificatesController {
       next(err);
     }
   }
+
+  static async getByApprovalNumber(req, res, next) {
+    try {
+      const certificate = await CertificatesService.getByApprovalNumber(req.params.approvalNumber);
+      ApiResponse.success(res, { certificate });
+    } catch (err) {
+      next(err);
+    }
+  }
 }

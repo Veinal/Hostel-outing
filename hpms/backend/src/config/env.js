@@ -1,14 +1,15 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-const requiredEnvVars = ['DATABASE_URL'];
-
 export const validateEnv = () => {
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      console.warn(`Warning: Missing required environment variable ${envVar}`);
-    }
+  const required = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'JWT_REFRESH_SECRET',
+    'NODE_ENV'
+  ];
+
+  const missing = required.filter(key => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error(`[FATAL ERROR] Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
   }
 };
-
-validateEnv();

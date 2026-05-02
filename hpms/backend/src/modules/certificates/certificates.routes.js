@@ -6,6 +6,7 @@ import { ROLES } from '../../shared/constants/roles.js';
 
 const router = express.Router();
 
+router.get('/approval/:approvalNumber', authenticate, authorize(ROLES.SECURITY), CertificatesController.getByApprovalNumber);
 router.get('/:id', authenticate, CertificatesController.getById);
 router.get('/verify/:qrToken', authenticate, authorize(ROLES.SECURITY), CertificatesController.verify);
 

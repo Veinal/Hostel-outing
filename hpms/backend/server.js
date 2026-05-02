@@ -10,6 +10,9 @@ import usersRoutes from './src/modules/users/users.routes.js';
 import masterRoutes from './src/modules/master/master.routes.js';
 import requestsRoutes from './src/modules/requests/requests.routes.js';
 import certificatesRoutes from './src/modules/certificates/certificates.routes.js';
+import gateRoutes from './src/modules/gate/gate.routes.js';
+import adminRoutes from './src/modules/admin/admin.routes.js';
+import { scheduleOverdueCheck, runOverdueCheck } from './src/jobs/overdueCheck.js';
 
 dotenv.config();
 
@@ -24,6 +27,18 @@ app.use('/api/users', usersRoutes);
 app.use('/api/master', masterRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/certificates', certificatesRoutes);
+app.use('/api/gate', gateRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Admin manual job trigger
+app.get('/api/admin/jobs/overdue-check', async (req, res, next) => {
+  try {
+    const count = await runOverdueCheck();
+    ApiResponse.success(res, { processed: count }, 'Overdue check completed manually');
+  } catch (err) {
+    next(err);
+  }
+});
 
 app.get('/api/health', async (req, res, next) => {
   try {
@@ -39,4 +54,5 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  scheduleOverdueCheck();
 });

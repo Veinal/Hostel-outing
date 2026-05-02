@@ -6,6 +6,11 @@ import StudentDashboard from '../modules/student/StudentDashboard';
 import RequestForm from '../modules/student/RequestForm';
 import CertificatePage from '../modules/student/CertificatePage';
 import WardenDashboard from '../modules/warden/WardenDashboard';
+import GateScannerPage from '../modules/gate/GateScannerPage';
+import AdminDashboard from '../modules/admin/AdminDashboard';
+import ManageWardens from '../modules/admin/ManageWardens';
+import ManageStudents from '../modules/admin/ManageStudents';
+import ReportsPage from '../modules/admin/ReportsPage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -63,13 +68,22 @@ export default function AppRouter() {
           
           <Route path="/admin/*" element={
             <ProtectedRoute allowedRoles={['ADMIN', 'CHIEF_WARDEN']}>
-              <div>Admin Dashboard</div>
+              <Routes>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="wardens" element={<ManageWardens />} />
+                <Route path="students" element={<ManageStudents />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
+              </Routes>
             </ProtectedRoute>
           } />
           
           <Route path="/gate/*" element={
             <ProtectedRoute allowedRoles={['SECURITY']}>
-              <div>Gate Scanner App</div>
+              <Routes>
+                <Route path="scan" element={<GateScannerPage />} />
+                <Route path="*" element={<Navigate to="scan" replace />} />
+              </Routes>
             </ProtectedRoute>
           } />
         </Routes>
