@@ -40,6 +40,29 @@ export class AuthController {
     }
   }
 
+  static async forgotPassword(req, res, next) {
+    try {
+      await AuthService.forgotPassword(req.body.email);
+      ApiResponse.success(res, null, 'If that email exists, an OTP has been sent.');
+    } catch (err) { next(err); }
+  }
+
+  static async resetPassword(req, res, next) {
+    try {
+      const { email, otp, newPassword } = req.body;
+      await AuthService.resetPassword(email, otp, newPassword);
+      ApiResponse.success(res, null, 'Password reset successfully');
+    } catch (err) { next(err); }
+  }
+
+  static async changePassword(req, res, next) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      await AuthService.changePassword(req.user.sub, currentPassword, newPassword);
+      ApiResponse.success(res, null, 'Password changed successfully');
+    } catch (err) { next(err); }
+  }
+
   static async logout(req, res, next) {
     try {
       res.clearCookie('hpms_token');

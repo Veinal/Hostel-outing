@@ -60,6 +60,55 @@ export class AuthService {
     }
   }
 
+  static async forgotPassword(email) {
+    const user = await db.user.findUnique({ where: { email } });
+    if (!user) return true; // Pretend success to avoid enum
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+    await db.passwordReset.create({
+      data: { email, otpHash, expiresAt }
+    });
+
+    console.log(`[STUB EMAIL] To: ${email} | Subject: Password Reset OTP | Body: Your OTP is ${otp}`);
+    return true;
+  }
+
+  static async resetPassword(email, otp, newPassword) {
+    const resets = await db.passwordReset.findMany({
+      where: { email, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (resets.length === 0) throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid or expired OTP', 400);
+
+    const validReset = resets[0];
+    const isValid = await bcrypt.compare(otp, validReset.otpHash);
+    if (!isValid) throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid OTP', 400);
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.user.update({ where: { email }, data: { passwordHash } });
+
+    await db.passwordReset.deleteMany({ where: { email } });
+    return true;
+  }
+
+  static async changePassword(userId, currentPassword, newPassword) {
+    const user = await db.user.findUnique({ where: { id: userId } });
+    if (!user) throw new AppError(ERROR_CODES.NOT_FOUND, 'User not found', 404);
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Incorrect current password', 400);
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.user.update({ where: { id: userId }, data: { passwordHash } });
+    return true;
+  }
+
   static async getUserProfile(userId) {
     const user = await db.user.findUnique({
       where: { id: userId },

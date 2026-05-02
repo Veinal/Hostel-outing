@@ -11,6 +11,8 @@ import AdminDashboard from '../modules/admin/AdminDashboard';
 import ManageWardens from '../modules/admin/ManageWardens';
 import ManageStudents from '../modules/admin/ManageStudents';
 import ReportsPage from '../modules/admin/ReportsPage';
+import StudentProfilePage from '../modules/profile/StudentProfilePage';
+import WardenProfilePage from '../modules/profile/WardenProfilePage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -50,6 +52,7 @@ export default function AppRouter() {
             <ProtectedRoute allowedRoles={['STUDENT']}>
               <Routes>
                 <Route path="dashboard" element={<StudentDashboard />} />
+                <Route path="profile" element={<StudentProfilePage />} />
                 <Route path="requests/new" element={<RequestForm />} />
                 <Route path="certificate/:id" element={<CertificatePage />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
@@ -61,6 +64,7 @@ export default function AppRouter() {
             <ProtectedRoute allowedRoles={['WARDEN', 'CHIEF_WARDEN']}>
               <Routes>
                 <Route path="dashboard" element={<WardenDashboard />} />
+                <Route path="profile" element={<WardenProfilePage />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
               </Routes>
             </ProtectedRoute>

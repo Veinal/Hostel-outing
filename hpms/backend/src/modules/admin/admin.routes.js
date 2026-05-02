@@ -1,5 +1,6 @@
 import express from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { AdminController } from './admin.controller.js';
 import { authenticate } from '../../middleware/auth.js';
 import { authorize } from '../../middleware/rbac.js';
@@ -7,6 +8,12 @@ import { ROLES } from '../../shared/constants/roles.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
+const importLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: { message: 'Too many imports. Limit is 5 per hour.' } }
+});
 
 // All routes require ADMIN or CHIEF_WARDEN
 router.use(authenticate, authorize(ROLES.ADMIN, ROLES.CHIEF_WARDEN));
@@ -21,7 +28,7 @@ router.put('/wardens/:id/assign', AdminController.assignWarden);
 // Students
 router.get('/students', AdminController.getStudents);
 router.post('/students/import/template', AdminController.importTemplate);
-router.post('/students/import', upload.single('file'), AdminController.importStudents);
+router.post('/students/import', upload.single('file'), importLimiter, AdminController.importStudents);
 router.get('/students/:id', AdminController.getStudentById);
 router.put('/students/:id', AdminController.updateStudent);
 router.post('/students/:id/reset-password', AdminController.resetStudentPassword);
