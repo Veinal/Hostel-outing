@@ -1,10 +1,11 @@
-import { ApiResponse } from '../shared/utils/ApiResponse.js';
+import { AppError } from '../shared/utils/AppError.js';
+import { ERROR_CODES } from '../shared/constants/roles.js';
 
-export const requireRole = (roles) => {
+export const authorize = (...roles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;
     if (!userRole || !roles.includes(userRole)) {
-      return ApiResponse.error(res, 'AUTH_UNAUTHORIZED', 'Unauthorized access', 403);
+      return next(new AppError(ERROR_CODES.AUTH_UNAUTHORIZED, 'Unauthorized access: insufficient role', 403));
     }
     next();
   };
