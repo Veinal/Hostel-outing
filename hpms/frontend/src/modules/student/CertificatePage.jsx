@@ -68,9 +68,9 @@ export default function CertificatePage() {
 
   if (!cert) return null;
 
-  const { request } = cert;
   const { student } = request;
 
+  return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-3xl mx-auto px-4">
         {/* Header with Actions */}
