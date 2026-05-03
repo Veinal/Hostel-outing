@@ -62,30 +62,55 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <SideBar />
-      <main className="flex-1 p-8 bg-gray-50">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Reporting Engine</h1>
-          <button onClick={exportToCSV} disabled={!data.length} className="btn btn-success">
-            📥 Export CSV
+      <main className="flex-1 p-4 md:p-8">
+        
+        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Reporting Engine</h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">Generate and export system activity reports</p>
+          </div>
+          <button 
+            onClick={exportToCSV} 
+            disabled={!data.length} 
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+          >
+            <span>📥</span> Export CSV
           </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-xl shadow border border-gray-200 mb-6">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
-              <input type="date" name="from" value={filters.from} onChange={handleFilterChange} className="input input-bordered input-sm" />
+        <div className="themed-card p-6 rounded-3xl shadow-sm mb-8">
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="w-40">
+              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">From Date</label>
+              <input 
+                type="date" 
+                name="from" 
+                value={filters.from} 
+                onChange={handleFilterChange} 
+                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
-              <input type="date" name="to" value={filters.to} onChange={handleFilterChange} className="input input-bordered input-sm" />
+            <div className="w-40">
+              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">To Date</label>
+              <input 
+                type="date" 
+                name="to" 
+                value={filters.to} 
+                onChange={handleFilterChange} 
+                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
+              />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
-              <select name="status" value={filters.status} onChange={handleFilterChange} className="select select-bordered select-sm">
+            <div className="w-48">
+              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">Status</label>
+              <select 
+                name="status" 
+                value={filters.status} 
+                onChange={handleFilterChange} 
+                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none appearance-none"
+              >
                 <option value="">All Statuses</option>
                 <option value="APPROVED">APPROVED</option>
                 <option value="PENDING">PENDING</option>
@@ -94,41 +119,83 @@ export default function ReportsPage() {
                 <option value="OVERDUE">OVERDUE</option>
               </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Block</label>
-              <input type="text" name="block" placeholder="Block" value={filters.block} onChange={handleFilterChange} className="input input-bordered input-sm w-24" />
+            <div className="w-24">
+              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">Block</label>
+              <input 
+                type="text" 
+                name="block" 
+                placeholder="Block" 
+                value={filters.block} 
+                onChange={handleFilterChange} 
+                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
+              />
             </div>
-            <button onClick={loadRequestsReport} className="btn btn-primary btn-sm">Run General Report</button>
-            <button onClick={loadOverdueReport} className="btn btn-error btn-sm">Show Active Overdue</button>
+            <div className="flex gap-2">
+              <button 
+                onClick={loadRequestsReport} 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-500/20"
+              >
+                Run Report
+              </button>
+              <button 
+                onClick={loadOverdueReport} 
+                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-red-500/20"
+              >
+                Show Overdue
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Results */}
         {loading ? (
-          <div className="flex justify-center py-16">
-            <span className="loading loading-bars loading-lg"></span>
+          <div className="flex flex-col justify-center items-center py-24 themed-card rounded-3xl">
+            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-500 font-medium italic">Compiling data engine results...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
-            <table className="table w-full">
+          <div className="overflow-x-auto themed-card rounded-3xl shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-100 text-gray-600">
-                  <th>Approval #</th>
-                  <th>Student</th>
-                  <th>Type</th>
-                  <th>Out Time</th>
-                  <th>Status</th>
+                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Approval #</th>
+                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Student Identity</th>
+                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Type</th>
+                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Out Time</th>
+                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {data.map(req => (
-                  <tr key={req.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="font-mono text-sm">{req.approvalNumber || '—'}</td>
-                    <td>{req.student?.fullName} <span className="text-xs text-gray-500">({req.student?.usn})</span></td>
-                    <td>{req.requestType}</td>
-                    <td>{new Date(req.outDateTime).toLocaleString()}</td>
-                    <td>
-                      <span className={`badge ${req.status === 'OVERDUE' ? 'badge-error' : req.status === 'APPROVED' ? 'badge-success' : 'badge-ghost'}`}>
+                  <tr key={req.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                    <td className="px-6 py-5">
+                      <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+                        {req.approvalNumber || '—'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="font-bold text-slate-800 dark:text-white leading-tight">{req.student?.fullName}</p>
+                      <p className="text-xs font-mono text-slate-400 mt-0.5">{req.student?.usn}</p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                        {req.requestType?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="text-sm text-slate-600 dark:text-slate-400">
+                        {new Date(req.outDateTime).toLocaleDateString()}
+                      </p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase">
+                        {new Date(req.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                        req.status === 'OVERDUE' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 
+                        req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                      }`}>
                         {req.status}
                       </span>
                     </td>
@@ -136,7 +203,7 @@ export default function ReportsPage() {
                 ))}
                 {data.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center text-gray-500 py-8">No records found. Run a report above.</td>
+                    <td colSpan={5} className="text-center text-slate-400 py-16 italic">No records found. Run a report to view activity.</td>
                   </tr>
                 )}
               </tbody>

@@ -27,7 +27,7 @@ router.put('/wardens/:id/assign', AdminController.assignWarden);
 
 // Students
 router.get('/students', AdminController.getStudents);
-router.post('/students/import/template', AdminController.importTemplate);
+router.get('/students/import/template', AdminController.importTemplate);
 router.post('/students/import', upload.single('file'), importLimiter, AdminController.importStudents);
 router.get('/students/:id', AdminController.getStudentById);
 router.put('/students/:id', AdminController.updateStudent);
