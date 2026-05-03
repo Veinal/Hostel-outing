@@ -12,6 +12,7 @@ import requestsRoutes from './src/modules/requests/requests.routes.js';
 import certificatesRoutes from './src/modules/certificates/certificates.routes.js';
 import gateRoutes from './src/modules/gate/gate.routes.js';
 import adminRoutes from './src/modules/admin/admin.routes.js';
+import notificationsRoutes from './src/modules/notifications/notifications.routes.js';
 import { scheduleOverdueCheck, runOverdueCheck } from './src/jobs/overdueCheck.js';
 
 dotenv.config();
@@ -29,6 +30,7 @@ app.use('/api/requests', requestsRoutes);
 app.use('/api/certificates', certificatesRoutes);
 app.use('/api/gate', gateRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Admin manual job trigger
 app.get('/api/admin/jobs/overdue-check', async (req, res, next) => {

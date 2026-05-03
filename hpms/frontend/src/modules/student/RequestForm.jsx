@@ -21,7 +21,9 @@ export default function RequestForm() {
   const [loading, setLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   // Step 6.1: Delayed return flag for weekend outings
-  const [delayedReturn, setDelayedReturn] = useState(false);
+  // delayFlagged is local UI state only — NOT sent to the create API
+  // (the backend sets delayFlagged via PUT /requests/:id/delay after stepping out)
+  const [delayFlagged, setDelayFlagged] = useState(false);
   // Weekend return note
   const [weekendNote, setWeekendNote] = useState('');
 
@@ -47,7 +49,7 @@ export default function RequestForm() {
 
   // Step 6.6: Weekend auto-set return time to 19:00 for OUTING
   useEffect(() => {
-    if (form.requestType === 'OUTING' && form.outDateTime && isWeekend(form.outDateTime) && !delayedReturn) {
+    if (form.requestType === 'OUTING' && form.outDateTime && isWeekend(form.outDateTime) && !delayFlagged) {
       // Auto-set return time to 19:00 on same day
       const d = new Date(form.outDateTime);
       d.setHours(19, 0, 0, 0);
@@ -55,10 +57,10 @@ export default function RequestForm() {
       const returnStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T19:00`;
       setForm(prev => ({ ...prev, expectedReturnDateTime: returnStr }));
       setWeekendNote('Return time is automatically set to 7:00 PM for weekend outings.');
-    } else if (!delayedReturn) {
+    } else if (!delayFlagged) {
       setWeekendNote('');
     }
-  }, [form.requestType, form.outDateTime, delayedReturn]);
+  }, [form.requestType, form.outDateTime, delayFlagged]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -114,6 +116,9 @@ export default function RequestForm() {
 
     setLoading(true);
     try {
+      // NOTE: delayFlagged is NOT sent here — it is set by the backend
+      // via PUT /requests/:id/delay after the student has stepped out.
+      // The create validator does not accept it.
       const payload = {
         requestType: form.requestType,
         location: form.location || undefined,
@@ -121,7 +126,6 @@ export default function RequestForm() {
         wardenId: form.wardenId,
         outDateTime: new Date(form.outDateTime).toISOString(),
         expectedReturnDateTime: new Date(form.expectedReturnDateTime).toISOString(),
-        delayedReturn,
       };
       await client.post('/requests', payload);
       setSnackbar({ open: true, message: 'Request submitted successfully!', severity: 'success' });
@@ -279,21 +283,21 @@ export default function RequestForm() {
               <div className="flex items-center mb-1">
                 <input
                   type="checkbox"
-                  id="delayedReturn"
-                  checked={delayedReturn}
-                  onChange={() => setDelayedReturn(prev => !prev)}
+                  id="delayFlagged"
+                  checked={delayFlagged}
+                  onChange={() => setDelayFlagged(prev => !prev)}
                   className="mr-2"
                 />
-                <label htmlFor="delayedReturn" className="text-sm">
+                <label htmlFor="delayFlagged" className="text-sm">
                   Flag Delayed Return (allows return after 7 PM)
                 </label>
               </div>
-              {delayedReturn && (
+              {delayFlagged && (
                 <div className="text-yellow-600 text-xs">
-                  Warning: Warden will be alerted about delayed return. You can now set return time after 7 PM.
+                  Warning: You can now set return time after 7 PM. After approval and exit, use the delay report feature if you are running late.
                 </div>
               )}
-              {!delayedReturn && weekendNote && (
+              {!delayFlagged && weekendNote && (
                 <div className="text-blue-600 text-xs">
                   {weekendNote} Check the box above to allow later return.
                 </div>

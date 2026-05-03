@@ -78,11 +78,18 @@ export default function StudentDashboard() {
       const res = await client.get('/notifications');
       const notifs = res.data.data?.notifications || [];
       setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
+      // Notification model has no `read` field — derive unread from sentAt being null (queued) or channel=IN_APP
+      setUnreadCount(notifs.filter(n => !n.sentAt).length);
     } catch (err) {
-      // TODO: API endpoint needed — GET /api/notifications
-      // Notifications endpoint may not be implemented yet
-      console.warn('Notifications not available:', err.message);
+      if (err.response?.status === 404) {
+        // Endpoint not yet available — stop polling silently, log once
+        console.info('[Notifications] GET /api/notifications returned 404 — polling disabled.');
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+      // All other errors: silently ignore (network blip, etc.)
     }
   };
 
@@ -112,24 +119,19 @@ export default function StudentDashboard() {
     return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
   });
 
-  const markAsRead = async (notificationId) => {
-    try {
-      await client.put(`/notifications/${notificationId}/read`);
-      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
-    }
+  // NOTE: The Notification model has no `read` field in the schema.
+  // Marking as read is local-state-only (optimistic UI) until a read-tracking
+  // migration is added. No backend call is made.
+  const markAsRead = (notificationId) => {
+    setNotifications(prev => prev.map(n =>
+      n.id === notificationId ? { ...n, sentAt: n.sentAt || new Date().toISOString() } : n
+    ));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  const markAllAsRead = async () => {
-    try {
-      await client.put('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (err) {
-      console.error('Error marking all as read:', err);
-    }
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, sentAt: n.sentAt || new Date().toISOString() })));
+    setUnreadCount(0);
   };
 
   const scrollToRequest = (requestId) => {
@@ -229,28 +231,28 @@ export default function StudentDashboard() {
                         <div
                           key={notification.id}
                           className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg ${
-                            notification.read
+                            notification.sentAt
                               ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200'
                               : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 cursor-pointer shadow-sm'
                           }`}
                           onClick={() => {
-                            if (!notification.read) markAsRead(notification.id);
+                            if (!notification.sentAt) markAsRead(notification.id);
                             if (notification.requestId) scrollToRequest(notification.requestId);
                           }}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <p className={`font-semibold text-base ${notification.read ? 'text-gray-700' : 'text-blue-900'}`}>
+                                <p className={`font-semibold text-base ${notification.sentAt ? 'text-gray-700' : 'text-blue-900'}`}>
                                   {notification.title || 'Notification'}
                                 </p>
-                                {!notification.read && (
+                                {!notification.sentAt && (
                                   <span className="px-2 py-1 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse">
                                     NEW
                                   </span>
                                 )}
                               </div>
-                              <p className={`text-sm leading-relaxed ${notification.read ? 'text-gray-600' : 'text-blue-700'}`}>
+                              <p className={`text-sm leading-relaxed ${notification.sentAt ? 'text-gray-600' : 'text-blue-700'}`}>
                                 {notification.message || notification.content || 'No message'}
                               </p>
                               <div className="flex items-center gap-2 mt-3">
@@ -260,12 +262,13 @@ export default function StudentDashboard() {
                                 </p>
                               </div>
                             </div>
-                            {!notification.read && (
+                            {!notification.sentAt && (
                               <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse shadow-lg"></div>
                             )}
                           </div>
                         </div>
                       ))}
+
                   </div>
                 ) : (
                   <div className="p-16 text-center">
@@ -397,14 +400,9 @@ export default function StudentDashboard() {
                   )}
 
                   {/* Approved — show cert link + approval number */}
+                  {/* Note: approvedAt is on ApprovalCertificate (cert.approvedAt), not on OutingRequest */}
                   {req.status === 'APPROVED' && (
                     <div className="space-y-2">
-                      {req.approvedAt && (
-                        <p className="text-sm text-green-600">
-                          <span className="font-medium">Approved At:</span>{' '}
-                          {new Date(req.approvedAt).toLocaleString()}
-                        </p>
-                      )}
                       {req.approvalNumber && (
                         <p className="text-sm text-green-600">
                           <span className="font-medium">Approval Number:</span>{' '}
@@ -425,13 +423,14 @@ export default function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* Rejected — show rejected timestamp + Reapply button */}
+                  {/* Rejected — Reapply button */}
+                  {/* Note: rejectedAt is not a field on OutingRequest — use updatedAt if needed */}
                   {req.status === 'REJECTED' && (
                     <div className="space-y-2">
-                      {req.rejectedAt && (
+                      {req.updatedAt && (
                         <p className="text-sm text-red-600">
                           <span className="font-medium">Rejected At:</span>{' '}
-                          {new Date(req.rejectedAt).toLocaleString()}
+                          {new Date(req.updatedAt).toLocaleString()}
                         </p>
                       )}
                       {/* Step 6.2: Reapply button */}
@@ -445,11 +444,11 @@ export default function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* Cancelled At */}
-                  {req.cancelledAt && req.status === 'CANCELLED' && (
+                  {/* Cancelled reason — cancelledAt does not exist; show updatedAt instead */}
+                  {req.status === 'CANCELLED' && req.updatedAt && (
                     <p className="text-sm text-orange-600">
                       <span className="font-medium">Cancelled At:</span>{' '}
-                      {new Date(req.cancelledAt).toLocaleString()}
+                      {new Date(req.updatedAt).toLocaleString()}
                     </p>
                   )}
                 </div>

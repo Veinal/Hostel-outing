@@ -14,14 +14,15 @@
     "axios": "^1.6.7",
     "qrcode.react": "^3.1.0",
     "html5-qrcode": "^2.3.8",
-    "papaparse": "^5.4.1",
-    "@tailwindcss/vite": "^4.0.0",
-    "daisyui": "^5.0.0"
+    "papaparse": "^5.4.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.1.4",
-    "autoprefixer": "^10.4.19",
-    "tailwindcss": "^4.0.0"
+    "@tailwindcss/vite": "^4.1.5",
+    "tailwindcss": "^4.1.5",
+    "daisyui": "^5.0.35",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3"
   }
 }

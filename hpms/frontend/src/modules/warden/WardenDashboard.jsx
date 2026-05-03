@@ -70,9 +70,17 @@ export default function WardenDashboard() {
       const res = await client.get('/notifications');
       const notifs = res.data.data?.notifications || [];
       setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
+      // Notification model has no `read` field — treat unsent (sentAt=null) as unread
+      setUnreadCount(notifs.filter(n => !n.sentAt).length);
     } catch (err) {
-      // TODO: API endpoint needed — GET /api/notifications
+      if (err.response?.status === 404) {
+        console.info('[Notifications] GET /api/notifications returned 404 — polling disabled.');
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+      // All other errors: silently ignore
     }
   };
 
@@ -132,20 +140,17 @@ export default function WardenDashboard() {
     }
   };
 
-  const markAsRead = async (notificationId) => {
-    try {
-      await client.put(`/notifications/${notificationId}/read`);
-      setNotifications(prev => prev.map(n => n.id === notificationId ? { ...n, read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (err) { /* TODO: notifications API */ }
+  // NOTE: Notification model has no `read` field — local-state-only optimistic marking
+  const markAsRead = (notificationId) => {
+    setNotifications(prev => prev.map(n =>
+      n.id === notificationId ? { ...n, sentAt: n.sentAt || new Date().toISOString() } : n
+    ));
+    setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
-  const markAllAsRead = async () => {
-    try {
-      await client.put('/notifications/read-all');
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (err) { /* TODO: notifications API */ }
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, sentAt: n.sentAt || new Date().toISOString() })));
+    setUnreadCount(0);
   };
 
   const scrollToRequest = (requestId) => {
@@ -229,27 +234,27 @@ export default function WardenDashboard() {
                         <div
                           key={notification.id}
                           className={`p-5 rounded-xl border transition-all duration-300 hover:shadow-lg ${
-                            notification.read ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200 cursor-pointer shadow-sm'
+                            notification.sentAt ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200 cursor-pointer shadow-sm'
                           }`}
                           onClick={() => {
-                            if (!notification.read) markAsRead(notification.id);
+                            if (!notification.sentAt) markAsRead(notification.id);
                             if (notification.requestId) scrollToRequest(notification.requestId);
                           }}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className={`font-semibold text-base mb-1 ${notification.read ? 'text-gray-700' : 'text-blue-900'}`}>
+                              <p className={`font-semibold text-base mb-1 ${notification.sentAt ? 'text-gray-700' : 'text-blue-900'}`}>
                                 {notification.title || 'Notification'}
-                                {!notification.read && <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">NEW</span>}
+                                {!notification.sentAt && <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">NEW</span>}
                               </p>
-                              <p className={`text-sm ${notification.read ? 'text-gray-600' : 'text-blue-700'}`}>
+                              <p className={`text-sm ${notification.sentAt ? 'text-gray-600' : 'text-blue-700'}`}>
                                 {notification.message || 'No message'}
                               </p>
                               <p className="text-xs text-gray-500 mt-2">
                                 {notification.createdAt ? new Date(notification.createdAt).toLocaleString() : ''}
                               </p>
                             </div>
-                            {!notification.read && <div className="w-4 h-4 bg-blue-500 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse"></div>}
+                            {!notification.sentAt && <div className="w-4 h-4 bg-blue-500 rounded-full ml-3 mt-1 flex-shrink-0 animate-pulse"></div>}
                           </div>
                         </div>
                       ))}
