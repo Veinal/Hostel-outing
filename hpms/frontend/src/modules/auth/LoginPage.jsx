@@ -17,7 +17,7 @@ export default function LoginPage() {
       case 'WARDEN':
       case 'CHIEF_WARDEN': return navigate('/warden/dashboard');
       case 'ADMIN': return navigate('/admin/dashboard');
-      case 'SECURITY': return navigate('/gate/scan');
+      case 'SECURITY': return navigate('/gate/dashboard');
       default: return navigate('/');
     }
   };

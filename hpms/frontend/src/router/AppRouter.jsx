@@ -8,6 +8,7 @@ import RequestForm from '../modules/student/RequestForm';
 import CertificatePage from '../modules/student/CertificatePage';
 import WardenDashboard from '../modules/warden/WardenDashboard';
 import GateScannerPage from '../modules/gate/GateScannerPage';
+import SecurityDashboard from '../modules/gate/SecurityDashboard';
 import AdminDashboard from '../modules/admin/AdminDashboard';
 import ManageWardens from '../modules/admin/ManageWardens';
 import ManageStudents from '../modules/admin/ManageStudents';
@@ -93,11 +94,13 @@ export default function AppRouter() {
             </ProtectedRoute>
           } />
           
+
           <Route path="/gate/*" element={
-            <ProtectedRoute allowedRoles={['SECURITY']}>
+            <ProtectedRoute allowedRoles={['SECURITY', 'ADMIN', 'CHIEF_WARDEN']}>
               <Routes>
                 <Route path="scan" element={<GateScannerPage />} />
-                <Route path="*" element={<Navigate to="scan" replace />} />
+                <Route path="dashboard" element={<SecurityDashboard />} />
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
               </Routes>
             </ProtectedRoute>
           } />

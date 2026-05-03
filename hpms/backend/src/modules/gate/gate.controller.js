@@ -18,5 +18,12 @@ export class GateController {
     } catch (err) {
       next(err);
     }
+  static async getScans(req, res, next) {
+    try {
+      const result = await GateService.getScans(req.user, req.query);
+      ApiResponse.success(res, result, 'Scans fetched successfully');
+    } catch (err) {
+      next(err);
+    }
   }
 }

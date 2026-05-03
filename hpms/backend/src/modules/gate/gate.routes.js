@@ -14,5 +14,6 @@ const gateLimiter = rateLimit({
 });
 
 router.post('/scan', authenticate, authorize(ROLES.SECURITY), gateLimiter, GateController.scan);
+router.get('/scans', authenticate, authorize(ROLES.SECURITY, ROLES.ADMIN, ROLES.CHIEF_WARDEN, ROLES.WARDEN), GateController.getScans);
 
 export default router;

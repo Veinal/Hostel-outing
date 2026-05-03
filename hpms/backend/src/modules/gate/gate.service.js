@@ -44,35 +44,48 @@ export class GateService {
       throw new AppError(ERROR_CODES.GATE_QR_EXPIRED, 'Permission expired', 400);
     }
 
+    // Determine scan type from DB state — never trust client
     let scanType;
+    let certificateUpdate;
+
     if (!certificate.exitScannedAt) {
+      // First scan — EXIT
       scanType = 'EXIT';
-    } else if (certificate.exitScannedAt && !certificate.entryScannedAt) {
+      certificateUpdate = {
+        exitScannedAt: new Date(),
+        status: 'STEPPED_OUT'
+      };
+    } else if (!certificate.entryScannedAt) {
+      // Second scan — ENTRY
       scanType = 'ENTRY';
+      certificateUpdate = {
+        entryScannedAt: new Date(),
+        status: 'COMPLETED'
+      };
     } else {
-      throw new AppError(ERROR_CODES.GATE_QR_ALREADY_COMPLETED, 'Already completed', 400);
+      // Both scans done
+      throw new AppError(
+        ERROR_CODES.GATE_QR_ALREADY_COMPLETED,
+        'This permission has already been fully used',
+        400
+      );
     }
 
-    const now = new Date();
-
+    // Run in transaction
     const [scanLog, updatedCertificate] = await db.$transaction([
       db.scanLog.create({
         data: {
           scanType,
-          certificateId,
+          certificateId: certificate.id,
           scannedById,
-          deviceId,
-          ipAddress,
-          scannedAt: now
+          deviceId: deviceId || 'GATE_WEB',
+          scannedAt: new Date(),
+          ipAddress
         }
       }),
       db.approvalCertificate.update({
-        where: { id: certificateId },
-        data: {
-          exitScannedAt: scanType === 'EXIT' ? now : undefined,
-          entryScannedAt: scanType === 'ENTRY' ? now : undefined,
-          status: scanType === 'EXIT' ? 'STEPPED_OUT' : 'COMPLETED'
-        }
+        where: { id: certificate.id },
+        data: certificateUpdate
       })
     ]);
 
@@ -110,5 +123,59 @@ export class GateService {
         entryScannedAt: updatedCertificate.entryScannedAt
       }
     };
+  static async getScans(user, query) {
+    const { date, page = 1, limit = 50 } = query;
+    
+    const targetDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    const [scans, total] = await db.$transaction([
+      db.scanLog.findMany({
+        where: {
+          scannedAt: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        },
+        include: {
+          certificate: {
+            include: {
+              request: {
+                include: {
+                  student: {
+                    select: {
+                      fullName: true,
+                      usn: true,
+                      photoUrl: true,
+                      room: {
+                        include: {
+                          floor: { include: { block: true } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          scannedBy: {
+            select: { fullName: true }
+          }
+        },
+        orderBy: { scannedAt: 'desc' },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit)
+      }),
+      db.scanLog.count({
+        where: {
+          scannedAt: { gte: startOfDay, lte: endOfDay }
+        }
+      })
+    ]);
+    
+    return { scans, total, page: parseInt(page), limit: parseInt(limit) };
   }
 }

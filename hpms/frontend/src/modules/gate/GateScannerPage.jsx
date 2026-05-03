@@ -1,138 +1,202 @@
-import React, { useEffect, useReducer, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { gateApi } from './gateApi';
+import client from '../../api/client';
 import ScanResultOverlay from './ScanResultOverlay';
 import ManualTokenEntry from './ManualTokenEntry';
 
-const initialState = {
-  status: 'IDLE', // IDLE | DECODING | CALLING_API | SUCCESS | ERROR
-  result: null,
-  error: null
-};
-
-function scannerReducer(state, action) {
-  switch (action.type) {
-    case 'START_DECODING':
-      return { ...state, status: 'DECODING' };
-    case 'START_API_CALL':
-      return { ...state, status: 'CALLING_API' };
-    case 'SUCCESS':
-      return { ...state, status: 'SUCCESS', result: action.payload, error: null };
-    case 'ERROR':
-      return { ...state, status: 'ERROR', result: null, error: action.payload };
-    case 'RESET':
-      return initialState;
-    default:
-      return state;
-  }
-}
-
 export default function GateScannerPage() {
-  const [state, dispatch] = useReducer(scannerReducer, initialState);
+  const [scanState, setScanState] = useState('IDLE'); // IDLE | CALLING_API | SUCCESS | ERROR
+  const [resultData, setResultData] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const [showManual, setShowManual] = useState(false);
+  
   const scannerRef = useRef(null);
-  const html5QrCode = useRef(null);
+  const html5QrCodeRef = useRef(null);
+  const isProcessingRef = useRef(false);
 
-  useEffect(() => {
-    html5QrCode.current = new Html5Qrcode("reader");
-
-    const startScanner = async () => {
-      try {
-        await html5QrCode.current.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          onScanSuccess,
-          onScanFailure
-        );
-      } catch (err) {
-        console.warn('Camera failed to start', err);
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      if (html5QrCode.current && html5QrCode.current.isScanning) {
-        html5QrCode.current.stop().catch(console.error);
-      }
-    };
-  }, []);
-
-  const onScanSuccess = (decodedText) => {
-    if (state.status !== 'IDLE') return; // Prevent multiple scans
+  const startScanner = async () => {
+    // If the element doesn't exist yet, wait
+    if (!document.getElementById('qr-scanner-region')) return;
     
-    // Pause scanner natively isn't explicitly supported in v2 in a clean way without stop/start,
-    // but ignoring frames if not IDLE effectively "pauses" the processing logic.
-    dispatch({ type: 'START_DECODING' });
-    handleQrToken(decodedText);
-  };
-
-  const onScanFailure = (error) => {
-    // Ignore frequent scan failures (just means no QR detected yet)
-  };
-
-  const handleQrToken = async (qrToken) => {
-    dispatch({ type: 'START_API_CALL' });
     try {
-      const response = await gateApi.scanQr(qrToken, 'GATE_WEB');
-      dispatch({ type: 'SUCCESS', payload: response.data });
+      // Stop any existing instance first
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+        } catch (e) {
+          // Ignore stop errors
+        }
+      }
       
-      setTimeout(() => {
-        dispatch({ type: 'RESET' });
-      }, 4000);
+      const html5QrCode = new Html5Qrcode('qr-scanner-region');
+      html5QrCodeRef.current = html5QrCode;
+      
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        onScanFailure
+      );
     } catch (err) {
-      dispatch({ 
-        type: 'ERROR', 
-        payload: { 
-          code: err.response?.data?.error?.code || 'UNKNOWN', 
-          message: err.response?.data?.error?.message 
-        } 
-      });
-
-      setTimeout(() => {
-        dispatch({ type: 'RESET' });
-      }, 3000);
+      console.error('Scanner start error:', err);
+      // Only set error if we aren't already showing one
+      if (scanState === 'IDLE') {
+        setErrorMessage('Camera failed to start. Use manual entry.');
+        setScanState('ERROR');
+      }
     }
   };
 
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        html5QrCodeRef.current = null;
+      } catch (e) {
+        console.warn('Stop scanner error:', e);
+      }
+    }
+  };
+
+  const restartScanner = async () => {
+    await stopScanner();
+    // Small delay to let the DOM settle
+    setTimeout(() => startScanner(), 300);
+  };
+
+  const onScanSuccess = async (decodedText) => {
+    // Guard against double-firing
+    if (isProcessingRef.current) return;
+    if (scanState !== 'IDLE') return;
+    
+    isProcessingRef.current = true;
+    setScanState('CALLING_API');
+    
+    try {
+      await stopScanner();
+      const response = await client.post('/gate/scan', {
+        qrToken: decodedText,
+        deviceId: 'GATE_WEB'
+      });
+      setResultData(response.data.data);
+      setScanState('SUCCESS');
+    } catch (err) {
+      setErrorMessage(
+        err.response?.data?.error?.message || 'Scan failed'
+      );
+      setScanState('ERROR');
+    } finally {
+      isProcessingRef.current = false;
+    }
+  };
+
+  const onScanFailure = (error) => {
+    // Ignore frequent scan failures
+  };
+
+  // Start on mount
+  useEffect(() => {
+    startScanner();
+    return () => { stopScanner(); };
+  }, []);
+
+  // Stop scanner while showing result, restart on IDLE
+  useEffect(() => {
+    if (scanState === 'IDLE') {
+      startScanner();
+    } else if (scanState === 'CALLING_API' || 
+               scanState === 'SUCCESS' || 
+               scanState === 'ERROR') {
+      stopScanner();
+    }
+  }, [scanState]);
+
+  // After transitioning to SUCCESS or ERROR: auto-reset after 4s
+  useEffect(() => {
+    if (scanState === 'SUCCESS' || scanState === 'ERROR') {
+      const timer = setTimeout(() => {
+        setScanState('IDLE');
+        setResultData(null);
+        setErrorMessage(null);
+        restartScanner();
+      }, 4000); // 4 seconds display time
+      
+      return () => clearTimeout(timer);
+    }
+  }, [scanState]);
+
   const handleManualScan = (qrToken) => {
     setShowManual(false);
-    handleQrToken(qrToken);
+    onScanSuccess(qrToken);
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 flex flex-col items-center pt-8 pb-12 px-4">
-      <h2 className="text-2xl font-bold text-white mb-6">Gate Scanner App</h2>
+    <div className="min-h-screen bg-slate-900 text-slate-50 flex flex-col items-center pt-8 pb-12 px-4 relative">
       
-      <div className="relative w-full max-w-md bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-800">
-        <div id="reader" className="w-full"></div>
+      {/* Top bar with Dashboard link */}
+      <div className="absolute top-4 right-4 z-10">
+        <a 
+          href="/gate/dashboard"
+          className="bg-slate-700 hover:bg-slate-600 text-white 
+            px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          📋 View Scan Log
+        </a>
+      </div>
+
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Gate Scanner</h1>
+        <p className="text-slate-400">Scan student QR code for entry/exit</p>
+      </div>
+      
+      <div className="relative w-full max-w-md bg-black rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/10 aspect-square flex items-center justify-center">
+        <div id="qr-scanner-region" className="w-full h-full"></div>
         
-        {state.status === 'CALLING_API' && (
-          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
-            <h3 className="text-lg font-medium text-white flex items-center gap-3">
-              <span className="loading loading-spinner loading-sm"></span> Processing...
-            </h3>
+        {scanState === 'CALLING_API' && (
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <h3 className="text-lg font-medium text-white">Verifying Certificate...</h3>
+          </div>
+        )}
+
+        {scanState === 'IDLE' && (
+          <div className="absolute inset-0 pointer-events-none border-[40px] border-black/40">
+            <div className="w-full h-full border-2 border-white/20 rounded-xl relative">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+              
+              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-blue-500/30 animate-pulse"></div>
+            </div>
           </div>
         )}
       </div>
 
-      <div className="mt-8">
+      <div className="mt-10 w-full max-w-md">
         {!showManual ? (
-          <button onClick={() => setShowManual(true)} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition-colors ring-1 ring-slate-700 shadow-sm">
-            Can't scan? Enter manually
+          <button 
+            onClick={() => setShowManual(true)} 
+            className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl font-semibold transition-all border border-white/5 flex items-center justify-center gap-2"
+          >
+            ⌨️ Enter Token Manually
           </button>
         ) : (
-          <div className="bg-slate-800 p-4 rounded-xl ring-1 ring-slate-700 shadow-xl mt-4">
+          <div className="bg-slate-800 p-6 rounded-2xl border border-white/10 shadow-xl">
             <ManualTokenEntry onScanRequest={handleManualScan} onCancel={() => setShowManual(false)} />
           </div>
         )}
       </div>
 
-      {(state.status === 'SUCCESS' || state.status === 'ERROR') && (
+      {(scanState === 'SUCCESS' || scanState === 'ERROR') && (
         <ScanResultOverlay 
-          result={state.result} 
-          error={state.error} 
-          onDismiss={() => dispatch({ type: 'RESET' })}
+          result={resultData} 
+          error={errorMessage} 
+          setScanState={setScanState}
+          setResultData={setResultData}
+          setErrorMessage={setErrorMessage}
         />
       )}
     </div>
