@@ -68,6 +68,7 @@ export default function CertificatePage() {
 
   if (!cert) return null;
 
+  const { request } = cert;
   const { student } = request;
 
   return (
