@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../modules/auth/AuthContext';
 import { useAuth } from '../modules/auth/useAuth';
+import NavBar from '../shared/NavBar';
 import LoginPage from '../modules/auth/LoginPage';
 import StudentDashboard from '../modules/student/StudentDashboard';
 import RequestForm from '../modules/student/RequestForm';
@@ -18,7 +19,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <span className="loading loading-bars loading-lg"></span>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -43,6 +48,7 @@ export default function AppRouter() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <NavBar />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
