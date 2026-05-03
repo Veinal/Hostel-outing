@@ -385,7 +385,7 @@ export default function StudentDashboard() {
                       {req.certificate?.id && (
                         <div className="mt-3">
                           <button
-                            onClick={() => navigate(`/student/certificate/${req.certificate.id}`)}
+                            onClick={() => navigate(`/certificate/${req.certificate.id}`)}
                             className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-105 shadow-sm"
                           >
                             ✅ View Approval Certificate

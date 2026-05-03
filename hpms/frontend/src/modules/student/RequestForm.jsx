@@ -150,7 +150,7 @@ export default function RequestForm() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
-      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 w-full max-w-2xl mx-auto mt-8">
+      <div className="relative z-50 bg-white rounded-2xl shadow-lg border border-slate-200 p-8 w-full max-w-2xl mx-auto mt-8">
         <h2 className="text-2xl font-bold text-slate-800 mb-1">New Outing Request</h2>
         <p className="text-slate-500 text-sm mb-6">
           Fill in the details below to submit your hostel outing request
@@ -170,12 +170,24 @@ export default function RequestForm() {
               <label className="block text-gray-700 font-medium mb-1 text-sm">
                 Request Type <span className="text-red-500 ml-1">*</span>
               </label>
+              {/* pointer-events:auto and position:relative required — 
+                  parent overlay div can intercept clicks without these */}
               <select
                 name="requestType"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                 value={form.requestType}
-                onChange={handleChange}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setDelayFlagged(false);
+                  setWeekendNote('');
+                  setForm(prev => ({
+                    ...prev,
+                    requestType: val,
+                    location: val !== 'OUTING' ? '' : prev.location
+                  }));
+                }}
                 required
+                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer appearance-auto"
               >
                 <option value="" disabled>Select Request Type</option>
                 <option value="OUTING">Outing</option>
@@ -224,9 +236,12 @@ export default function RequestForm() {
             <label className="block text-gray-700 font-medium mb-1 text-sm">
               Select Warden <span className="text-red-500 ml-1">*</span>
             </label>
+            {/* pointer-events:auto and position:relative required — 
+                parent overlay div can intercept clicks without these */}
             <select
               name="wardenId"
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 bg-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer appearance-auto"
+              style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}
               value={form.wardenId}
               onChange={handleChange}
               required

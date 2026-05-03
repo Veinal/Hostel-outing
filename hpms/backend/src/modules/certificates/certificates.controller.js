@@ -4,11 +4,20 @@ import { ApiResponse } from '../../shared/utils/ApiResponse.js';
 export class CertificatesController {
   static async getById(req, res, next) {
     try {
-      // Authorization checks can be added here based on role if needed
-      const certificate = await CertificatesService.getById(req.params.id);
+      const certificate = await CertificatesService.getById(req.params.id, req.user);
       ApiResponse.success(res, { certificate });
     } catch (err) {
       next(err);
+    }
+  }
+
+  static async getCertificateByRequest(req, res, next) {
+    try {
+      const { requestId } = req.params;
+      const certificate = await CertificatesService.getCertificateByRequestId(requestId, req.user);
+      return ApiResponse.success(res, { certificate }, 'Certificate retrieved');
+    } catch (error) {
+      next(error);
     }
   }
 

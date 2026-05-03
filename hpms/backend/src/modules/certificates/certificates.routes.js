@@ -7,7 +7,8 @@ import { ROLES } from '../../shared/constants/roles.js';
 const router = express.Router();
 
 router.get('/approval/:approvalNumber', authenticate, authorize(ROLES.SECURITY), CertificatesController.getByApprovalNumber);
-router.get('/:id', authenticate, CertificatesController.getById);
 router.get('/verify/:qrToken', authenticate, authorize(ROLES.SECURITY), CertificatesController.verify);
+router.get('/by-request/:requestId', authenticate, authorize(ROLES.STUDENT, ROLES.WARDEN, ROLES.CHIEF_WARDEN, ROLES.ADMIN, ROLES.SECURITY), CertificatesController.getCertificateByRequest);
+router.get('/:id', authenticate, authorize(ROLES.STUDENT, ROLES.WARDEN, ROLES.CHIEF_WARDEN, ROLES.ADMIN, ROLES.SECURITY), CertificatesController.getById);
 
 export default router;

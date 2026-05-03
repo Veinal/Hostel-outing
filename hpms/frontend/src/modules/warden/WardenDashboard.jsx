@@ -357,7 +357,7 @@ export default function WardenDashboard() {
                         )}
                         {request.certificate?.id && (
                           <a
-                            href={`/student/certificate/${request.certificate.id}`}
+                            href={`/certificate/${request.certificate.id}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline"

@@ -1,224 +1,349 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { useAuth } from '../auth/useAuth';
 import client from '../../api/client';
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}-${month}-${year}`;
-};
-
-const formatTime = (dateStr) => {
-  if (!dateStr) return 'N/A';
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-};
 
 export default function CertificatePage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [cert, setCert] = useState(null);
+  const printRef = useRef();
+
+  const [certificate, setCertificate] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const certRef = useRef(null);
 
   useEffect(() => {
-    client.get(`/certificates/${id}`)
-      .then(res => setCert(res.data.data.certificate))
-      .catch(() => setError('Failed to load certificate'))
-      .finally(() => setIsLoading(false));
+    const fetchCertificate = async () => {
+      try {
+        setLoading(true);
+        const res = await client.get(`/certificates/${id}`);
+        setCertificate(res.data.data.certificate);
+      } catch (err) {
+        setError(
+          err.response?.data?.error?.message || 
+          'Failed to load certificate'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCertificate();
   }, [id]);
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = () => window.print();
+
+  const formatDateTime = (dt) => {
+    if (!dt) return 'N/A';
+    return new Date(dt).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true
+    });
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading certificate...</p>
-        </div>
+  if (loading) return (
+    <div className="min-h-screen bg-slate-50 flex items-center 
+      justify-center">
+      <div className="text-slate-500 text-lg">
+        Loading certificate...
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-6xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Go Back
-          </button>
-        </div>
+  if (error) return (
+    <div className="min-h-screen bg-slate-50 flex items-center 
+      justify-center">
+      <div className="bg-white rounded-xl p-8 shadow text-center">
+        <p className="text-red-500 font-semibold text-lg">{error}</p>
+        <button 
+          onClick={() => navigate(-1)}
+          className="mt-4 bg-slate-100 hover:bg-slate-200 
+            text-gray-700 px-6 py-2 rounded-lg"
+        >
+          Go Back
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
-  if (!cert) return null;
+  if (!certificate) return null;
 
-  const { request } = cert;
-  const { student } = request;
+  const { request } = certificate;
+  const { student, warden } = request;
+  const room = student?.room;
+  const block = room?.floor?.block;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-3xl mx-auto px-4">
-        {/* Header with Actions */}
-        <div className="flex justify-between items-center mb-6 print:hidden">
-          <button
-            onClick={() => navigate(-1)}
-            className="bg-slate-100 hover:bg-slate-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            ← Back
-          </button>
+    <div className="min-h-screen bg-slate-50 py-8 px-4">
+
+      {/* Action Bar — hidden on print */}
+      <div className="max-w-3xl mx-auto mb-4 flex justify-between 
+        items-center print:hidden">
+        <button
+          onClick={() => navigate(-1)}
+          className="bg-slate-100 hover:bg-slate-200 text-gray-700 
+            px-4 py-2 rounded-lg text-sm font-medium"
+        >
+          ← Back
+        </button>
+        <div className="flex gap-3">
           <button
             onClick={handlePrint}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+            className="bg-blue-500 hover:bg-blue-600 text-white 
+              px-6 py-2 rounded-lg text-sm font-medium"
           >
-            🖨️ Print
+            🖨️ Print / Download PDF
           </button>
         </div>
+      </div>
 
-        {/* Certificate */}
-        <div id="certificate-capture" ref={certRef} className="bg-white rounded-2xl shadow-lg border border-slate-200 w-full print-area">
-          {/* Certificate Header Band */}
-          <div className="bg-slate-800 text-white rounded-t-2xl px-8 py-6 flex justify-between items-center">
+      {/* Certificate Card */}
+      <div 
+        ref={printRef}
+        className="max-w-3xl mx-auto bg-white rounded-2xl 
+          shadow-lg border border-slate-200 overflow-hidden"
+      >
+
+        {/* Header Band */}
+        <div className="bg-slate-800 px-8 py-6 text-white">
+          <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-white font-bold text-2xl">Approval Certificate</h1>
-              <p className="text-slate-300 text-sm mt-1">Hostel Outing Pass</p>
+              <p className="text-slate-400 text-xs uppercase 
+                tracking-widest mb-1">
+                Mangalore Institute of Technology & Engineering
+              </p>
+              <h1 className="text-white font-bold text-2xl">
+                Hostel Outing Permission
+              </h1>
+              <p className="text-slate-300 text-sm mt-1">
+                Official Approval Certificate
+              </p>
             </div>
             <div className="text-right">
-              <span className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-bold inline-block">
-                {request.approvalNumber || cert.id}
+              <span className="bg-emerald-500 text-white px-4 py-1 
+                rounded-full text-sm font-bold block mb-2">
+                {request.approvalNumber}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs 
+                font-semibold ${
+                  certificate.status === 'ACTIVE' 
+                    ? 'bg-blue-500 text-white'
+                  : certificate.status === 'STEPPED_OUT'
+                    ? 'bg-amber-400 text-white'
+                  : certificate.status === 'COMPLETED'
+                    ? 'bg-emerald-500 text-white'
+                  : 'bg-gray-500 text-white'
+                }`}>
+                {certificate.status}
               </span>
             </div>
           </div>
+        </div>
 
-          <div className="p-8">
+        {/* Body */}
+        <div className="p-8">
+          <div className="grid grid-cols-3 gap-8">
 
-          {/* Identity Block */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-start gap-4 sm:gap-6 mb-8 pb-8 border-b border-slate-200">
-            {student.photoUrl ? (
-              <img
-                src={student.photoUrl}
-                alt="Student"
-                crossOrigin="anonymous"
-                referrerPolicy="no-referrer"
-                className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover shadow-sm border border-slate-200"
-              />
-            ) : (
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm bg-slate-50">
-                No Photo
-              </div>
-            )}
-            <div className="text-center sm:text-left">
-              <div className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight mb-2">{student.fullName}</div>
-              <div className="text-sm sm:text-base text-slate-600">
-                <span className="font-medium text-slate-800">USN:</span> {student.usn || 'N/A'}
-              </div>
-              <div className="text-sm text-slate-600 mt-1">
-                {student.branch || 'N/A'} • Year {student.year || 'N/A'}
-              </div>
-            </div>
-          </div>
+            {/* Left Column — Student Details */}
+            <div className="col-span-2 space-y-6">
 
-          {/* Details Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
-                Student Information
-              </h3>
-              <div className="space-y-3">
-                {[
-                  ['Full Name', student.fullName],
-                  ['USN', student.usn || 'N/A'],
-                  ['Branch', student.branch || 'N/A'],
-                  ['Year', student.year || 'N/A'],
-                  ['Block', student.room?.block?.name || 'N/A'],
-                  ['Room', student.room?.displayName || 'N/A'],
-                ].map(([label, val]) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <label className="text-slate-500 text-xs uppercase font-semibold tracking-wide min-w-[100px] flex-shrink-0">{label}:</label>
-                    <p className="text-slate-800 font-medium text-sm sm:text-base">{val}</p>
+              {/* Student Info */}
+              <div>
+                <h2 className="text-slate-500 text-xs uppercase 
+                  font-semibold tracking-wide mb-3 border-b 
+                  border-slate-100 pb-2">
+                  Student Details
+                </h2>
+                <div className="flex items-center gap-4 mb-4">
+                  {student?.photoUrl ? (
+                    <img 
+                      src={student.photoUrl} 
+                      alt={student.fullName}
+                      className="w-16 h-16 rounded-full object-cover 
+                        border-2 border-slate-200"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full 
+                      bg-slate-200 flex items-center justify-center">
+                      <span className="text-slate-500 text-xl font-bold">
+                        {student?.fullName?.[0] || '?'}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-slate-800 font-bold text-xl">
+                      {student?.fullName}
+                    </p>
+                    <p className="text-slate-500 text-sm">
+                      {student?.usn}
+                    </p>
+                    <p className="text-slate-500 text-sm">
+                      {student?.branch} — Year {student?.year}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">Request Details</h3>
-              <div className="space-y-3">
-                {[
-                  ['Request Type', request.requestType],
-                  ['Reason', request.reason],
-                  ['Out Date', formatDate(request.outDateTime)],
-                  ['Out Time', formatTime(request.outDateTime)],
-                  ['Return Date', formatDate(request.expectedReturnDateTime)],
-                  ['Return Time', formatTime(request.expectedReturnDateTime)],
-                ].map(([label, val]) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <label className="text-slate-500 text-xs uppercase font-semibold tracking-wide min-w-[100px] flex-shrink-0">{label}:</label>
-                    <p className="text-slate-800 font-medium text-sm sm:text-base">{val}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase 
+                      font-semibold">Room</p>
+                    <p className="text-slate-800 font-medium">
+                      {room?.displayName || 'N/A'}
+                      {block ? ` (Block ${block.name})` : ''}
+                    </p>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase 
+                      font-semibold">Phone</p>
+                    <p className="text-slate-800 font-medium">
+                      {student?.phone || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Request Details */}
+              <div>
+                <h2 className="text-slate-500 text-xs uppercase 
+                  font-semibold tracking-wide mb-3 border-b 
+                  border-slate-100 pb-2">
+                  Permission Details
+                </h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase 
+                      font-semibold">Request Type</p>
+                    <p className="text-slate-800 font-medium">
+                      {request.requestType?.replace('_', ' ')}
+                    </p>
+                  </div>
+                  {request.location && (
+                    <div>
+                      <p className="text-slate-400 text-xs uppercase 
+                        font-semibold">Destination</p>
+                      <p className="text-slate-800 font-medium">
+                        {request.location}
+                      </p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase 
+                      font-semibold">Reason</p>
+                    <p className="text-slate-800 font-medium">
+                      {request.reason}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs uppercase 
+                      font-semibold">Approved By</p>
+                    <p className="text-slate-800 font-medium">
+                      {warden?.fullName}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timing Details */}
+              <div>
+                <h2 className="text-slate-500 text-xs uppercase 
+                  font-semibold tracking-wide mb-3 border-b 
+                  border-slate-100 pb-2">
+                  Timing
+                </h2>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-blue-50 rounded-lg p-3 
+                    border border-blue-100">
+                    <p className="text-blue-500 text-xs uppercase 
+                      font-semibold mb-1">Expected Departure</p>
+                    <p className="text-slate-800 font-bold">
+                      {formatDateTime(request.outDateTime)}
+                    </p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-3 
+                    border border-emerald-100">
+                    <p className="text-emerald-600 text-xs uppercase 
+                      font-semibold mb-1">Expected Return</p>
+                    <p className="text-slate-800 font-bold">
+                      {formatDateTime(request.expectedReturnDateTime)}
+                    </p>
+                  </div>
+                  {certificate.exitScannedAt && (
+                    <div className="bg-amber-50 rounded-lg p-3 
+                      border border-amber-100">
+                      <p className="text-amber-600 text-xs uppercase 
+                        font-semibold mb-1">Actual Exit</p>
+                      <p className="text-slate-800 font-bold">
+                        {formatDateTime(certificate.exitScannedAt)}
+                      </p>
+                    </div>
+                  )}
+                  {certificate.entryScannedAt && (
+                    <div className="bg-slate-50 rounded-lg p-3 
+                      border border-slate-200">
+                      <p className="text-slate-500 text-xs uppercase 
+                        font-semibold mb-1">Actual Return</p>
+                      <p className="text-slate-800 font-bold">
+                        {formatDateTime(certificate.entryScannedAt)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Column — QR Code */}
+            <div className="col-span-1 flex flex-col items-center 
+              justify-start pt-2">
+              <div className="bg-white border-2 border-slate-200 
+                rounded-xl p-4 flex flex-col items-center gap-3
+                sticky top-4">
+                <p className="text-slate-500 text-xs uppercase 
+                  font-semibold text-center">Scan at Gate</p>
+                {certificate.qrToken ? (
+                  <QRCodeSVG
+                    value={certificate.qrToken}
+                    size={160}
+                    level="H"
+                    includeMargin={true}
+                  />
+                ) : (
+                  <div className="w-40 h-40 bg-slate-100 
+                    flex items-center justify-center rounded-lg">
+                    <p className="text-slate-400 text-xs text-center">
+                      QR not available
+                    </p>
+                  </div>
+                )}
+                <p className="text-slate-400 text-xs text-center">
+                  {request.approvalNumber}
+                </p>
+                <p className="text-slate-400 text-xs text-center">
+                  Valid for single exit + entry
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* QR Code — Step 6 rule: use cert.qrToken directly as QR value */}
-          <div className="text-center mb-8 border-t border-slate-200 pt-8">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Verification QR Code</h3>
-            <div className="inline-block bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-              <QRCodeSVG value={cert.qrToken} size={140} />
-            </div>
-            <p className="text-sm text-slate-500 mt-3">
-              Scan this QR code to verify the approval
-            </p>
-          </div>
-
-          {/* Warden Signature */}
-          <div className="text-right pb-4">
-            <div className="inline-block text-center">
-              <p className="font-semibold text-slate-800 mb-2 text-sm">Approved by:</p>
-              <p className="text-slate-600 mb-3 text-sm">{request.warden?.fullName || 'Warden'}</p>
-              <div className="border-t-2 border-slate-800 w-32 mx-auto mb-1"></div>
-              <p className="text-xs text-slate-500 font-medium">Warden</p>
-            </div>
           </div>
 
           {/* Footer */}
-          <div className="text-center mt-6 pt-6 border-t border-slate-200 text-sm text-slate-500">
-            <p className="mb-1">
-              <strong className="text-slate-700">Valid until:</strong> {formatDate(request.expectedReturnDateTime)}
+          <div className="mt-8 pt-4 border-t border-slate-100 
+            flex justify-between items-center text-xs text-slate-400">
+            <p>
+              Approved on {formatDateTime(certificate.approvedAt)}
             </p>
-            <p className="mb-2">
-              <strong className="text-slate-700">Generated on:</strong> {formatDate(cert.createdAt || new Date())}
-            </p>
-            <p className="text-xs text-slate-400">
-              Keep this document safe and present it when leaving/entering the hostel premises
-            </p>
+            <p>HPMS — MITE Hostel Management</p>
           </div>
-          </div>
+
         </div>
       </div>
 
+      {/* Print Styles */}
       <style>{`
         @media print {
-          .no-print { display: none; }
-          body * { visibility: hidden; }
-          .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+          .print\\:hidden { display: none !important; }
+          body { background: white; }
+          .shadow-lg { box-shadow: none; }
         }
       `}</style>
     </div>

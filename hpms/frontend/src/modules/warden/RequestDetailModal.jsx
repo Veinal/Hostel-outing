@@ -275,7 +275,7 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                 {/* View Certificate for approved */}
                 {request.certificate?.id && (
                   <a
-                    href={`/student/certificate/${request.certificate.id}`}
+                    href={`/certificate/${request.certificate.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block w-full text-center px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors mt-4"

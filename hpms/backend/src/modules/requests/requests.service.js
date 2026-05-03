@@ -111,6 +111,9 @@ export class RequestsService {
         include: {
           student: {
             select: { fullName: true, photoUrl: true, usn: true, room: { select: { displayName: true } } }
+          },
+          certificate: {
+            select: { id: true, status: true }
           }
         }
       }),
@@ -127,7 +130,12 @@ export class RequestsService {
         student: {
           include: { room: { include: { floor: { include: { block: true } } } } }
         },
-        certificate: true
+        warden: {
+          select: { id: true, fullName: true, phone: true, email: true }
+        },
+        certificate: {
+          select: { id: true, status: true }
+        }
       }
     });
 

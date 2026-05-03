@@ -29,14 +29,31 @@ export class CertificatesService {
     return certificate;
   }
 
-  static async getById(id) {
+  static async getById(id, user) {
     const cert = await db.approvalCertificate.findUnique({
       where: { id },
       include: {
         request: {
           include: {
-            student: { include: { room: true } },
-            warden: true
+            student: {
+              include: {
+                room: {
+                  include: {
+                    floor: {
+                      include: { block: true }
+                    }
+                  }
+                }
+              }
+            },
+            warden: {
+              select: {
+                id: true,
+                fullName: true,
+                phone: true,
+                email: true
+              }
+            }
           }
         }
       }
@@ -44,8 +61,55 @@ export class CertificatesService {
 
     if (!cert) throw new AppError(ERROR_CODES.NOT_FOUND, 'Certificate not found', 404);
     
-    // We strip out full details but this returns everything needed
+    const isStudent = user.role === 'STUDENT' && cert.request.studentId === user.sub;
+    const isAssignedWarden = (user.role === 'WARDEN' || user.role === 'CHIEF_WARDEN') && cert.request.wardenId === user.sub;
+    const isAdminOrSecurity = ['ADMIN', 'CHIEF_WARDEN', 'SECURITY'].includes(user.role);
+
+    if (!isStudent && !isAssignedWarden && !isAdminOrSecurity) {
+      throw new AppError(ERROR_CODES.AUTH_UNAUTHORIZED, 'You do not have access to this certificate', 403);
+    }
+
     return cert;
+  }
+
+  static async getCertificateByRequestId(requestId, user) {
+    const certificate = await db.approvalCertificate.findUnique({
+      where: { requestId },
+      include: { 
+        request: { 
+          include: { 
+            student: { 
+              include: { 
+                room: { 
+                  include: { 
+                    floor: { include: { block: true } } 
+                  } 
+                } 
+              } 
+            }, 
+            warden: { 
+              select: { 
+                id: true, fullName: true, phone: true, email: true 
+              } 
+            } 
+          } 
+        } 
+      }
+    });
+    
+    if (!certificate) {
+      throw new AppError(ERROR_CODES.NOT_FOUND, 'Certificate not found', 404);
+    }
+    
+    const isStudent = user.role === 'STUDENT' && certificate.request.studentId === user.sub;
+    const isAssignedWarden = (user.role === 'WARDEN' || user.role === 'CHIEF_WARDEN') && certificate.request.wardenId === user.sub;
+    const isAdminOrSecurity = ['ADMIN', 'CHIEF_WARDEN', 'SECURITY'].includes(user.role);
+
+    if (!isStudent && !isAssignedWarden && !isAdminOrSecurity) {
+      throw new AppError(ERROR_CODES.AUTH_UNAUTHORIZED, 'You do not have access to this certificate', 403);
+    }
+    
+    return certificate;
   }
 
   static async verify(qrToken) {

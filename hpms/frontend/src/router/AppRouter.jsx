@@ -53,6 +53,12 @@ export default function AppRouter() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+          <Route path="/certificate/:id" element={
+            <ProtectedRoute allowedRoles={['STUDENT', 'WARDEN', 'CHIEF_WARDEN', 'ADMIN', 'SECURITY']}>
+              <CertificatePage />
+            </ProtectedRoute>
+          } />
           
           <Route path="/student/*" element={
             <ProtectedRoute allowedRoles={['STUDENT']}>
@@ -60,7 +66,6 @@ export default function AppRouter() {
                 <Route path="dashboard" element={<StudentDashboard />} />
                 <Route path="profile" element={<StudentProfilePage />} />
                 <Route path="requests/new" element={<RequestForm />} />
-                <Route path="certificate/:id" element={<CertificatePage />} />
                 <Route path="*" element={<Navigate to="dashboard" replace />} />
               </Routes>
             </ProtectedRoute>
