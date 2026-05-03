@@ -101,26 +101,30 @@ export default function GateScannerPage() {
   };
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#333', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '20px' }}>
-      <h2>Gate Scanner App</h2>
+    <div className="min-h-screen bg-slate-900 text-slate-50 flex flex-col items-center pt-8 pb-12 px-4">
+      <h2 className="text-2xl font-bold text-white mb-6">Gate Scanner App</h2>
       
-      <div style={{ position: 'relative', width: '100%', maxWidth: '500px', backgroundColor: 'black', borderRadius: '10px', overflow: 'hidden' }}>
-        <div id="reader" style={{ width: '100%' }}></div>
+      <div className="relative w-full max-w-md bg-black rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-800">
+        <div id="reader" className="w-full"></div>
         
         {state.status === 'CALLING_API' && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <h3>Processing...</h3>
+          <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
+            <h3 className="text-lg font-medium text-white flex items-center gap-3">
+              <span className="loading loading-spinner loading-sm"></span> Processing...
+            </h3>
           </div>
         )}
       </div>
 
-      <div style={{ marginTop: '20px' }}>
+      <div className="mt-8">
         {!showManual ? (
-          <button onClick={() => setShowManual(true)} style={{ padding: '10px 20px', fontSize: '1em', cursor: 'pointer' }}>
+          <button onClick={() => setShowManual(true)} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium transition-colors ring-1 ring-slate-700 shadow-sm">
             Can't scan? Enter manually
           </button>
         ) : (
-          <ManualTokenEntry onScanRequest={handleManualScan} onCancel={() => setShowManual(false)} />
+          <div className="bg-slate-800 p-4 rounded-xl ring-1 ring-slate-700 shadow-xl mt-4">
+            <ManualTokenEntry onScanRequest={handleManualScan} onCancel={() => setShowManual(false)} />
+          </div>
         )}
       </div>
 

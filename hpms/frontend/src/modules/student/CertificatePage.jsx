@@ -71,83 +71,74 @@ export default function CertificatePage() {
   const { request } = cert;
   const { student } = request;
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-4 sm:py-6">
-      <div className="max-w-4xl mx-auto px-3 sm:px-4">
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-3xl mx-auto px-4">
         {/* Header with Actions */}
-        <div className="bg-white rounded-lg shadow-lg p-4 mb-4 print:hidden">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1 bg-gray-200 text-gray-700 px-2 sm:px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-300 transition"
-            >
-              ← <span className="hidden sm:inline">Back</span>
-            </button>
-            <div className="flex-grow text-center">
-              <h1 className="text-xl font-bold text-gray-800 mb-1">
-                Hostel Outing Approval Certificate
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"
-              >
-                🖨️ <span className="hidden sm:inline">Print</span>
-              </button>
-            </div>
-          </div>
+        <div className="flex justify-between items-center mb-6 print:hidden">
+          <button
+            onClick={() => navigate(-1)}
+            className="bg-slate-100 hover:bg-slate-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            ← Back
+          </button>
+          <button
+            onClick={handlePrint}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+          >
+            🖨️ Print
+          </button>
         </div>
 
         {/* Certificate */}
-        <div id="certificate-capture" ref={certRef} className="bg-white rounded-lg shadow-lg p-4 sm:p-6 border-2 sm:border-4 border-gray-800 print-area">
-          {/* Approval Number */}
-          <div className="text-center mb-6">
-            <div className="bg-gray-100 rounded-lg p-4 mb-3">
-              <p className="text-gray-600 text-sm sm:text-base mb-1">Approval Number</p>
-              <p className="text-2xl sm:text-3xl font-bold text-green-600 font-mono break-all">
-                {request.approvalNumber || cert.id}
-              </p>
+        <div id="certificate-capture" ref={certRef} className="bg-white rounded-2xl shadow-lg border border-slate-200 w-full print-area">
+          {/* Certificate Header Band */}
+          <div className="bg-slate-800 text-white rounded-t-2xl px-8 py-6 flex justify-between items-center">
+            <div>
+              <h1 className="text-white font-bold text-2xl">Approval Certificate</h1>
+              <p className="text-slate-300 text-sm mt-1">Hostel Outing Pass</p>
             </div>
-            <div className="flex items-center justify-center gap-2 text-green-600">
-              <span>✅</span>
-              <span className="font-semibold text-sm">APPROVED</span>
+            <div className="text-right">
+              <span className="bg-emerald-500 text-white px-4 py-1 rounded-full text-sm font-bold inline-block">
+                {request.approvalNumber || cert.id}
+              </span>
             </div>
           </div>
 
+          <div className="p-8">
+
           {/* Identity Block */}
-          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center gap-4 sm:gap-6 mb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center justify-start gap-4 sm:gap-6 mb-8 pb-8 border-b border-slate-200">
             {student.photoUrl ? (
               <img
                 src={student.photoUrl}
                 alt="Student"
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
-                className="w-28 h-28 sm:w-32 sm:h-32 rounded-md object-cover border-2 border-gray-200 shadow-sm"
+                className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg object-cover shadow-sm border border-slate-200"
               />
             ) : (
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-sm">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-sm bg-slate-50">
                 No Photo
               </div>
             )}
             <div className="text-center sm:text-left">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{student.fullName}</div>
-              <div className="text-sm sm:text-base text-gray-700 mt-1">
-                <span className="font-semibold">USN:</span> {student.usn || 'N/A'}
+              <div className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight mb-2">{student.fullName}</div>
+              <div className="text-sm sm:text-base text-slate-600">
+                <span className="font-medium text-slate-800">USN:</span> {student.usn || 'N/A'}
               </div>
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-slate-600 mt-1">
                 {student.branch || 'N/A'} • Year {student.year || 'N/A'}
               </div>
             </div>
           </div>
 
           {/* Details Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                🔒 Student Information
+              <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">
+                Student Information
               </h3>
-              <div className="space-y-2 sm:space-y-3">
+              <div className="space-y-3">
                 {[
                   ['Full Name', student.fullName],
                   ['USN', student.usn || 'N/A'],
@@ -157,16 +148,16 @@ export default function CertificatePage() {
                   ['Room', student.room?.displayName || 'N/A'],
                 ].map(([label, val]) => (
                   <div key={label} className="flex items-center gap-2">
-                    <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">{label}:</label>
-                    <p className="text-gray-900 text-sm sm:text-base font-medium">{val}</p>
+                    <label className="text-slate-500 text-xs uppercase font-semibold tracking-wide min-w-[100px] flex-shrink-0">{label}:</label>
+                    <p className="text-slate-800 font-medium text-sm sm:text-base">{val}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3">Request Details</h3>
-              <div className="space-y-2 sm:space-y-3">
+              <h3 className="text-lg font-bold text-slate-800 mb-4 pb-2 border-b border-slate-200">Request Details</h3>
+              <div className="space-y-3">
                 {[
                   ['Request Type', request.requestType],
                   ['Reason', request.reason],
@@ -176,8 +167,8 @@ export default function CertificatePage() {
                   ['Return Time', formatTime(request.expectedReturnDateTime)],
                 ].map(([label, val]) => (
                   <div key={label} className="flex items-center gap-2">
-                    <label className="font-semibold text-gray-700 text-sm min-w-[80px] flex-shrink-0">{label}:</label>
-                    <p className="text-gray-900 text-sm sm:text-base font-medium">{val}</p>
+                    <label className="text-slate-500 text-xs uppercase font-semibold tracking-wide min-w-[100px] flex-shrink-0">{label}:</label>
+                    <p className="text-slate-800 font-medium text-sm sm:text-base">{val}</p>
                   </div>
                 ))}
               </div>
@@ -185,37 +176,38 @@ export default function CertificatePage() {
           </div>
 
           {/* QR Code — Step 6 rule: use cert.qrToken directly as QR value */}
-          <div className="text-center mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Verification QR Code</h3>
-            <div className="inline-block bg-gray-100 p-3 rounded-lg">
-              <QRCodeSVG value={cert.qrToken} size={120} />
+          <div className="text-center mb-8 border-t border-slate-200 pt-8">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Verification QR Code</h3>
+            <div className="inline-block bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+              <QRCodeSVG value={cert.qrToken} size={140} />
             </div>
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-sm text-slate-500 mt-3">
               Scan this QR code to verify the approval
             </p>
           </div>
 
           {/* Warden Signature */}
-          <div className="text-right border-t pt-4">
+          <div className="text-right pb-4">
             <div className="inline-block text-center">
-              <p className="font-semibold text-gray-800 mb-1 text-sm">Approved by:</p>
-              <p className="text-gray-600 mb-2 text-sm">{request.warden?.fullName || 'Warden'}</p>
-              <div className="border-t-2 border-gray-800 w-24 mx-auto mb-1"></div>
-              <p className="text-xs text-gray-600">Warden</p>
+              <p className="font-semibold text-slate-800 mb-2 text-sm">Approved by:</p>
+              <p className="text-slate-600 mb-3 text-sm">{request.warden?.fullName || 'Warden'}</p>
+              <div className="border-t-2 border-slate-800 w-32 mx-auto mb-1"></div>
+              <p className="text-xs text-slate-500 font-medium">Warden</p>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="text-center mt-6 text-xs text-gray-600">
+          <div className="text-center mt-6 pt-6 border-t border-slate-200 text-sm text-slate-500">
             <p className="mb-1">
-              <strong>Valid until:</strong> {formatDate(request.expectedReturnDateTime)}
+              <strong className="text-slate-700">Valid until:</strong> {formatDate(request.expectedReturnDateTime)}
             </p>
-            <p className="mb-1">
-              <strong>Generated on:</strong> {formatDate(cert.createdAt || new Date())}
+            <p className="mb-2">
+              <strong className="text-slate-700">Generated on:</strong> {formatDate(cert.createdAt || new Date())}
             </p>
-            <p className="text-xs">
+            <p className="text-xs text-slate-400">
               Keep this document safe and present it when leaving/entering the hostel premises
             </p>
+          </div>
           </div>
         </div>
       </div>

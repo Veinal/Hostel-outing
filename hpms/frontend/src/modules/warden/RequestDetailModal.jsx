@@ -77,92 +77,96 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
     }
   };
 
-  const statusBadge = {
-    PENDING: 'badge badge-warning',
-    APPROVED: 'badge badge-success',
-    REJECTED: 'badge badge-error',
-    CANCELLED: 'badge badge-ghost',
-    OVERDUE: 'badge badge-neutral',
+  const getStatusBadge = (status) => {
+    const map = {
+      PENDING:   'bg-amber-400 text-white',
+      APPROVED:  'bg-emerald-500 text-white',
+      REJECTED:  'bg-red-500 text-white',
+      CANCELLED: 'bg-gray-500 text-white',
+      OVERDUE:   'bg-orange-500 text-white',
+      COMPLETED: 'bg-blue-500 text-white',
+    };
+    return `px-3 py-1 rounded-full text-xs font-semibold ${map[status] || 'bg-slate-300 text-slate-700'}`;
   };
 
   return (
     <div
-      className="fixed inset-0 bg-gradient-to-br from-black/40 to-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-2xl">
-          <h2 className="text-xl font-bold text-gray-800">Request Details</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-all">
+        <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50 rounded-t-2xl">
+          <h2 className="text-xl font-bold text-slate-800">Request Details</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 text-slate-500 rounded-full transition-all">
             ✕
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Student Profile Block */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
               👤 Student Profile
             </h3>
-            <div className="flex items-center gap-4 mb-3">
+            <div className="flex items-center gap-4 mb-4">
               {/* Step 5: Student photo */}
               {student?.photoUrl ? (
                 <img
                   src={student.photoUrl}
                   alt="Student"
-                  className="w-20 h-20 rounded-lg object-cover border-2 border-gray-200 shadow-sm"
+                  className="w-20 h-20 rounded-lg object-cover shadow-sm border border-slate-200"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs">
+                <div className="w-20 h-20 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs bg-white">
                   No Photo
                 </div>
               )}
               <div>
-                <p className="font-bold text-gray-800 text-base">{student?.fullName}</p>
-                <p className="text-sm text-gray-600">USN: {student?.usn}</p>
-                <p className="text-sm text-gray-600">Room: {student?.room?.displayName || 'N/A'}</p>
+                <p className="font-bold text-slate-800 text-base mb-1">{student?.fullName}</p>
+                <p className="text-sm text-slate-600">USN: {student?.usn}</p>
+                <p className="text-sm text-slate-600">Room: {student?.room?.displayName || 'N/A'}</p>
               </div>
             </div>
-            <div className="space-y-1 text-sm">
-              <p><span className="font-medium text-gray-700">Phone:</span> {student?.phone || 'N/A'}</p>
+            <div className="space-y-1.5 text-sm">
+              <p><span className="font-medium text-slate-700">Phone:</span> <span className="text-slate-600">{student?.phone || 'N/A'}</span></p>
               {/* Step 4: Parent phone — only for HOME_GOING */}
               {request.requestType === 'HOME_GOING' && student?.parentPhone && (
-                <p className="text-blue-700">
+                <p className="text-blue-600">
                   <span className="font-medium">Parent Phone:</span> {student.parentPhone}
-                  <span className="ml-1 text-xs bg-blue-100 text-blue-700 px-1 rounded">HOME GOING</span>
+                  <span className="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">HOME GOING</span>
                 </p>
               )}
             </div>
           </div>
 
           {/* Request Details Block */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-            <h3 className="font-bold text-gray-700 mb-3">📋 Request Details</h3>
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-700">Status:</span>
-                <span className={`${statusBadge[request.status] || 'badge badge-ghost'}`}>{request.status}</span>
+          <div className="bg-slate-50 rounded-xl p-5 border border-slate-200">
+            <h3 className="font-bold text-slate-700 mb-4">📋 Request Details</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-slate-700">Status:</span>
+                <span className={getStatusBadge(request.status)}>{request.status}</span>
               </div>
-              <p><span className="font-medium text-gray-700">Type:</span> {request.requestType}</p>
-              <p><span className="font-medium text-gray-700">Reason:</span> {request.reason}</p>
-              {request.location && <p><span className="font-medium text-gray-700">Location:</span> {request.location}</p>}
-              <p><span className="font-medium text-gray-700">Out Time:</span> {request.outDateTime ? new Date(request.outDateTime).toLocaleString() : 'N/A'}</p>
-              <p><span className="font-medium text-gray-700">Expected Return:</span> {request.expectedReturnDateTime ? new Date(request.expectedReturnDateTime).toLocaleString() : 'N/A'}</p>
+              <p><span className="font-medium text-slate-700">Type:</span> <span className="text-slate-600">{request.requestType}</span></p>
+              <p><span className="font-medium text-slate-700">Reason:</span> <span className="text-slate-600">{request.reason}</span></p>
+              {request.location && <p><span className="font-medium text-slate-700">Location:</span> <span className="text-slate-600">{request.location}</span></p>}
+              <p><span className="font-medium text-slate-700">Out Time:</span> <span className="text-slate-600">{request.outDateTime ? new Date(request.outDateTime).toLocaleString() : 'N/A'}</span></p>
+              <p><span className="font-medium text-slate-700">Expected Return:</span> <span className="text-slate-600">{request.expectedReturnDateTime ? new Date(request.expectedReturnDateTime).toLocaleString() : 'N/A'}</span></p>
               {request.rejectionReason && (
-                <p className="text-red-600"><span className="font-medium">Rejection Reason:</span> {request.rejectionReason}</p>
+                <p className="text-red-600 mt-2"><span className="font-medium">Rejection Reason:</span> {request.rejectionReason}</p>
               )}
               {request.cancelReason && (
-                <p className="text-orange-600"><span className="font-medium">Cancellation Reason:</span> {request.cancelReason}</p>
+                <p className="text-orange-600 mt-2"><span className="font-medium">Cancellation Reason:</span> {request.cancelReason}</p>
               )}
               {/* Approval number */}
               {request.approvalNumber && (
-                <p className="text-green-700">
+                <p className="text-emerald-600 mt-2">
                   <span className="font-medium">Approval Number:</span>{' '}
-                  <span className="font-mono font-bold">{request.approvalNumber}</span>
+                  <span className="font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">{request.approvalNumber}</span>
                 </p>
               )}
             </div>
@@ -177,31 +181,31 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                   <button
                     onClick={handleApprove}
                     disabled={loading}
-                    className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                   >
                     ✅ Approve
                   </button>
                   <button
                     onClick={() => { setShowRejectInput(!showRejectInput); setShowCancelInput(false); setShowParentCancelInput(false); }}
                     disabled={loading}
-                    className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                   >
                     ❌ Reject
                   </button>
                 </div>
                 {showRejectInput && (
-                  <div>
+                  <div className="mt-3">
                     <textarea
                       value={rejectionReason}
                       onChange={(e) => setRejectionReason(e.target.value)}
                       placeholder="Reason for rejection (minimum 10 characters)"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-red-200 text-sm"
+                      className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm bg-white"
                       rows={3}
                     />
                     <button
                       onClick={handleReject}
                       disabled={loading}
-                      className="mt-2 w-full px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                      className="mt-2 w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                     >
                       Confirm Rejection
                     </button>
@@ -217,7 +221,7 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                   <button
                     onClick={() => { setShowCancelInput(!showCancelInput); setShowParentCancelInput(false); }}
                     disabled={loading}
-                    className="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-slate-500 hover:bg-slate-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                   >
                     🚫 Cancel Request
                   </button>
@@ -225,43 +229,43 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                   <button
                     onClick={() => { setShowParentCancelInput(!showParentCancelInput); setShowCancelInput(false); }}
                     disabled={loading}
-                    className="flex-1 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                   >
                     👨‍👩‍👦 Cancel (Parent Request)
                   </button>
                 </div>
                 {showCancelInput && (
-                  <div>
+                  <div className="mt-3">
                     <textarea
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                       placeholder="Cancellation reason"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-gray-200 text-sm"
+                      className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 text-sm bg-white"
                       rows={2}
                     />
                     <button
                       onClick={handleCancel}
                       disabled={loading}
-                      className="mt-2 w-full px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                      className="mt-2 w-full px-4 py-2.5 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                     >
                       Confirm Cancellation
                     </button>
                   </div>
                 )}
                 {showParentCancelInput && (
-                  <div>
-                    <p className="text-xs text-orange-600 mb-1 font-medium">Parent-requested cancellation — reason will be prefixed with "Parent Request:"</p>
+                  <div className="mt-3">
+                    <p className="text-xs text-orange-600 mb-2 font-medium">Parent-requested cancellation — reason will be prefixed with "Parent Request:"</p>
                     <textarea
                       value={parentCancelReason}
                       onChange={(e) => setParentCancelReason(e.target.value)}
                       placeholder="Parent's reason for cancellation"
-                      className="w-full p-2 border border-orange-300 rounded-md focus:outline-none focus:ring focus:ring-orange-200 text-sm"
+                      className="w-full p-3 border border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-sm bg-orange-50"
                       rows={2}
                     />
                     <button
                       onClick={handleParentCancel}
                       disabled={loading}
-                      className="mt-2 w-full px-4 py-2 bg-orange-700 hover:bg-orange-800 text-white font-semibold rounded-lg transition-all disabled:opacity-50"
+                      className="mt-2 w-full px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
                     >
                       Confirm Parent Cancellation
                     </button>
@@ -274,7 +278,7 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                     href={`/student/certificate/${request.certificate.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block w-full text-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all"
+                    className="block w-full text-center px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors mt-4"
                   >
                     📜 View Certificate
                   </a>

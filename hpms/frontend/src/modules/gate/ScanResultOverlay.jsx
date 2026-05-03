@@ -3,11 +3,12 @@ import React from 'react';
 export default function ScanResultOverlay({ result, error, onDismiss }) {
   if (error) {
     return (
-      <div style={overlayStyle('red')}>
-        <div style={cardStyle}>
-          <h2>❌ Error</h2>
-          <p style={{ fontSize: '1.2em' }}>{getErrorMessage(error.code) || error.message || 'Unknown error'}</p>
-          <button onClick={onDismiss} style={btnStyle}>Dismiss</button>
+      <div className="fixed inset-0 bg-red-600/95 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+        <div className="bg-white p-8 rounded-2xl text-center w-full max-w-sm shadow-2xl text-slate-800">
+          <div className="text-red-500 text-5xl mb-4">❌</div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Error</h2>
+          <p className="text-lg font-medium text-slate-600 mb-6">{getErrorMessage(error.code) || error.message || 'Unknown error'}</p>
+          <button onClick={onDismiss} className="w-full py-3 bg-red-100 text-red-700 hover:bg-red-200 rounded-xl font-bold transition-colors">Dismiss</button>
         </div>
       </div>
     );
@@ -16,27 +17,28 @@ export default function ScanResultOverlay({ result, error, onDismiss }) {
   if (result) {
     const { scanType, student, permission } = result;
     return (
-      <div style={overlayStyle('green')}>
-        <div style={cardStyle}>
-          <h2>{scanType === 'EXIT' ? '✓ EXIT LOGGED' : '✓ ENTRY LOGGED'}</h2>
+      <div className="fixed inset-0 bg-emerald-600/95 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+        <div className="bg-white p-8 rounded-2xl text-center w-full max-w-sm shadow-2xl text-slate-800">
+          <div className="text-emerald-500 text-5xl mb-4">✅</div>
+          <h2 className="text-xl font-bold text-slate-800 mb-6">{scanType === 'EXIT' ? 'EXIT LOGGED' : 'ENTRY LOGGED'}</h2>
           
-          <div style={{ margin: '20px 0' }}>
+          <div>
             {student.photoUrl ? (
-              <img src={student.photoUrl} alt="student" style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={student.photoUrl} alt="student" className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 shadow-md mx-auto mb-4" />
             ) : (
-              <div style={{ width: 100, height: 100, borderRadius: '50%', backgroundColor: '#eee', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No Photo</div>
+              <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-slate-50 flex items-center justify-center text-slate-400 mx-auto mb-4 text-sm font-medium shadow-sm">No Photo</div>
             )}
           </div>
           
-          <h3>{student.fullName}</h3>
-          <p>{student.usn} | {student.room}</p>
+          <h3 className="text-xl font-bold text-slate-800">{student.fullName}</h3>
+          <p className="text-slate-500 text-sm mb-6">{student.usn} | {student.room}</p>
           
-          <div style={{ marginTop: '20px', textAlign: 'left', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '5px' }}>
-            <p><strong>Type:</strong> {permission.requestType}</p>
-            {scanType === 'EXIT' && <p><strong>Expected Return:</strong><br/>{new Date(permission.expectedReturnDateTime).toLocaleString()}</p>}
+          <div className="text-left bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 text-sm text-slate-600 space-y-2">
+            <p><strong className="text-slate-800 font-semibold mr-1">Type:</strong> {permission.requestType}</p>
+            {scanType === 'EXIT' && <p><strong className="text-slate-800 font-semibold block mb-0.5">Expected Return:</strong> {new Date(permission.expectedReturnDateTime).toLocaleString()}</p>}
           </div>
           
-          <button onClick={onDismiss} style={{...btnStyle, marginTop: '20px'}}>Dismiss</button>
+          <button onClick={onDismiss} className="w-full py-3 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-xl font-bold transition-colors">Dismiss</button>
         </div>
       </div>
     );
@@ -54,30 +56,4 @@ const getErrorMessage = (code) => {
     case 'AUTH_UNAUTHORIZED': return "Scanner not authorized";
     default: return null;
   }
-};
-
-const overlayStyle = (color) => ({
-  position: 'fixed',
-  top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: color === 'red' ? 'rgba(255,0,0,0.85)' : 'rgba(0,128,0,0.85)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000
-});
-
-const cardStyle = {
-  backgroundColor: 'white',
-  padding: '30px',
-  borderRadius: '10px',
-  textAlign: 'center',
-  width: '90%',
-  maxWidth: '400px',
-  color: 'black'
-};
-
-const btnStyle = {
-  padding: '10px 20px',
-  fontSize: '1em',
-  cursor: 'pointer'
 };
