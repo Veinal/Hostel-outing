@@ -1,9 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting seed...');
+
+  const hashPassword = async (pwd) => await bcrypt.hash(pwd, 10);
 
   // 1. Create Branches
   const cse = await prisma.branch.upsert({ where: { code: 'CSE' }, update: {}, create: { name: 'Computer Science', code: 'CSE' } });
@@ -16,7 +19,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@hpms.college',
-      passwordHash: 'hashed_Admin@123', // Just a placeholder for seed
+      passwordHash: await hashPassword('Admin@123'),
       role: 'ADMIN',
       fullName: 'System Admin'
     }
@@ -27,7 +30,7 @@ async function main() {
     update: {},
     create: {
       email: 'security@hpms.college',
-      passwordHash: 'hashed_Security@123',
+      passwordHash: await hashPassword('Security@123'),
       role: 'SECURITY',
       fullName: 'Gate Security'
     }
@@ -38,7 +41,7 @@ async function main() {
     update: {},
     create: {
       email: 'warden@hpms.college',
-      passwordHash: 'hashed_Warden@123',
+      passwordHash: await hashPassword('Warden@123'),
       role: 'WARDEN',
       fullName: 'Hostel Warden'
     }
@@ -97,7 +100,7 @@ async function main() {
     update: {},
     create: {
       email: 'student@hpms.college',
-      passwordHash: 'hashed_Student@123',
+      passwordHash: await hashPassword('Student@123'),
       role: 'STUDENT',
       fullName: 'John Doe',
       usn: '1DS20CS001',
