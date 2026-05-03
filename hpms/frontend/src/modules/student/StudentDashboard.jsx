@@ -3,33 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import client from '../../api/client';
 import { useAuth } from '../auth/useAuth';
 
-// Status config matching old version exactly
-const statusStyles = {
-  APPROVED: {
-    icon: '✅',
-    bg: 'bg-green-50 border-green-200',
-    text: 'text-green-700',
-  },
-  PENDING: {
-    icon: '⏳',
-    bg: 'bg-yellow-50 border-yellow-200',
-    text: 'text-yellow-700',
-  },
-  REJECTED: {
-    icon: '❌',
-    bg: 'bg-red-50 border-red-200',
-    text: 'text-red-700',
-  },
-  CANCELLED: {
-    icon: '🚫',
-    bg: 'bg-orange-50 border-orange-200',
-    text: 'text-orange-700',
-  },
-  OVERDUE: {
-    icon: '⏰',
-    bg: 'bg-gray-100 border-gray-300',
-    text: 'text-gray-500',
-  },
+const getStatusBadge = (status) => {
+  const map = {
+    PENDING:   'bg-amber-400 text-white',
+    APPROVED:  'bg-emerald-500 text-white',
+    REJECTED:  'bg-red-500 text-white',
+    CANCELLED: 'bg-gray-500 text-white',
+    OVERDUE:   'bg-orange-500 text-white',
+    COMPLETED: 'bg-blue-500 text-white',
+  };
+  return map[status] || 'bg-slate-300 text-slate-700';
 };
 
 const formatDate = (dateStr) => {
@@ -147,12 +130,12 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto p-8 mt-3">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-4 md:space-y-0">
           <div>
-            <h2 className="text-3xl font-bold">My Outing Requests</h2>
-            <p className="text-base text-gray-600">Manage and track your hostel outing requests</p>
+            <h2 className="text-3xl font-bold text-slate-800">My Outing Requests</h2>
+            <p className="text-slate-500 text-sm mt-1">Manage and track your hostel outing requests</p>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Notifications Button */}
@@ -171,8 +154,8 @@ export default function StudentDashboard() {
               )}
             </button>
             <Link to="/student/requests/new">
-              <button className="flex items-center px-3 py-2.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm w-full md:w-auto">
-                <span className="mr-2">➕</span> New Request
+              <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-colors w-full md:w-auto">
+                <span className="mr-1">➕</span> New Request
               </button>
             </Link>
           </div>
@@ -288,36 +271,31 @@ export default function StudentDashboard() {
         )}
 
         {/* Filter and Sort Bar */}
-        <div className="bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3 flex-wrap mb-8">
           <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
-            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Filter:</span>
-            <button onClick={() => setFilter('All')} className={`flex items-center gap-1 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors ${filter === 'All' ? 'bg-blue-100 ring-2 ring-blue-300' : ''}`}>
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>All
-            </button>
-            <button onClick={() => setFilter('Pending')} className={`flex items-center gap-1 text-yellow-600 hover:bg-yellow-100 px-2 py-1 rounded-md transition-colors ${filter === 'Pending' ? 'bg-yellow-100 ring-2 ring-yellow-300' : ''}`}>
-              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending
-            </button>
-            <button onClick={() => setFilter('Approved')} className={`flex items-center gap-1 text-green-600 hover:bg-green-100 px-2 py-1 rounded-md transition-colors ${filter === 'Approved' ? 'bg-green-100 ring-2 ring-green-300' : ''}`}>
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>Approved
-            </button>
-            <button onClick={() => setFilter('Rejected')} className={`flex items-center gap-1 text-red-600 hover:bg-red-100 px-2 py-1 rounded-md transition-colors ${filter === 'Rejected' ? 'bg-red-100 ring-2 ring-red-300' : ''}`}>
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected
-            </button>
-            <button onClick={() => setFilter('Cancelled')} className={`flex items-center gap-1 text-orange-600 hover:bg-orange-100 px-2 py-1 rounded-md transition-colors ${filter === 'Cancelled' ? 'bg-orange-100 ring-2 ring-orange-300' : ''}`}>
-              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>Cancelled
-            </button>
-            <button onClick={() => setFilter('Overdue')} className={`flex items-center gap-1 text-gray-600 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors ${filter === 'Overdue' ? 'bg-gray-100 ring-2 ring-gray-300' : ''}`}>
-              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>Overdue
-            </button>
+            <span className="text-slate-600 font-medium text-sm mr-2">Filter:</span>
+            {statuses.map(statusLabel => (
+              <button
+                key={statusLabel}
+                onClick={() => setFilter(statusLabel)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                  filter === statusLabel 
+                    ? (statusLabel === 'All' ? 'bg-blue-500 text-white shadow-sm' : getStatusBadge(statusLabel.toUpperCase()) + ' shadow-sm')
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {statusLabel}
+              </button>
+            ))}
           </div>
 
           {/* Sort Buttons */}
           <div className="flex flex-wrap gap-2 text-sm items-center mt-3 md:mt-0">
-            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Sort:</span>
-            <button onClick={() => setSortBy('Latest')} className={`flex items-center gap-1 text-purple-600 hover:bg-purple-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Latest' ? 'bg-purple-100 ring-2 ring-purple-300' : ''}`}>
+            <span className="text-slate-600 font-medium text-sm mr-2">Sort:</span>
+            <button onClick={() => setSortBy('Latest')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${sortBy === 'Latest' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               Latest
             </button>
-            <button onClick={() => setSortBy('Oldest')} className={`flex items-center gap-1 text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Oldest' ? 'bg-indigo-100 ring-2 ring-indigo-300' : ''}`}>
+            <button onClick={() => setSortBy('Oldest')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${sortBy === 'Oldest' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               Oldest
             </button>
           </div>
@@ -332,55 +310,49 @@ export default function StudentDashboard() {
           <div className="grid md:grid-cols-3 gap-6">
             {sortedRequests.map((req) => {
               const statusKey = req.status?.toUpperCase() || 'PENDING';
-              const styles = statusStyles[statusKey] || {
-                icon: '⏳',
-                bg: 'bg-gray-50 border-gray-200',
-                text: 'text-gray-700',
-              };
 
               return (
                 <div
                   key={req.id}
                   id={`request-${req.id}`}
-                  className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4 ${highlightedRequest === req.id ? 'ring-4 ring-blue-400 ring-opacity-60' : ''}`}
+                  className={`bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow ${highlightedRequest === req.id ? 'ring-2 ring-blue-500' : ''}`}
                 >
                   <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center space-x-2">
-                      <span>{styles.icon}</span>
-                      <span className={`font-semibold ${styles.text}`}>{req.status || 'Unknown'}</span>
-                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(statusKey)}`}>
+                      {req.status || 'UNKNOWN'}
+                    </span>
                   </div>
 
-                  <h3 className="text-lg font-semibold mb-3">{req.requestType || 'Outing Request'}</h3>
+                  <h3 className="text-slate-800 font-semibold text-lg mb-3">{req.requestType || 'Outing Request'}</h3>
 
                   {/* Out Date and Out Time */}
-                  <div className="flex items-center text-sm text-gray-700 mb-1">
-                    <span className="mr-1">📅</span>
+                  <div className="flex items-center text-slate-500 text-sm mb-1">
+                    <span className="mr-2">📅</span>
                     <span>
-                      <b>Out Date:</b>{' '}
+                      <b className="text-slate-700">Out Date:</b>{' '}
                       {req.outDateTime ? formatDate(req.outDateTime) : 'N/A'}{' '}
                       {req.outDateTime ? `at ${new Date(req.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
                   </div>
 
                   {/* Return Date and Return Time */}
-                  <div className="flex items-center text-sm text-gray-700 mb-2">
-                    <span className="mr-1">🕐</span>
+                  <div className="flex items-center text-slate-500 text-sm mb-2">
+                    <span className="mr-2">🕐</span>
                     <span>
-                      <b>Return Date:</b>{' '}
+                      <b className="text-slate-700">Return Date:</b>{' '}
                       {req.expectedReturnDateTime ? formatDate(req.expectedReturnDateTime) : 'N/A'}{' '}
                       {req.expectedReturnDateTime ? `at ${new Date(req.expectedReturnDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
                   </div>
 
-                  <hr className="my-3" />
+                  <hr className="my-3 border-slate-200" />
 
-                  <p className="text-sm">
-                    <span className="font-medium">Warden:</span> {req.warden?.fullName || 'N/A'}
+                  <p className="text-slate-500 text-sm mb-1">
+                    <span className="font-medium text-slate-700">Warden:</span> {req.warden?.fullName || 'N/A'}
                   </p>
-                  <p className="text-sm flex items-center flex-nowrap">
-                    <span className="font-medium">Reason:</span>
-                    <span className="truncate ml-1 max-w-[13rem] inline-block align-bottom" title={req.reason}>
+                  <p className="text-slate-500 text-sm flex items-center flex-nowrap mb-2">
+                    <span className="font-medium text-slate-700 mr-1">Reason:</span>
+                    <span className="truncate max-w-[13rem] inline-block align-bottom" title={req.reason}>
                       {req.reason || 'N/A'}
                     </span>
                   </p>
@@ -456,7 +428,7 @@ export default function StudentDashboard() {
             })}
           </div>
         ) : (
-          <p className="text-center text-gray-600">No requests found.</p>
+          <p className="text-center text-slate-400 py-16 text-lg">No requests found.</p>
         )}
       </div>
 

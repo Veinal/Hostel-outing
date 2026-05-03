@@ -2,32 +2,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import client from '../../api/client';
 import RequestDetailModal from './RequestDetailModal';
 
-const statusStyles = {
-  pending: {
-    icon: '⏳',
-    bg: 'bg-yellow-50 border-yellow-200',
-    text: 'text-yellow-700',
-  },
-  approved: {
-    icon: '✅',
-    bg: 'bg-green-50 border-green-200',
-    text: 'text-green-700',
-  },
-  rejected: {
-    icon: '❌',
-    bg: 'bg-red-50 border-red-200',
-    text: 'text-red-700',
-  },
-  cancelled: {
-    icon: '🚫',
-    bg: 'bg-orange-50 border-orange-200',
-    text: 'text-orange-700',
-  },
-  overdue: {
-    icon: '⏰',
-    bg: 'bg-gray-100 border-gray-300',
-    text: 'text-gray-500',
-  },
+const getStatusBadge = (status) => {
+  const map = {
+    PENDING:   'bg-amber-400 text-white',
+    APPROVED:  'bg-emerald-500 text-white',
+    REJECTED:  'bg-red-500 text-white',
+    CANCELLED: 'bg-gray-500 text-white',
+    OVERDUE:   'bg-orange-500 text-white',
+    COMPLETED: 'bg-blue-500 text-white',
+  };
+  return map[status] || 'bg-slate-300 text-slate-700';
 };
 
 const formatDate = (dateStr) => {
@@ -166,12 +150,12 @@ export default function WardenDashboard() {
   };
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto p-8 mt-3">
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 space-y-4 md:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800">Warden Dashboard</h1>
-            <p className="text-gray-500 mt-1">Manage and review student outing requests</p>
+            <h1 className="text-3xl font-bold text-slate-800">Warden Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-1">Manage and review student outing requests</p>
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Notifications Button */}
@@ -271,34 +255,36 @@ export default function WardenDashboard() {
         )}
 
         {/* Filter and Sort Section */}
-        <div className="mt-6 bg-white p-4 rounded-md shadow flex flex-col md:flex-row md:items-center md:justify-between">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-3 flex-wrap mt-6 mb-8">
           <div className="flex flex-wrap gap-2 mb-3 md:mb-0 items-center">
-            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Filter:</span>
-            <button onClick={() => setFilter('All')} className={`flex items-center gap-1 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors ${filter === 'All' ? 'bg-blue-100 ring-2 ring-blue-300' : ''}`}>
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>All
-            </button>
-            <button onClick={() => setFilter('Pending')} className={`flex items-center gap-1 text-yellow-600 hover:bg-yellow-100 px-2 py-1 rounded-md transition-colors ${filter === 'Pending' ? 'bg-yellow-100 ring-2 ring-yellow-300' : ''}`}>
-              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>Pending: {statusCount.Pending}
-            </button>
-            <button onClick={() => setFilter('Approved')} className={`flex items-center gap-1 text-green-600 hover:bg-green-100 px-2 py-1 rounded-md transition-colors ${filter === 'Approved' ? 'bg-green-100 ring-2 ring-green-300' : ''}`}>
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>Approved: {statusCount.Approved}
-            </button>
-            <button onClick={() => setFilter('Rejected')} className={`flex items-center gap-1 text-red-600 hover:bg-red-100 px-2 py-1 rounded-md transition-colors ${filter === 'Rejected' ? 'bg-red-100 ring-2 ring-red-300' : ''}`}>
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>Rejected: {statusCount.Rejected}
-            </button>
-            <button onClick={() => setFilter('Cancelled')} className={`flex items-center gap-1 text-orange-600 hover:bg-orange-100 px-2 py-1 rounded-md transition-colors ${filter === 'Cancelled' ? 'bg-orange-100 ring-2 ring-orange-300' : ''}`}>
-              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>Cancelled: {statusCount.Cancelled}
-            </button>
-            <button onClick={() => setFilter('Overdue')} className={`flex items-center gap-1 text-gray-600 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors ${filter === 'Overdue' ? 'bg-gray-100 ring-2 ring-gray-300' : ''}`}>
-              <span className="w-2 h-2 bg-gray-500 rounded-full"></span>Overdue: {statusCount.Overdue}
-            </button>
+            <span className="text-slate-600 font-medium text-sm mr-2">Filter:</span>
+            {[
+              { label: 'All', value: 'All' },
+              { label: `Pending: ${statusCount.Pending}`, value: 'Pending' },
+              { label: `Approved: ${statusCount.Approved}`, value: 'Approved' },
+              { label: `Rejected: ${statusCount.Rejected}`, value: 'Rejected' },
+              { label: `Cancelled: ${statusCount.Cancelled}`, value: 'Cancelled' },
+              { label: `Overdue: ${statusCount.Overdue}`, value: 'Overdue' }
+            ].map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => setFilter(value)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                  filter === value 
+                    ? (value === 'All' ? 'bg-blue-500 text-white shadow-sm' : getStatusBadge(value.toUpperCase()) + ' shadow-sm')
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           <div className="flex flex-wrap gap-2 text-sm items-center mt-3 md:mt-0">
-            <span className="font-medium text-gray-700 whitespace-nowrap mr-2">Sort:</span>
-            <button onClick={() => setSortBy('Latest')} className={`text-purple-600 hover:bg-purple-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Latest' ? 'bg-purple-100 ring-2 ring-purple-300' : ''}`}>
+            <span className="text-slate-600 font-medium text-sm mr-2">Sort:</span>
+            <button onClick={() => setSortBy('Latest')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${sortBy === 'Latest' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               Latest
             </button>
-            <button onClick={() => setSortBy('Oldest')} className={`text-indigo-600 hover:bg-indigo-100 px-2 py-1 rounded-md transition-colors ${sortBy === 'Oldest' ? 'bg-indigo-100 ring-2 ring-indigo-300' : ''}`}>
+            <button onClick={() => setSortBy('Oldest')} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer ${sortBy === 'Oldest' ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               Oldest
             </button>
           </div>
@@ -315,54 +301,52 @@ export default function WardenDashboard() {
               <div className="col-span-3 text-center text-gray-500 py-8">No requests found.</div>
             ) : (
               sortedRequests.map((request) => {
-                const statusKey = request.status?.toLowerCase() || 'pending';
-                const styles = statusStyles[statusKey] || statusStyles.pending;
+                const statusKey = request.status?.toUpperCase() || 'PENDING';
 
                 return (
                   <div
                     key={request.id}
                     id={`request-${request.id}`}
-                    className={`border rounded-xl p-6 shadow-sm ${styles.bg} border-l-4 cursor-pointer hover:shadow-md transition-shadow ${highlightedRequest === request.id ? 'ring-4 ring-blue-400 ring-opacity-60' : ''}`}
+                    className={`bg-white rounded-xl border border-slate-200 shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow ${highlightedRequest === request.id ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => handleViewDetails(request)}
                   >
                     <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center space-x-2">
-                        <span>{styles.icon}</span>
-                        <span className={`font-semibold ${styles.text}`}>{request.status}</span>
-                      </div>
-                      <button className="text-blue-600 hover:underline text-xs">
-                        👁️ View
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(statusKey)}`}>
+                        {request.status || 'UNKNOWN'}
+                      </span>
+                      <button className="text-blue-500 hover:text-blue-600 font-medium text-sm">
+                        View Details
                       </button>
                     </div>
 
                     {/* Student Photo + Name */}
                     <div className="flex items-center gap-3 mb-3">
                       {request.student?.photoUrl ? (
-                        <img src={request.student.photoUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                        <img src={request.student.photoUrl} alt="" className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs">No Photo</div>
+                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs shadow-sm">No Photo</div>
                       )}
                       <div>
-                        <div className="font-semibold text-sm">{request.student?.fullName}</div>
-                        <div className="text-xs text-gray-500">{request.student?.usn} | {request.student?.room?.displayName}</div>
+                        <div className="font-semibold text-slate-800">{request.student?.fullName}</div>
+                        <div className="text-xs text-slate-500">{request.student?.usn} | {request.student?.room?.displayName}</div>
                       </div>
                     </div>
 
-                    <h3 className="text-base font-semibold mb-2">{request.requestType || 'Outing Request'}</h3>
+                    <h3 className="text-slate-800 font-semibold text-lg mb-2">{request.requestType || 'Outing Request'}</h3>
 
-                    <div className="flex items-center text-sm text-gray-700 mb-1">
-                      <span className="mr-1">📅</span>
-                      <span><b>Out:</b> {request.outDateTime ? `${formatDate(request.outDateTime)} at ${new Date(request.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'N/A'}</span>
+                    <div className="flex items-center text-slate-500 text-sm mb-1">
+                      <span className="mr-2">📅</span>
+                      <span><b className="text-slate-700">Out:</b> {request.outDateTime ? `${formatDate(request.outDateTime)} at ${new Date(request.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'N/A'}</span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-700 mb-2">
-                      <span className="mr-1">🕐</span>
-                      <span><b>Return:</b> {request.expectedReturnDateTime ? `${formatDate(request.expectedReturnDateTime)} at ${new Date(request.expectedReturnDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'N/A'}</span>
+                    <div className="flex items-center text-slate-500 text-sm mb-2">
+                      <span className="mr-2">🕐</span>
+                      <span><b className="text-slate-700">Return:</b> {request.expectedReturnDateTime ? `${formatDate(request.expectedReturnDateTime)} at ${new Date(request.expectedReturnDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'N/A'}</span>
                     </div>
 
-                    <hr className="my-2" />
+                    <hr className="my-3 border-slate-200" />
 
-                    <p className="text-sm truncate">
-                      <span className="font-medium">Reason:</span> {request.reason || 'N/A'}
+                    <p className="text-slate-500 text-sm truncate mb-1">
+                      <span className="font-medium text-slate-700 mr-1">Reason:</span> {request.reason || 'N/A'}
                     </p>
 
                     {/* Approved — show approval number + certificate link */}

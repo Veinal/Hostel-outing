@@ -29,35 +29,37 @@ export default function SideBar() {
 
       {/* Sidebar */}
       <div
-        className={`${isMobileOpen ? 'absolute z-50' : 'hidden'} md:block ${isCollapsed ? 'w-14' : 'w-56'} bg-base-200 text-base-content min-h-full flex flex-col transition-all duration-300`}
+        className={`${isMobileOpen ? 'absolute z-50' : 'hidden'} md:flex flex-col w-64 bg-slate-800 min-h-screen transition-all duration-300`}
       >
-        {/* Collapse Button */}
-        <button
-          onClick={() => {
-            if (window.innerWidth < 768) {
-              setIsMobileOpen(false);
-            } else {
-              setIsCollapsed(!isCollapsed);
-            }
-          }}
-          className="btn btn-ghost text-xl m-2"
-        >
-          {isCollapsed || (isMobileOpen && window.innerWidth < 768) ? '☰' : '✖'}
-        </button>
+        <div className="text-white font-bold text-lg px-6 py-5 border-b border-slate-700 flex justify-between items-center">
+          <span>Admin Portal</span>
+          <button
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                setIsMobileOpen(false);
+              }
+            }}
+            className="md:hidden text-slate-400 hover:text-white"
+          >
+            ✖
+          </button>
+        </div>
 
         {/* Sidebar Links */}
-        <ul className="menu p-4">
+        <ul className="flex flex-col py-4">
           {navLinks.map(({ to, icon, label }) => (
             <li key={to}>
               <Link
                 to={to}
-                className={`flex items-center gap-4 p-2 rounded-lg ${
-                  isActive(to) ? 'bg-primary text-white' : 'hover:bg-gray-100'
-                }`}
+                className={
+                  isActive(to)
+                    ? 'flex items-center gap-3 px-6 py-3 text-white bg-slate-700 transition-colors'
+                    : 'flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors'
+                }
                 onClick={() => setIsMobileOpen(false)}
               >
                 <span className="text-xl">{icon}</span>
-                {!isCollapsed && <span>{label}</span>}
+                <span>{label}</span>
               </Link>
             </li>
           ))}

@@ -149,10 +149,10 @@ export default function RequestForm() {
   }
 
   return (
-    <div>
-      <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-md mt-5">
-        <h2 className="text-2xl font-bold mb-1">New Outing Request</h2>
-        <p className="text-sm text-gray-600 mb-8">
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 w-full max-w-2xl mx-auto mt-8">
+        <h2 className="text-2xl font-bold text-slate-800 mb-1">New Outing Request</h2>
+        <p className="text-slate-500 text-sm mb-6">
           Fill in the details below to submit your hostel outing request
         </p>
 
@@ -167,12 +167,12 @@ export default function RequestForm() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex flex-col md:flex-row md:space-x-4">
             <div className="flex-1">
-              <label className="block font-medium mb-1">
-                Request Type <span className="text-red-500">*</span>
+              <label className="block text-gray-700 font-medium mb-1 text-sm">
+                Request Type <span className="text-red-500 ml-1">*</span>
               </label>
               <select
                 name="requestType"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                 value={form.requestType}
                 onChange={handleChange}
                 required
@@ -187,13 +187,13 @@ export default function RequestForm() {
 
             {form.requestType === 'OUTING' && (
               <div className="flex-1 mt-4 md:mt-0">
-                <label className="block font-medium mb-1">
-                  Location <span className="text-red-500">*</span>
+                <label className="block text-gray-700 font-medium mb-1 text-sm">
+                  Location <span className="text-red-500 ml-1">*</span>
                 </label>
                 <input
                   type="text"
                   name="location"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                   placeholder="Enter location"
                   value={form.location}
                   onChange={handleChange}
@@ -205,13 +205,13 @@ export default function RequestForm() {
 
           {/* Reason */}
           <div>
-            <label className="block font-medium mb-1">
-              Reason <span className="text-red-500">*</span>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Reason <span className="text-red-500 ml-1">*</span>
             </label>
             <textarea
               name="reason"
               placeholder="Provide a reason for your request..."
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               value={form.reason}
               onChange={handleChange}
               rows={3}
@@ -221,12 +221,12 @@ export default function RequestForm() {
 
           {/* Select Warden */}
           <div>
-            <label className="block font-medium mb-1">
-              Select Warden <span className="text-red-500">*</span>
+            <label className="block text-gray-700 font-medium mb-1 text-sm">
+              Select Warden <span className="text-red-500 ml-1">*</span>
             </label>
             <select
               name="wardenId"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
               value={form.wardenId}
               onChange={handleChange}
               required
@@ -243,13 +243,13 @@ export default function RequestForm() {
           {/* Date/Time fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium mb-1">
-                Out Date &amp; Time <span className="text-red-500">*</span>
+              <label className="block text-gray-700 font-medium mb-1 text-sm">
+                Out Date &amp; Time <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="datetime-local"
                 name="outDateTime"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                 value={form.outDateTime}
                 onChange={handleChange}
                 required
@@ -260,13 +260,13 @@ export default function RequestForm() {
             </div>
 
             <div>
-              <label className="block font-medium mb-1">
-                Expected Return Date &amp; Time <span className="text-red-500">*</span>
+              <label className="block text-gray-700 font-medium mb-1 text-sm">
+                Expected Return Date &amp; Time <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="datetime-local"
                 name="expectedReturnDateTime"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-200"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
                 value={form.expectedReturnDateTime}
                 onChange={handleChange}
                 required
@@ -288,17 +288,17 @@ export default function RequestForm() {
                   onChange={() => setDelayFlagged(prev => !prev)}
                   className="mr-2"
                 />
-                <label htmlFor="delayFlagged" className="text-sm">
+                <label htmlFor="delayFlagged" className="text-slate-600 text-sm ml-2">
                   Flag Delayed Return (allows return after 7 PM)
                 </label>
               </div>
               {delayFlagged && (
-                <div className="text-yellow-600 text-xs">
+                <div className="text-amber-600 text-xs mt-1">
                   Warning: You can now set return time after 7 PM. After approval and exit, use the delay report feature if you are running late.
                 </div>
               )}
               {!delayFlagged && weekendNote && (
-                <div className="text-blue-600 text-xs">
+                <div className="text-blue-600 text-xs mt-1">
                   {weekendNote} Check the box above to allow later return.
                 </div>
               )}
@@ -306,18 +306,18 @@ export default function RequestForm() {
           )}
 
           {/* Buttons */}
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end space-x-3 mt-6">
             <Link to="/student/dashboard">
               <button
                 type="button"
-                className="px-4 py-2 mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md"
+                className="bg-slate-100 hover:bg-slate-200 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors"
               >
                 Cancel
               </button>
             </Link>
             <button
               type="submit"
-              className={`px-4 py-2 mt-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md cursor-pointer flex items-center justify-center ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+              className={`bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
               disabled={loading}
             >
               {loading ? (
