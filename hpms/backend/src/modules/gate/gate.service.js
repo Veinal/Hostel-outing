@@ -123,15 +123,17 @@ export class GateService {
         entryScannedAt: updatedCertificate.entryScannedAt
       }
     };
+  }
+
   static async getScans(user, query) {
     const { date, page = 1, limit = 50 } = query;
-    
+
     const targetDate = date ? new Date(date) : new Date();
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
-    
+
     const [scans, total] = await db.$transaction([
       db.scanLog.findMany({
         where: {
@@ -175,7 +177,7 @@ export class GateService {
         }
       })
     ]);
-    
+
     return { scans, total, page: parseInt(page), limit: parseInt(limit) };
   }
 }
