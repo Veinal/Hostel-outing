@@ -15,11 +15,11 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-slate-50">
       <SideBar />
-      <main className="flex-1 p-8 bg-gray-50">
+      <main className="flex-1 p-8 bg-slate-50 min-h-screen">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+          <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
         </div>
 
         {isLoading ? (
@@ -37,9 +37,9 @@ export default function AdminDashboard() {
                 { label: 'Approved Today', value: summary.approvedToday, color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-200' },
                 { label: 'Overdue Now', value: summary.overdueNow, color: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200' },
               ].map(({ label, value, color, bg, border }) => (
-                <div key={label} className={`${bg} ${border} border rounded-xl p-4 text-center shadow-sm`}>
-                  <h3 className="font-semibold text-gray-700 text-sm mb-1">{label}</h3>
+                <div key={label} className={`${bg} ${border} border rounded-xl p-6 text-center shadow-sm`}>
                   <p className={`text-3xl font-bold ${color}`}>{value ?? '—'}</p>
+                  <p className="text-slate-500 text-sm mt-1">{label}</p>
                 </div>
               ))}
             </div>
@@ -47,30 +47,30 @@ export default function AdminDashboard() {
             {/* Navigation Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Link to="/admin/wardens">
-                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer hover:border-blue-200">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="text-4xl mb-3">👔</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">Manage Wardens</h3>
-                  <p className="text-sm text-gray-500">Add, edit, assign blocks to wardens</p>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Manage Wardens</h3>
+                  <p className="text-slate-500 text-sm mt-2">Add, edit, assign blocks to wardens</p>
                 </div>
               </Link>
               <Link to="/admin/students">
-                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer hover:border-green-200">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="text-4xl mb-3">🎓</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">Manage Students</h3>
-                  <p className="text-sm text-gray-500">View, search, filter and import students</p>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Manage Students</h3>
+                  <p className="text-slate-500 text-sm mt-2">View, search, filter and import students</p>
                 </div>
               </Link>
               <Link to="/admin/reports">
-                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow cursor-pointer hover:border-teal-200">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer">
                   <div className="text-4xl mb-3">📋</div>
-                  <h3 className="text-lg font-bold text-gray-800 mb-1">Reports</h3>
-                  <p className="text-sm text-gray-500">View outing reports and overdue tracking</p>
+                  <h3 className="text-lg font-bold text-slate-800 mb-1">Reports</h3>
+                  <p className="text-slate-500 text-sm mt-2">View outing reports and overdue tracking</p>
                 </div>
               </Link>
             </div>
           </>
         ) : (
-          <p className="text-center text-gray-600">Failed to load summary data.</p>
+          <p className="text-center text-slate-600">Failed to load summary data.</p>
         )}
       </main>
     </div>

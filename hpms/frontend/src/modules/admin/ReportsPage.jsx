@@ -3,6 +3,9 @@ import Papa from 'papaparse';
 import { adminApi } from './adminApi';
 import SideBar from '../../shared/SideBar';
 
+const inputClass = "border border-slate-300 rounded-lg px-3 py-2.5 text-slate-800 bg-white focus:outline-none focus:border-blue-500 text-sm w-full";
+const labelClass = "text-slate-600 text-xs uppercase font-semibold tracking-wide mb-1 block";
+
 export default function ReportsPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -62,55 +65,38 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+    <div className="flex min-h-screen bg-slate-50">
       <SideBar />
-      <main className="flex-1 p-4 md:p-8">
-        
+      <main className="flex-1 p-8">
+
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Reporting Engine</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Generate and export system activity reports</p>
+            <h1 className="text-3xl font-bold text-slate-800">Reporting Engine</h1>
+            <p className="text-slate-500 text-sm mt-1">Generate and export system activity reports</p>
           </div>
-          <button 
-            onClick={exportToCSV} 
-            disabled={!data.length} 
-            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+          <button
+            onClick={exportToCSV}
+            disabled={!data.length}
+            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-6 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
           >
             <span>📥</span> Export CSV
           </button>
         </div>
 
         {/* Filters */}
-        <div className="themed-card p-6 rounded-3xl shadow-sm mb-8">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
           <div className="flex flex-wrap gap-4 items-end">
             <div className="w-40">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">From Date</label>
-              <input 
-                type="date" 
-                name="from" 
-                value={filters.from} 
-                onChange={handleFilterChange} 
-                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
-              />
+              <label className={labelClass}>From Date</label>
+              <input type="date" name="from" value={filters.from} onChange={handleFilterChange} className={inputClass} />
             </div>
             <div className="w-40">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">To Date</label>
-              <input 
-                type="date" 
-                name="to" 
-                value={filters.to} 
-                onChange={handleFilterChange} 
-                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
-              />
+              <label className={labelClass}>To Date</label>
+              <input type="date" name="to" value={filters.to} onChange={handleFilterChange} className={inputClass} />
             </div>
             <div className="w-48">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">Status</label>
-              <select 
-                name="status" 
-                value={filters.status} 
-                onChange={handleFilterChange} 
-                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none appearance-none"
-              >
+              <label className={labelClass}>Status</label>
+              <select name="status" value={filters.status} onChange={handleFilterChange} className={inputClass}>
                 <option value="">All Statuses</option>
                 <option value="APPROVED">APPROVED</option>
                 <option value="PENDING">PENDING</option>
@@ -120,28 +106,15 @@ export default function ReportsPage() {
               </select>
             </div>
             <div className="w-24">
-              <label className="block text-[10px] uppercase tracking-widest font-black text-slate-400 mb-1.5 ml-1">Block</label>
-              <input 
-                type="text" 
-                name="block" 
-                placeholder="Block" 
-                value={filters.block} 
-                onChange={handleFilterChange} 
-                className="themed-input w-full rounded-xl px-4 py-2.5 text-sm outline-none" 
-              />
+              <label className={labelClass}>Block</label>
+              <input type="text" name="block" placeholder="Block" value={filters.block} onChange={handleFilterChange} className={inputClass} />
             </div>
             <div className="flex gap-2">
-              <button 
-                onClick={loadRequestsReport} 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-500/20"
-              >
-                Run Report
+              <button onClick={loadRequestsReport} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors">
+                Run General Report
               </button>
-              <button 
-                onClick={loadOverdueReport} 
-                className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-red-500/20"
-              >
-                Show Overdue
+              <button onClick={loadOverdueReport} className="bg-red-500 hover:bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors">
+                Show Active Overdue
               </button>
             </div>
           </div>
@@ -149,52 +122,40 @@ export default function ReportsPage() {
 
         {/* Results */}
         {loading ? (
-          <div className="flex flex-col justify-center items-center py-24 themed-card rounded-3xl">
-            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-            <p className="text-slate-500 font-medium italic">Compiling data engine results...</p>
+          <div className="flex flex-col justify-center items-center py-16 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-slate-500 font-medium">Generating report...</p>
           </div>
         ) : (
-          <div className="overflow-x-auto themed-card rounded-3xl shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Approval #</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Student Identity</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Type</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400">Out Time</th>
-                  <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-black text-slate-400 text-right">Status</th>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="text-slate-500 text-xs uppercase font-semibold tracking-wide px-6 py-3">Approval #</th>
+                  <th className="text-slate-500 text-xs uppercase font-semibold tracking-wide px-6 py-3">Student</th>
+                  <th className="text-slate-500 text-xs uppercase font-semibold tracking-wide px-6 py-3">Type</th>
+                  <th className="text-slate-500 text-xs uppercase font-semibold tracking-wide px-6 py-3">Out Time</th>
+                  <th className="text-slate-500 text-xs uppercase font-semibold tracking-wide px-6 py-3 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+              <tbody>
                 {data.map(req => (
-                  <tr key={req.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                    <td className="px-6 py-5">
-                      <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {req.approvalNumber || '—'}
-                      </span>
+                  <tr key={req.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="text-slate-800 px-6 py-4 text-sm font-mono font-bold text-blue-600">{req.approvalNumber || '—'}</td>
+                    <td className="text-slate-800 px-6 py-4 text-sm">
+                      <p className="text-slate-800 font-semibold">{req.student?.fullName}</p>
+                      <p className="text-slate-500 text-xs font-mono">{req.student?.usn}</p>
                     </td>
-                    <td className="px-6 py-5">
-                      <p className="font-bold text-slate-800 dark:text-white leading-tight">{req.student?.fullName}</p>
-                      <p className="text-xs font-mono text-slate-400 mt-0.5">{req.student?.usn}</p>
+                    <td className="text-slate-800 px-6 py-4 text-sm">{req.requestType?.replace(/_/g, ' ')}</td>
+                    <td className="text-slate-800 px-6 py-4 text-sm">
+                      <p>{new Date(req.outDateTime).toLocaleDateString()}</p>
+                      <p className="text-slate-500 text-xs">{new Date(req.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                     </td>
-                    <td className="px-6 py-5">
-                      <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
-                        {req.requestType?.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {new Date(req.outDateTime).toLocaleDateString()}
-                      </p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">
-                        {new Date(req.outDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        req.status === 'OVERDUE' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 
-                        req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' : 
-                        'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                    <td className="px-6 py-4 text-right">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        req.status === 'OVERDUE' ? 'bg-red-100 text-red-700' :
+                        req.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-700' :
+                        'bg-slate-100 text-slate-600'
                       }`}>
                         {req.status}
                       </span>
@@ -203,7 +164,7 @@ export default function ReportsPage() {
                 ))}
                 {data.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="text-center text-slate-400 py-16 italic">No records found. Run a report to view activity.</td>
+                    <td colSpan={5} className="text-center text-slate-500 py-12 italic">No records found. Run a report above.</td>
                   </tr>
                 )}
               </tbody>

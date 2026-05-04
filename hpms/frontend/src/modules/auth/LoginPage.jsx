@@ -32,7 +32,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const res = await login(email, password);
       handleRedirect(res.data.user.role);
@@ -57,99 +56,165 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 transition-colors duration-300 relative overflow-hidden">
-      
-      {/* Abstract Background Shapes */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div
+      className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{
+        backgroundImage: "url('https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_1922,h_689/https://mite.ac.in/wp-content/uploads/2020/07/slider-1-mite.jpg')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      {/* Dark overlay on top of background photo */}
+      <div
+        className="absolute inset-0"
+        style={{ background: 'linear-gradient(135deg, rgba(15,23,42,0.82) 0%, rgba(30,58,95,0.75) 50%, rgba(15,23,42,0.85) 100%)' }}
+      />
+
+      {/* Decorative blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full opacity-10 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full opacity-10 blur-3xl" />
       </div>
 
-      <div className="max-w-md w-full px-6 relative z-10">
-        
-        <div className="text-center mb-10">
-          <img
-            src="https://mite.ac.in/wp-content/uploads/2025/03/mite-logo.svg"
-            className="w-16 mx-auto mb-6 drop-shadow-xl"
-            alt="MITE Logo"
-          />
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
-            MITE <span className="text-blue-600">Hostel</span>
+      {/* Login card */}
+      <div className="relative z-10 w-full max-w-md px-4">
+
+        {/* College Logo + Title */}
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-2xl p-2">
+            <img
+              src="https://mite.ac.in/wp-content/uploads/2025/03/mite-logo.svg"
+              alt="MITE Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<span style="font-size:2rem">🏫</span>'; }}
+            />
+          </div>
+          <h1 className="font-bold text-4xl" style={{ color: 'white' }}>
+            MITE <span style={{ color: '#60a5fa' }}>HOSTEL</span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Permission Management System</p>
+          <p style={{ color: '#94a3b8', marginTop: '0.5rem' }}>
+            Permission Management System
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl shadow-blue-500/10 dark:shadow-none p-10 border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300">
-          <h2 className="text-2xl font-bold mb-8 text-slate-800 dark:text-white">Sign In</h2>
-          
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-[10px] uppercase font-black tracking-widest text-slate-400 mb-2 ml-1">Email Address</label>
+        {/* Card */}
+        <div
+          className="rounded-2xl p-8 border shadow-2xl"
+          style={{
+            backgroundColor: 'rgba(30, 41, 59, 0.85)',
+            backdropFilter: 'blur(12px)',
+            borderColor: 'rgba(100, 116, 139, 0.4)',
+          }}
+        >
+          <h2 className="font-bold text-2xl mb-6" style={{ color: 'white' }}>
+            Sign In
+          </h2>
+
+          {/* Error alert */}
+          {error && (
+            <div
+              className="rounded-lg px-4 py-3 mb-4 text-sm"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+                color: '#fca5a5',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {/* Email field */}
+            <div className="mb-4">
+              <label
+                className="block text-xs uppercase font-semibold mb-2 tracking-wide"
+                style={{ color: '#94a3b8' }}
+              >
+                Email Address
+              </label>
               <input
                 type="email"
-                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="themed-input w-full rounded-2xl px-5 py-4 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 placeholder="name@hpms.college"
+                required
+                className="w-full rounded-xl px-4 py-3 focus:outline-none transition-colors"
+                style={{
+                  backgroundColor: 'rgba(51, 65, 85, 0.6)',
+                  border: '1px solid rgba(100, 116, 139, 0.5)',
+                  color: 'white',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 1px #3b82f6'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(100,116,139,0.5)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-2 ml-1">
-                <label className="block text-[10px] uppercase font-black tracking-widest text-slate-400">Password</label>
+            {/* Password field */}
+            <div className="mb-6">
+              <div className="flex justify-between items-center mb-2">
+                <label
+                  className="text-xs uppercase font-semibold tracking-wide"
+                  style={{ color: '#94a3b8' }}
+                >
+                  Password
+                </label>
                 <button
                   type="button"
+                  className="text-xs font-semibold hover:underline"
+                  style={{ color: '#60a5fa' }}
                   onClick={handleForgotPassword}
-                  className="text-[10px] uppercase font-black text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Forgot?
+                  FORGOT?
                 </button>
               </div>
               <input
                 type="password"
-                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="themed-input w-full rounded-2xl px-5 py-4 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
                 placeholder="••••••••"
+                required
+                className="w-full rounded-xl px-4 py-3 focus:outline-none transition-colors"
+                style={{
+                  backgroundColor: 'rgba(51, 65, 85, 0.6)',
+                  border: '1px solid rgba(100, 116, 139, 0.5)',
+                  color: 'white',
+                }}
+                onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.boxShadow = '0 0 0 1px #3b82f6'; }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(100,116,139,0.5)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold p-4 rounded-xl border border-red-100 dark:border-red-900/30 flex items-center gap-2">
-                <span>⚠️</span> {error}
-              </div>
-            )}
-
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-lg shadow-xl shadow-slate-900/20 dark:shadow-none hover:translate-y-[-2px] transition-all disabled:opacity-50 disabled:translate-y-0"
+              className="w-full bg-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ color: '#1e293b' }}
+              onMouseEnter={e => !loading && (e.target.style.backgroundColor = '#f1f5f9')}
+              onMouseLeave={e => (e.target.style.backgroundColor = 'white')}
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white dark:border-slate-900/30 dark:border-t-slate-900 rounded-full animate-spin"></span>
-                  Authenticating...
-                </span>
-              ) : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-slate-400 dark:text-slate-600 text-[10px] uppercase font-black tracking-widest mt-12">
-          © 2026 MITE Hostel Management
+        {/* Footer */}
+        <p className="text-center text-xs mt-6" style={{ color: '#475569' }}>
+          © 2026 MITE HOSTEL MANAGEMENT
         </p>
       </div>
 
       {/* Snackbar */}
       {snackbar.open && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl"
+          style={{ backgroundColor: '#1e293b', color: 'white' }}
+        >
           <div className="flex items-center gap-4">
             <span className="font-bold text-sm">{snackbar.message}</span>
             <button
               onClick={() => setSnackbar({ ...snackbar, open: false })}
-              className="p-1 hover:bg-white/10 dark:hover:bg-slate-100 rounded-lg"
+              className="p-1 rounded-lg opacity-70 hover:opacity-100"
             >
               ✕
             </button>

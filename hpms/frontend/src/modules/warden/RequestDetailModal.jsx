@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import client from '../../api/client';
 
+const formatRequestType = (type) => {
+  if (!type) return '';
+  return type.replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
+
 export default function RequestDetailModal({ request, onClose, onActionComplete }) {
   const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -151,7 +158,7 @@ export default function RequestDetailModal({ request, onClose, onActionComplete 
                 <span className="font-medium text-slate-700">Status:</span>
                 <span className={getStatusBadge(request.status)}>{request.status}</span>
               </div>
-              <p><span className="font-medium text-slate-700">Type:</span> <span className="text-slate-600">{request.requestType}</span></p>
+              <p><span className="font-medium text-slate-700">Type:</span> <span className="text-slate-600">{formatRequestType(request.requestType)}</span></p>
               <p><span className="font-medium text-slate-700">Reason:</span> <span className="text-slate-600">{request.reason}</span></p>
               {request.location && <p><span className="font-medium text-slate-700">Location:</span> <span className="text-slate-600">{request.location}</span></p>}
               <p><span className="font-medium text-slate-700">Out Time:</span> <span className="text-slate-600">{request.outDateTime ? new Date(request.outDateTime).toLocaleString() : 'N/A'}</span></p>

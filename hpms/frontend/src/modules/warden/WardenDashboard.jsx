@@ -23,6 +23,13 @@ const formatDate = (dateStr) => {
   return `${day}-${month}-${year}`;
 };
 
+const formatRequestType = (type) => {
+  if (!type) return '';
+  return type.replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+};
+
 export default function WardenDashboard() {
   const [allRequests, setAllRequests] = useState([]);
   const [filter, setFilter] = useState('All');
@@ -332,7 +339,7 @@ export default function WardenDashboard() {
                       </div>
                     </div>
 
-                    <h3 className="text-slate-800 font-semibold text-lg mb-2">{request.requestType || 'Outing Request'}</h3>
+                    <h3 className="text-slate-800 font-semibold text-lg mb-2">{formatRequestType(request.requestType) || 'Outing Request'}</h3>
 
                     <div className="flex items-center text-slate-500 text-sm mb-1">
                       <span className="mr-2">📅</span>
