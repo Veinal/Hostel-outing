@@ -8,13 +8,19 @@ export default function RequestForm() {
   // Step 6.2: Pre-fill from rejected request if navigated with state
   const prefill = location.state?.prefill || null;
 
+  const formatDateTimeLocal = (date) => {
+    const d = new Date(date);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const [form, setForm] = useState({
     requestType: prefill?.requestType || 'OUTING',
     location: prefill?.location || '',
     reason: prefill?.reason || '',
     wardenId: prefill?.wardenId || '',
-    outDateTime: '',
-    expectedReturnDateTime: '',
+    outDateTime: prefill?.outDateTime ? formatDateTimeLocal(prefill.outDateTime) : formatDateTimeLocal(new Date(Date.now() + 2 * 3600000)),
+    expectedReturnDateTime: prefill?.expectedReturnDateTime ? formatDateTimeLocal(prefill.expectedReturnDateTime) : formatDateTimeLocal(new Date(Date.now() + 4 * 3600000)),
   });
   const [wardens, setWardens] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -49,9 +55,16 @@ export default function RequestForm() {
 
   // Step 6.6: Weekend auto-set return time to 19:00 for OUTING
   useEffect(() => {
-    if (form.requestType === 'OUTING' && form.outDateTime && isWeekend(form.outDateTime) && !delayFlagged) {
+    if (form.requestType !== 'OUTING') return;
+    if (!form.outDateTime) return;
+    
+    const outDate = new Date(form.outDateTime);
+    const dayOfWeek = outDate.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    
+    if (isWeekend && !delayFlagged) {
       // Auto-set return time to 19:00 on same day
-      const d = new Date(form.outDateTime);
+      const d = new Date(outDate);
       d.setHours(19, 0, 0, 0);
       const pad = (n) => String(n).padStart(2, '0');
       const returnStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T19:00`;
@@ -85,18 +98,22 @@ export default function RequestForm() {
     const diffHours = (outTime.getTime() - now.getTime()) / 3600000;
 
     if (form.requestType === 'OUTING') {
-      // Outing: today only, minimum 1 hour notice
+      // Outing: today only, minimum 2 hours notice, same day return
       const todayStr = now.toISOString().split('T')[0];
       const outDateStr = form.outDateTime.split('T')[0];
+      const retDateStr = form.expectedReturnDateTime.split('T')[0];
+
       if (outDateStr !== todayStr) return 'Outing requests must be for today only.';
-      if (diffHours < 1) return 'Outing time must be at least 1 hour from now.';
+      if (diffHours < 1.9) return 'Outing time must be at least 2 hours from now.';
+      if (retDateStr !== outDateStr) return 'Outing return time must be on the same day as departure.';
     } else {
-      // Leave / Home Going / Others: 4 hours notice
+      // Leave / Home Going / Others: 4 hours notice, return can be any future date
       const todayStr = now.toISOString().split('T')[0];
       const outDateStr = form.outDateTime.split('T')[0];
-      if (outDateStr === todayStr && diffHours < 3.5) {
+      if (outDateStr === todayStr && diffHours < 3.9) {
         return 'Out-time must be at least 4 hours from now.';
       }
+      if (retTime <= now) return 'Expected return time must be in the future.';
     }
 
     if (form.requestType === 'OUTING' && !form.location) return 'Location is required for Outing.';
@@ -289,6 +306,18 @@ export default function RequestForm() {
               <div className="text-xs text-gray-500 mt-1">
                 Please make sure to select AM or PM correctly.
               </div>
+              {form.requestType === 'OUTING' && (
+                <p className="text-blue-600 text-xs mt-1">
+                  Return time must be on the same day. 
+                  {isWeekend(form.outDateTime) ? ' Auto-set to 7:00 PM for weekend outings.' : ''}
+                </p>
+              )}
+              {form.requestType === 'HOME_GOING' && (
+                <p className="text-slate-500 text-xs mt-1">
+                  For home visits, you may set the return date to any future date.
+                  Your actual return time will be recorded by the gate scanner.
+                </p>
+              )}
             </div>
           </div>
 

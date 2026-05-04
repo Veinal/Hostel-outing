@@ -86,7 +86,13 @@ export class GateService {
       db.approvalCertificate.update({
         where: { id: certificate.id },
         data: certificateUpdate
-      })
+      }),
+      ...(scanType === 'ENTRY' ? [
+        db.outingRequest.update({
+          where: { id: certificate.requestId },
+          data: { status: 'COMPLETED' }
+        })
+      ] : [])
     ]);
 
     if (scanType === 'ENTRY') {

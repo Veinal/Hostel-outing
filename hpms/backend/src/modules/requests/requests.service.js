@@ -25,10 +25,16 @@ export class RequestsService {
     const returnDate = new Date(expectedReturnDateTime);
     const now = new Date();
 
-    // 1. outDateTime must be at least 4 hours from now
+    // 1. Buffer time check: 2h for OUTING, 4h for others
     const diffHours = (outDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    if (diffHours < 4) {
-      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Departure time must be at least 4 hours from now', 400);
+    if (requestType === 'OUTING') {
+      if (diffHours < 1.9) { // Using 1.9 to account for slight delays in submission
+        throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Outing requests must be submitted at least 2 hours before departure', 400);
+      }
+    } else {
+      if (diffHours < 3.9) { // Using 3.9 to account for slight delays in submission
+        throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Departure time must be at least 4 hours from now', 400);
+      }
     }
 
     // 2. Weekend OUTING rule (return by 19:00)

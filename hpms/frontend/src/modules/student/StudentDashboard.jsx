@@ -11,6 +11,7 @@ const getStatusBadge = (status) => {
     CANCELLED: 'bg-gray-500 text-white',
     OVERDUE:   'bg-orange-500 text-white',
     COMPLETED: 'bg-blue-500 text-white',
+    EXPIRED:   'bg-slate-400 text-white',
   };
   return map[status] || 'bg-slate-300 text-slate-700';
 };
@@ -43,7 +44,7 @@ export default function StudentDashboard() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const pollingRef = useRef(null);
 
-  const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Overdue'];
+  const statuses = ['All', 'Pending', 'Approved', 'Rejected', 'Cancelled', 'Overdue', 'Completed'];
 
   const fetchRequests = async () => {
     try {
@@ -344,6 +345,23 @@ export default function StudentDashboard() {
                       {req.expectedReturnDateTime ? `at ${new Date(req.expectedReturnDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </span>
                   </div>
+                  
+                  {/* Actual Times for Completed Requests */}
+                  {req.status === 'COMPLETED' && (
+                    <div className="bg-blue-50 rounded-lg p-3 mb-3 border border-blue-100">
+                      <p className="text-blue-800 text-xs font-bold uppercase tracking-wider mb-2">Outing Details</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center text-blue-700 text-sm">
+                          <span className="w-5">📤</span>
+                          <span>Left at: {req.certificate?.exitScannedAt ? new Date(req.certificate.exitScannedAt).toLocaleString() : 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center text-blue-700 text-sm">
+                          <span className="w-5">📥</span>
+                          <span>Returned at: {req.certificate?.entryScannedAt ? new Date(req.certificate.entryScannedAt).toLocaleString() : 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <hr className="my-3 border-slate-200" />
 

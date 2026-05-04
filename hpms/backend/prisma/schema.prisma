@@ -28,6 +28,7 @@ enum RequestStatus {
   REJECTED
   CANCELLED
   OVERDUE
+  COMPLETED
 }
 
 enum CertificateStatus {

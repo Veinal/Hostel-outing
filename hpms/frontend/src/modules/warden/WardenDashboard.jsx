@@ -10,6 +10,7 @@ const getStatusBadge = (status) => {
     CANCELLED: 'bg-gray-500 text-white',
     OVERDUE:   'bg-orange-500 text-white',
     COMPLETED: 'bg-blue-500 text-white',
+    EXPIRED:   'bg-slate-400 text-white',
   };
   return map[status] || 'bg-slate-300 text-slate-700';
 };
@@ -106,6 +107,7 @@ export default function WardenDashboard() {
     Rejected: allRequests.filter((r) => r.status?.toUpperCase() === 'REJECTED').length,
     Cancelled: allRequests.filter((r) => r.status?.toUpperCase() === 'CANCELLED').length,
     Overdue: allRequests.filter((r) => r.status?.toUpperCase() === 'OVERDUE').length,
+    Completed: allRequests.filter((r) => r.status?.toUpperCase() === 'COMPLETED').length,
   };
 
   const handleViewDetails = async (request) => {
@@ -271,7 +273,8 @@ export default function WardenDashboard() {
               { label: `Approved: ${statusCount.Approved}`, value: 'Approved' },
               { label: `Rejected: ${statusCount.Rejected}`, value: 'Rejected' },
               { label: `Cancelled: ${statusCount.Cancelled}`, value: 'Cancelled' },
-              { label: `Overdue: ${statusCount.Overdue}`, value: 'Overdue' }
+              { label: `Overdue: ${statusCount.Overdue}`, value: 'Overdue' },
+              { label: `Completed: ${statusCount.Completed}`, value: 'Completed' }
             ].map(({ label, value }) => (
               <button
                 key={value}

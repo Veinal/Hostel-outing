@@ -238,14 +238,44 @@ export class AdminService {
 
   static async getSummary() {
     const totalStudents = await db.user.count({ where: { role: ROLES.STUDENT, isActive: true } });
-    const activeRequests = await db.outingRequest.count({ where: { status: { in: ['PENDING', 'APPROVED'] } } });
+    const totalWardens = await db.user.count({ where: { role: { in: [ROLES.WARDEN, ROLES.CHIEF_WARDEN] } } });
     
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // Active OUTING requests (today only, before midnight)
+    const activeOutings = await db.outingRequest.count({
+      where: {
+        status: 'APPROVED',
+        requestType: 'OUTING',
+        outDateTime: {
+          gte: startOfToday,
+          lte: endOfToday
+        }
+      }
+    });
+
+    // Active HOME_GOING and OTHERS (not yet returned)
+    const activeHomeGoings = await db.outingRequest.count({
+      where: {
+        status: 'APPROVED',
+        requestType: { in: ['HOME_GOING', 'OTHERS'] },
+        certificate: {
+          entryScannedAt: null,
+          status: { in: ['ACTIVE', 'STEPPED_OUT'] }
+        }
+      }
+    });
+
+    const activeRequests = activeOutings + activeHomeGoings;
+    
     const approvedToday = await db.outingRequest.count({ 
       where: { 
         status: 'APPROVED',
-        updatedAt: { gte: today }
+        updatedAt: { gte: startOfToday }
       } 
     });
     
@@ -255,6 +285,7 @@ export class AdminService {
 
     return {
       totalStudents,
+      totalWardens,
       activeRequests,
       approvedToday,
       overdueNow,

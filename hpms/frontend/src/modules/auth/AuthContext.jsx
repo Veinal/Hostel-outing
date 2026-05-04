@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
     const data = await authApi.login(email, password);
     if (data.success) {
       setUser(data.data.user);
+      setIsLoading(false);
     }
     return { data };
   };

@@ -14,7 +14,27 @@ export const RequestsValidator = {
       outDateTime: Joi.date().iso().required(),
       expectedReturnDateTime: Joi.date().iso().greater(Joi.ref('outDateTime')).required()
     });
-    return schema.validate(data, { abortEarly: false });
+    const { error, value } = schema.validate(data, { abortEarly: false });
+    if (error) return { error, value };
+
+    // OUTING: return must be same day
+    if (value.requestType === 'OUTING') {
+      const outDate = new Date(value.outDateTime);
+      const returnDate = new Date(value.expectedReturnDateTime);
+      
+      const outDay = outDate.toDateString();
+      const returnDay = returnDate.toDateString();
+      
+      if (outDay !== returnDay) {
+        throw new AppError(
+          'VALIDATION_ERROR',
+          'Outing return time must be on the same day as departure.',
+          400
+        );
+      }
+    }
+
+    return { error, value };
   },
 
   reject: (data) => {
